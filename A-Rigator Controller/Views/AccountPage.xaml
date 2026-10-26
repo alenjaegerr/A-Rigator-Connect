@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.AccountPage"
+             x:DataType="viewmodels:AccountViewModel"
+             Title="Account"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#F4F7F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="18">
+            <Label Text="Account"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="#176B45" />
+
+            <Border Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Google account"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+
+                    <Label Text="{Binding AccountSummary}"
+                           FontSize="15"
+                           TextColor="#52615A" />
+
+                    <Button Text="SIGN IN WITH GOOGLE"
+                            Command="{Binding SignInCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+
+                    <Button Text="SIGN OUT"
+                            Command="{Binding SignOutCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#52615A"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Supabase backend"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+
+                    <Label Text="URL"
+                           FontSize="14"
+                           TextColor="#52615A" />
+                    <Entry Text="{Binding SupabaseUrl, Mode=TwoWay}"
+                           Placeholder="https://xyz.supabase.co"
+                           PlaceholderColor="#52615A"
+                           TextColor="#17231C" />
+
+                    <Label Text="Anon key"
+                           FontSize="14"
+                           TextColor="#52615A" />
+                    <Entry Text="{Binding SupabaseAnonKey, Mode=TwoWay}"
+                           Placeholder="Paste your anon key"
+                           PlaceholderColor="#52615A"
+                           IsPassword="True"
+                           TextColor="#17231C" />
+
+                    <Button Text="SAVE SUPABASE CONFIG"
+                            Command="{Binding SaveSupabaseConfigCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   TextColor="#17231C" />
+
+            <Label Text="Remote mode and cloud sync remain locked until Google auth succeeds."
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="#A23A32" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

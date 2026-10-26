@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Windows Machine": {
+      "commandName": "Project",
+      "debugEngines": "managed-coreclr"
+    },
+    "Profile 1": {
+      "commandName": "Executable"
+    }
+  }
+}

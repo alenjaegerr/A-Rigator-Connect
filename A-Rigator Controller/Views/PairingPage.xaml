@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.PairingPage"
+             x:DataType="viewmodels:PairingViewModel"
+             Title="Pair A-Rigator"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#F4F7F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Pair your A-Rigator"
+                       FontSize="26"
+                       FontAttributes="Bold"
+                       TextColor="#176B45"
+                       SemanticProperties.HeadingLevel="Level1" />
+            </VerticalStackLayout>
+
+            <Border IsVisible="{Binding IsWifiInstructionsVisible}"
+                    Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="2. Connect to the A-Rigator Wi-Fi"
+                           FontSize="19"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+                    <Label Text="{Binding WifiStatusMessage}"
+                           FontSize="15"
+                           TextColor="#52615A" />
+                    <Label Text="Robot network name:"
+                           FontSize="15"
+                           TextColor="#52615A" />
+                    <Label Text="{Binding RobotAccessPointSsid}"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+                    <Label Text="{Binding ErrorMessage}"
+                           FontSize="14"
+                           TextColor="#A23A32" />
+                    <Label Text="{Binding ResultMessage}"
+                           IsVisible="{Binding IsErrorVisible}"
+                           FontSize="14"
+                           TextColor="#A23A32" />
+                    <Button Text="OPEN WI-FI SETTINGS"
+                            IsVisible="{Binding IsWifiSettingsButtonVisible}"
+                            Command="{Binding OpenWifiSettingsCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                    <Button Text="VERIFY ROBOT CONNECTION"
+                            Command="{Binding ConfirmWifiConnectionCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border IsVisible="{Binding IsResultVisible}"
+                    Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="16">
+                    <Label Text="3. ROBOT CONNECTION CONFIRMED"
+                           FontSize="19"
+                           FontAttributes="Bold"
+                           TextColor="#176B45" />
+                    <Label Text="{Binding SuccessfulResultMessage}"
+                           FontSize="15"
+                           TextColor="#35443B" />
+                    <Button Text="OPEN DASHBOARD"
+                            Command="{Binding OpenDashboardPreviewCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                    <Button Text="CONNECT TO NEARBY WI-FI"
+                            Command="{Binding OpenRemoteWifiSetupCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
+                    <Button Text="NOT NOW"
+                            Command="{Binding NotNowCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#52615A"
+                            TextColor="White" />
+                    <Button Text="GO BACK"
+                            Command="{Binding StartOverCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

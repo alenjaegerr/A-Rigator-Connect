@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.WelcomePage"
+             x:DataType="viewmodels:WelcomeViewModel"
+             Title="Welcome"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#F4F7F5">
+
+    <Grid Padding="24" RowDefinitions="*,Auto,*">
+        <VerticalStackLayout Grid.Row="1" Spacing="18" VerticalOptions="Center">
+            <Image Source="applogo.svg"
+                   HeightRequest="190"
+                   MaximumWidthRequest="320"
+                   Aspect="AspectFit"
+                   HorizontalOptions="Center"
+                   SemanticProperties.Description="A-Rigator Connect app logo" />
+            <Label Text="Welcome to A-Rigator Connect"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="#176B45"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Choose how to use A-Rigator Connect"
+                   FontSize="17"
+                   TextColor="#52615A" />
+            <Button Text="SIGN IN WITH GOOGLE (COMING SOON)"
+                    Command="{Binding SelectGoogleCommand}"
+                    MinimumHeightRequest="52"
+                    BackgroundColor="#D8E3DC"
+                    TextColor="#17231C" />
+            <Button Text="CONTINUE LOCALLY"
+                    Command="{Binding SelectLocalCommand}"
+                    MinimumHeightRequest="52"
+                    BackgroundColor="#176B45"
+                    TextColor="White" />
+            <Label Text="What should we call you?"
+                   IsVisible="{Binding IsNameEntryVisible}"
+                   FontSize="17"
+                   TextColor="#52615A" />
+            <Entry Text="{Binding DisplayName, Mode=TwoWay}"
+                   IsVisible="{Binding IsNameEntryVisible}"
+                   Placeholder="Your name"
+                   PlaceholderColor="Black"
+                   TextColor="Black"
+                   ReturnType="Done"
+                   SemanticProperties.Hint="Enter the name you want the app to use when greeting you." />
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   TextColor="#A23A32" />
+            <Button Text="CONTINUE"
+                    IsVisible="{Binding IsNameEntryVisible}"
+                    Command="{Binding ContinueCommand}"
+                    MinimumHeightRequest="52"
+                    BackgroundColor="#176B45"
+                    TextColor="White" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

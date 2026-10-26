@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.RemoteWifiSetupPage"
+             x:DataType="viewmodels:RemoteWifiSetupViewModel"
+             Title="Remote Wi-Fi"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#F4F7F5">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="20">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Connect A-Rigator to nearby Wi‑Fi"
+                       FontSize="26"
+                       FontAttributes="Bold"
+                       TextColor="#176B45"
+                       SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="This prepares the robot for remote connection mode. You can skip this step and continue in local mode."
+                       FontSize="15"
+                       TextColor="#52615A" />
+            </VerticalStackLayout>
+
+            <Border Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="Nearby Wi‑Fi name"
+                           FontSize="15"
+                           TextColor="#52615A" />
+                    <Entry Text="{Binding NetworkName, Mode=TwoWay}"
+                           Placeholder="Home Wi‑Fi"
+                           PlaceholderColor="#52615A"
+                           TextColor="#17231C" />
+
+                    <Label Text="Password"
+                           FontSize="15"
+                           TextColor="#52615A" />
+                    <Entry Text="{Binding Password, Mode=TwoWay}"
+                           Placeholder="Wi‑Fi password"
+                           PlaceholderColor="#52615A"
+                           IsPassword="True"
+                           TextColor="#17231C" />
+
+                    <Button Text="CONNECT TO WI‑FI"
+                            Command="{Binding ConnectCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+
+                    <Button Text="NOT NOW"
+                            Command="{Binding NotNowCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#52615A"
+                            TextColor="White" />
+
+                    <Label Text="{Binding StatusMessage}"
+                           FontSize="14"
+                           TextColor="#17231C" />
+
+                    <VerticalStackLayout Spacing="10" IsVisible="{Binding IsConnectedMessageVisible}">
+                        <Label Text="Wi‑Fi connected successfully."
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#176B45" />
+                        <Button Text="CONTINUE TO DASHBOARD"
+                                Command="{Binding ContinueCommand}"
+                                MinimumHeightRequest="52"
+                                BackgroundColor="#176B45"
+                                TextColor="White" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
