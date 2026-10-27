@@ -4,8 +4,8 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.PairingPage"
              x:DataType="viewmodels:PairingViewModel"
-             Title="Pair A-Rigator"
-             Shell.NavBarIsVisible="False"
+             Title=""
+             Shell.NavBarIsVisible="True"
              BackgroundColor="#F4F7F5">
 
     <ScrollView>
