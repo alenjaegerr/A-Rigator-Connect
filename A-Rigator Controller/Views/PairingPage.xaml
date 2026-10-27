@@ -57,6 +57,16 @@
                             MinimumHeightRequest="52"
                             BackgroundColor="#176B45"
                             TextColor="White" />
+                    <Button Text="PROCEED WITHOUT CONNECTING (DEV ONLY)"
+                            Command="{Binding ProceedWithoutConnectingCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#B3261E"
+                            TextColor="White"
+                            FontAttributes="Bold" />
+                    <Label Text="Development bypass: no robot connection is verified. Live controls and telemetry may not work."
+                           FontSize="12"
+                           TextColor="#A23A32" />
                 </VerticalStackLayout>
             </Border>
 
