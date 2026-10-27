@@ -50,6 +50,7 @@ namespace A_Rigator_Controller
             builder.Services.AddTransient<PairingPage>();
             builder.Services.AddTransient<RemoteWifiSetupPage>();
             builder.Services.AddTransient<AccountPage>();
+            builder.Services.AddTransient<SettingsPage>();
             builder.Services.AddTransient<AccountViewModel>();
             builder.Services.AddSingleton<AppShell>();
 
