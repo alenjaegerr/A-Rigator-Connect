@@ -4,8 +4,8 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.WelcomePage"
              x:DataType="viewmodels:WelcomeViewModel"
-             Title="Welcome"
-             Shell.NavBarIsVisible="False"
+             Title=""
+             Shell.NavBarIsVisible="True"
              BackgroundColor="#F4F7F5">
 
     <Grid Padding="24" RowDefinitions="*,Auto,*">
