@@ -34,7 +34,7 @@ namespace A_Rigator_Controller
             };
             _homeContent = new ShellContent
             {
-                Title = "A-Rigator Connect",
+                Title = "",
                 Route = "Home",
                 Content = !hasDisplayName ? welcomePage : pairingPage
             };
@@ -47,7 +47,7 @@ namespace A_Rigator_Controller
             };
             dashboardItem.Items.Add(new ShellContent
             {
-                Title = "Local Dashboard",
+                Title = "",
                 Route = "dashboard",
                 Content = dashboardPage
             });
@@ -59,7 +59,7 @@ namespace A_Rigator_Controller
             };
             setupItem.Items.Add(new ShellContent
             {
-                Title = "Robot Setup",
+                Title = "",
                 Route = "pairing",
                 Content = pairingPage
             });
@@ -67,7 +67,7 @@ namespace A_Rigator_Controller
 
             var remoteWifiItem = new FlyoutItem
             {
-                Title = remoteWifiTitle,
+                Title = "",
                 IsEnabled = remoteModeAvailable
             };
             remoteWifiItem.Items.Add(new ShellContent
@@ -85,7 +85,7 @@ namespace A_Rigator_Controller
             };
             accountItem.Items.Add(new ShellContent
             {
-                Title = "Account",
+                Title = "",
                 Route = "account",
                 Content = accountPage
             });
@@ -97,7 +97,7 @@ namespace A_Rigator_Controller
             };
             settingsItem.Items.Add(new ShellContent
             {
-                Title = "Settings",
+                Title = "",
                 Route = "settings",
                 Content = settingsPage
             });
@@ -137,7 +137,7 @@ namespace A_Rigator_Controller
         {
             var remoteWifiContent = new ShellContent
             {
-                Title = "Remote Wi-Fi",
+                Title = "",
                 Route = "remote-wifi",
                 Content = remoteWifiSetupPage
             };
