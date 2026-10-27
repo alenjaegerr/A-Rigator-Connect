@@ -159,7 +159,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
         }
 
-        var confirmed = await Application.Current!.MainPage!.DisplayAlert(
+        var confirmed = await Shell.Current.DisplayAlert(
             "Start autonomous irrigation?",
             "A-Rigator may move, steer, and activate its water pump automatically. Place it in a clear test area and keep hands clear of moving parts.",
             "Start",
@@ -352,9 +352,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            Message = "Command failed or connection was lost. The ESP32 timeout should stop manual outputs.";
+            Message = command == RobotControlCommand.StartAutonomous
+                ? "Autonomous start is not available over Wi-Fi in the current firmware. The sketch currently switches modes via USB serial; the matching HTTP endpoint must be added before this app control can activate it."
+                : "Command failed or connection was lost. The ESP32 timeout should stop manual outputs.";
             _activeMotorCommand = null;
             _pumpRequested = false;
+            _autonomousRequested = false;
             NotifyControlStateChanged();
         }
     }
