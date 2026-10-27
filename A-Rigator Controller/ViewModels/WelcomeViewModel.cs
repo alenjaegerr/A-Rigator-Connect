@@ -8,15 +8,17 @@ namespace A_Rigator_Controller.ViewModels;
 public sealed class WelcomeViewModel : INotifyPropertyChanged
 {
     private readonly IUserProfileService _userProfileService;
+    private readonly IAccountService _accountService;
     private string _displayName = string.Empty;
     private string _statusMessage = string.Empty;
     private bool _isNameEntryVisible;
 
-    public WelcomeViewModel(IUserProfileService userProfileService)
+    public WelcomeViewModel(IUserProfileService userProfileService, IAccountService accountService)
     {
         _userProfileService = userProfileService;
+        _accountService = accountService;
         SelectLocalCommand = new Command(SelectLocal);
-        SelectGoogleCommand = new Command(SelectGoogle);
+        SelectGoogleCommand = new Command(async () => await SelectGoogleAsync());
         ContinueCommand = new Command(SaveDisplayName);
     }
 
@@ -72,9 +74,22 @@ public sealed class WelcomeViewModel : INotifyPropertyChanged
         IsNameEntryVisible = true;
     }
 
-    private void SelectGoogle()
+    private async Task SelectGoogleAsync()
     {
-        StatusMessage = "Google sign-in and cloud restore are not available yet. Choose local setup to continue.";
+        try
+        {
+            await _accountService.SignInWithGoogleAsync();
+            StatusMessage = "Google sign-in complete. Enter a name to continue.";
+            IsNameEntryVisible = true;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"GOOGLE SIGN-IN ERROR: {ex}");
+
+            StatusMessage = ex.Message;
+            IsNameEntryVisible = false;
+        }
     }
 
     private void SaveDisplayName()

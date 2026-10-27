@@ -36,17 +36,23 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<IWifiStatusService, WifiStatusService>();
             builder.Services.AddSingleton<IUserProfileService, UserProfileService>();
             builder.Services.AddSingleton<ISupabaseConfigService, SupabaseConfigService>();
+            builder.Services.AddSingleton<IBackendConfigService, BackendConfigService>();
+            builder.Services.AddSingleton<ISecureSessionStorage, SecureSessionStorage>();
+            builder.Services.AddSingleton<IApiClient, ApiClient>();
             builder.Services.AddSingleton<IAccountService, AccountService>();
             builder.Services.AddSingleton<ISupabaseSyncService, SupabaseSyncService>();
             builder.Services.AddTransient<DashboardViewModel>();
             builder.Services.AddTransient<PairingViewModel>();
             builder.Services.AddTransient<WelcomeViewModel>();
+            builder.Services.AddTransient<RemoteWifiSetupViewModel>();
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
+            builder.Services.AddTransient<RemoteWifiSetupPage>();
             builder.Services.AddTransient<AccountPage>();
             builder.Services.AddTransient<AccountViewModel>();
             builder.Services.AddSingleton<AppShell>();
+
 
 #if DEBUG
     		builder.Logging.AddDebug();

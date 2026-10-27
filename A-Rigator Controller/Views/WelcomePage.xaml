@@ -24,7 +24,7 @@
             <Label Text="Choose how to use A-Rigator Connect"
                    FontSize="17"
                    TextColor="#52615A" />
-            <Button Text="SIGN IN WITH GOOGLE (COMING SOON)"
+            <Button Text="SIGN IN WITH GOOGLE"
                     Command="{Binding SelectGoogleCommand}"
                     MinimumHeightRequest="52"
                     BackgroundColor="#D8E3DC"

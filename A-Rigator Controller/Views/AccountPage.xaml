@@ -5,7 +5,7 @@
              x:Class="A_Rigator_Controller.Views.AccountPage"
              x:DataType="viewmodels:AccountViewModel"
              Title="Account"
-             Shell.NavBarIsVisible="False"
+             Shell.NavBarIsVisible="True"
              BackgroundColor="#F4F7F5">
 
     <ScrollView>
@@ -74,6 +74,32 @@
                             Command="{Binding SaveSupabaseConfigCommand}"
                             MinimumHeightRequest="52"
                             BackgroundColor="#2879A8"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Backend API"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+
+                    <Label Text="API base URL"
+                           FontSize="14"
+                           TextColor="#52615A" />
+                    <Entry Text="{Binding BackendApiUrl, Mode=TwoWay}"
+                           Placeholder="https://api.yourdomain.com"
+                           PlaceholderColor="#52615A"
+                           TextColor="#17231C" />
+
+                    <Button Text="SAVE BACKEND CONFIG"
+                            Command="{Binding SaveBackendConfigCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
                             TextColor="White" />
                 </VerticalStackLayout>
             </Border>

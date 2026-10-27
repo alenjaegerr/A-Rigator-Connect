@@ -13,11 +13,15 @@ namespace A_Rigator_Controller
             PairingPage pairingPage,
             RemoteWifiSetupPage remoteWifiSetupPage,
             AccountPage accountPage,
-            IUserProfileService userProfileService)
+            IUserProfileService userProfileService,
+            IAccountService accountService)
         {
             InitializeComponent();
 
             var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
+            var remoteModeAvailable = accountService.IsRemoteModeAllowed;
+            var remoteWifiTitle = remoteModeAvailable ? "Remote Wi-Fi" : "Remote Wi‑Fi (Google sign-in required)";
+
             if (hasDisplayName)
             {
                 pairingPage.StartNewPairingFlow();
@@ -62,13 +66,15 @@ namespace A_Rigator_Controller
 
             var remoteWifiItem = new FlyoutItem
             {
-                Title = "Remote Wi-Fi"
+                Title = remoteWifiTitle,
+                IsEnabled = remoteModeAvailable
             };
             remoteWifiItem.Items.Add(new ShellContent
             {
-                Title = "Remote Wi-Fi",
+                Title = remoteWifiTitle,
                 Route = "remote-wifi",
-                Content = remoteWifiSetupPage
+                Content = remoteWifiSetupPage,
+                IsEnabled = remoteModeAvailable
             });
             Items.Add(remoteWifiItem);
 
@@ -94,6 +100,7 @@ namespace A_Rigator_Controller
             pairingPage.NotNowRequested += (_, _) => ShowDashboard(dashboardPage);
             remoteWifiSetupPage.DashboardRequested += (_, _) => ShowDashboard(dashboardPage);
             remoteWifiSetupPage.NotNowRequested += (_, _) => ShowDashboard(dashboardPage);
+
             CurrentItem = _homeContent;
         }
 

@@ -5,7 +5,7 @@
              x:Class="A_Rigator_Controller.MainPage"
              x:DataType="viewmodels:DashboardViewModel"
              Title="Dashboard"
-             Shell.NavBarIsVisible="False"
+             Shell.NavBarIsVisible="True"
              BackgroundColor="#F4F7F5">
 
     <ScrollView>

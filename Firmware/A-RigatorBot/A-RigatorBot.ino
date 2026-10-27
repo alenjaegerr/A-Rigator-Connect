@@ -5,9 +5,14 @@
 // ============================================================================
 // 1. WI-FI STATUS API
 // ============================================================================
-// Replace the placeholder locally before flashing. Never publish the password.
+// Local robot control remains on the dedicated A-Rigator AP with WPA2 enabled.
+// Remote connection mode is intentionally separate from the current local app flow.
+// Replace the local password before flashing; never publish it in source control.
 static const char* WIFI_SSID = "A-Rigator";
 static const char* WIFI_PASSWORD = "12345678";
+
+// NOTE: The current phone demo intentionally exposes only the motor and pump API
+// routes. Steering remains dormant until the app and robot feature set are ready.
 static const IPAddress AP_IP(192, 168, 4, 1);
 static const IPAddress AP_GATEWAY(192, 168, 4, 1);
 static const IPAddress AP_SUBNET(255, 255, 255, 0);
@@ -141,6 +146,9 @@ void startWifiApi() {
 	controlsEnabled = !openSetupMode;
   server.on("/api/status", HTTP_GET, handleStatus);
   if (controlsEnabled) {
+	// Current demo app only uses DC motor forward/stop/reverse and pump on/off.
+	// Steering-related endpoints remain intentionally absent until the vehicle control
+	// feature set is expanded for the next app release.
 	server.on("/api/control/forward", HTTP_POST, handleForward);
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
@@ -299,14 +307,21 @@ void handleHeartbeat() {
 }
 
 void enforceManualControlTimeout() {
-  if (manualControlLeaseActive && currentMode == MODE_MANUAL &&
-	  millis() - lastManualControlRefresh > MANUAL_CONTROL_TIMEOUT_MS) {
-	manualMotorDir = CMD_STOP;
-	driveMotor(CMD_BRAKE, 0.0);
-	setPump(false);
-	manualControlLeaseActive = false;
-	Serial.println(">> Manual control lease expired; motor stopped and pump disabled.");
+  if (!manualControlLeaseActive || millis() - lastManualControlRefresh <= MANUAL_CONTROL_TIMEOUT_MS) {
+	return;
   }
+
+  if (currentMode == MODE_AUTONOMOUS) {
+	manualControlLeaseActive = false;
+	Serial.println(">> Phone disconnect detected. Autonomous mode remains active and continues running.");
+	return;
+  }
+
+  manualMotorDir = CMD_STOP;
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  manualControlLeaseActive = false;
+  Serial.println(">> Manual control lease expired; motor stopped and pump disabled.");
 }
 
 float getObstacleDistanceCM() {
