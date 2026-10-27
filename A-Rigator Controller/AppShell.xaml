@@ -3,10 +3,20 @@
     x:Class="A_Rigator_Controller.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="A-Rigator Connect"
+    Title=""
     FlyoutBehavior="Flyout"
-    FlyoutBackgroundColor="#F3F6F3"
+    FlyoutBackgroundColor="White"
+    BackgroundColor="White"
+    ForegroundColor="#173D2B"
+    TitleColor="White"
     FlyoutWidth="300">
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <Grid Padding="16,13" ColumnDefinitions="Auto,*" ColumnSpacing="14" BackgroundColor="White">
+                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" FontAttributes="Medium" TextColor="#173D2B" VerticalOptions="Center" />
+            </Grid>
+        </DataTemplate>
+    </Shell.ItemTemplate>
     <Shell.FlyoutHeader>
         <Grid Padding="20" BackgroundColor="#173D2B" HeightRequest="112">
             <VerticalStackLayout Spacing="5" VerticalOptions="Center">
