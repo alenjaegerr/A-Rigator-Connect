@@ -23,6 +23,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         OpenWifiSettingsCommand = new Command(OpenWifiSettings);
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
+        ProceedWithoutConnectingCommand = new Command(ProceedWithoutConnecting);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
         StartOverCommand = new Command(StartOver);
@@ -75,6 +76,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public ICommand ConfirmWifiConnectionCommand { get; }
 
+    public ICommand ProceedWithoutConnectingCommand { get; }
+
     public ICommand OpenDashboardPreviewCommand { get; }
 
     public ICommand OpenRemoteWifiSetupCommand { get; }
@@ -95,7 +98,23 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsWifiSettingsButtonVisible => true;
 
-    public string SuccessfulResultMessage => "A-Rigator is reachable over local Wi-Fi. You can continue to the dashboard.";
+    public string SuccessfulResultMessage => IsDevelopmentBypass
+        ? "Development mode is active. The app is continuing without a verified robot connection; live robot features may be unavailable."
+        : "A-Rigator is reachable over local Wi-Fi. You can continue to the dashboard.";
+
+    private bool _isDevelopmentBypass;
+
+    public bool IsDevelopmentBypass
+    {
+        get => _isDevelopmentBypass;
+        private set
+        {
+            if (SetField(ref _isDevelopmentBypass, value))
+            {
+                OnPropertyChanged(nameof(SuccessfulResultMessage));
+            }
+        }
+    }
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
@@ -122,6 +141,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         IsConnectionVerified = false;
+        IsDevelopmentBypass = false;
         RefreshWifiState();
         SetStage(PairingStage.WifiInstructions);
     }
