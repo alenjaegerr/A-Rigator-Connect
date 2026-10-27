@@ -67,12 +67,12 @@ namespace A_Rigator_Controller
 
             var remoteWifiItem = new FlyoutItem
             {
-                Title = "",
+                Title = remoteWifiTitle,
                 IsEnabled = remoteModeAvailable
             };
             remoteWifiItem.Items.Add(new ShellContent
             {
-                Title = remoteWifiTitle,
+                Title = "",
                 Route = "remote-wifi",
                 Content = remoteWifiSetupPage,
                 IsEnabled = remoteModeAvailable
@@ -121,7 +121,7 @@ namespace A_Rigator_Controller
         {
             var pairingContent = new ShellContent
             {
-                Title = "A-Rigator Connect",
+                Title = "",
                 Route = "Home",
                 Content = pairingPage
             };
