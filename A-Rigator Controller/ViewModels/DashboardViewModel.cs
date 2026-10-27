@@ -17,7 +17,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private RobotStatus? _latestStatus;
     private RobotControlCommand? _activeMotorCommand;
     private bool _pumpRequested;
-    private string _message = string.Empty;
+    private bool _autonomousRequested;
+    private DateTimeOffset? _lastUpdated;
+    private string _message = "Connect to the robot to load live telemetry.";
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -34,6 +36,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanControl);
         ResetShieldCommand = new Command(async () => await ResetShieldAsync(), () => CanControl);
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
+        StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanControl && !_autonomousRequested);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -54,9 +57,35 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string MotorStatus => _activeMotorCommand?.ToString().ToUpperInvariant() ?? "STOPPED";
 
-    public string WaterStatus => "UNAVAILABLE";
+    public string WaterStatus => "NO SENSOR";
 
-    public string BatteryStatus => "UNAVAILABLE";
+    public string WaterGraphMessage => "Live history is not available yet. The current firmware does not report a tank-level sensor.";
+
+    public string BatteryStatus => "NOT REPORTED";
+
+    public string ObstacleDistanceText => "Not reported";
+
+    public string LineSensorSummary => "Not reported";
+
+    public string ModeSummary => _autonomousRequested
+        ? "Autonomous run requested"
+        : IsConnected ? "Local robot link" : "Waiting for robot connection";
+
+    public string AutonomousStatusTitle => _autonomousRequested || _latestStatus?.Mode == OperatingMode.Automatic
+        ? "Autonomous mode requested"
+        : "Ready when connected";
+
+    public string AutonomousStatusDescription => _autonomousRequested || _latestStatus?.Mode == OperatingMode.Automatic
+        ? "The robot is expected to follow its line, stop for obstacles, and water detected zones. Verify the physical area is clear."
+        : "Start sends the autonomous command to the robot. Confirm the robot and test area are clear first.";
+
+    public string LastUpdatedText => _lastUpdated is null
+        ? "Telemetry has not been received"
+        : $"Updated {_lastUpdated.Value.ToLocalTime():HH:mm:ss}";
+
+    public Color ConnectionBadgeColor => IsConnected ? Color.FromArgb("#DDF1E2") : Color.FromArgb("#F1E7D9");
+
+    public Color ConnectionDotColor => IsConnected ? Color.FromArgb("#23834C") : Color.FromArgb("#A87525");
 
     public string Message
     {
@@ -92,6 +121,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand RefreshCommand { get; }
 
+    public ICommand StartAutonomousCommand { get; }
+
     public void StartMonitoring()
     {
         if (_monitoringCancellation is not null)
@@ -115,8 +146,44 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         cancellation.Cancel();
         _activeMotorCommand = null;
         _pumpRequested = false;
+        _autonomousRequested = false;
         NotifyControlStateChanged();
         _ = StopOutputsAfterMonitoringAsync(cancellation);
+    }
+
+    private async Task StartAutonomousAsync()
+    {
+        if (!CanControl)
+        {
+            Message = "Connect to A-Rigator before starting autonomous mode.";
+            return;
+        }
+
+        var confirmed = await Application.Current!.MainPage!.DisplayAlert(
+            "Start autonomous irrigation?",
+            "A-Rigator may move, steer, and activate its water pump automatically. Place it in a clear test area and keep hands clear of moving parts.",
+            "Start",
+            "Cancel");
+
+        if (!confirmed)
+        {
+            Message = "Autonomous start cancelled.";
+            return;
+        }
+
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        _autonomousRequested = true;
+        Message = "Sending autonomous start command...";
+        NotifyControlStateChanged();
+        await SendCommandAsync(RobotControlCommand.StartAutonomous, CancellationToken.None);
+        if (Message == "Sending autonomous start command...")
+        {
+            Message = "Autonomous command sent. Confirm movement and sensor response in a supervised test.";
+        }
+        OnPropertyChanged(nameof(AutonomousStatusTitle));
+        OnPropertyChanged(nameof(AutonomousStatusDescription));
+        OnPropertyChanged(nameof(ModeSummary));
     }
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
@@ -127,6 +194,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
         }
 
+        _autonomousRequested = false;
         _activeMotorCommand = command;
         Message = command == RobotControlCommand.Forward
             ? "Forward command active. Press STOP to halt."
@@ -143,6 +211,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
         }
 
+        _autonomousRequested = false;
         _pumpRequested = enable;
         Message = enable ? "Pump command active. Press PUMP OFF to stop it." : "Pump off command sent.";
         NotifyControlStateChanged();
@@ -153,6 +222,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         _activeMotorCommand = null;
         _pumpRequested = false;
+        _autonomousRequested = false;
         Message = "Stop requested. The ESP32 also stops outputs if its manual-control lease expires.";
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None);
@@ -168,6 +238,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
+        _autonomousRequested = false;
         Message = "Resetting motor shield...";
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.ResetShield, CancellationToken.None);
@@ -192,7 +263,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                     continue;
                 }
 
-                var manualIntentActive = _activeMotorCommand is not null || _pumpRequested;
+                var manualIntentActive = !_autonomousRequested && (_activeMotorCommand is not null || _pumpRequested);
                 if (IsConnected && manualIntentActive && _latestStatus?.ControlsEnabled != false)
                 {
                     await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
@@ -230,6 +301,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(RobotStatus));
             OnPropertyChanged(nameof(ModeStatus));
             OnPropertyChanged(nameof(PumpStatus));
+            _lastUpdated = DateTimeOffset.Now;
+            OnPropertyChanged(nameof(LastUpdatedText));
+            OnPropertyChanged(nameof(ModeSummary));
+            OnPropertyChanged(nameof(AutonomousStatusTitle));
+            OnPropertyChanged(nameof(AutonomousStatusDescription));
             NotifyControlStateChanged();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -312,6 +388,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private void NotifyControlStateChanged()
     {
         OnPropertyChanged(nameof(MotorStatus));
+        OnPropertyChanged(nameof(ModeSummary));
+        OnPropertyChanged(nameof(AutonomousStatusTitle));
+        OnPropertyChanged(nameof(AutonomousStatusDescription));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
         OnPropertyChanged(nameof(IsControlWarningVisible));
@@ -323,6 +402,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (PumpOffCommand as Command)?.ChangeCanExecute();
         (ResetShieldCommand as Command)?.ChangeCanExecute();
         (RefreshCommand as Command)?.ChangeCanExecute();
+        (StartAutonomousCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
