@@ -13,7 +13,7 @@
     <Shell.ItemTemplate>
         <DataTemplate>
             <Grid Padding="16,13" ColumnDefinitions="Auto,*" ColumnSpacing="14" BackgroundColor="White">
-                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" FontAttributes="Medium" TextColor="#173D2B" VerticalOptions="Center" />
+                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" FontAttributes="None" TextColor="#173D2B" VerticalOptions="Center" />
             </Grid>
         </DataTemplate>
     </Shell.ItemTemplate>
