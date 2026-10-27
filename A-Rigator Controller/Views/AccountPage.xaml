@@ -4,7 +4,7 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.AccountPage"
              x:DataType="viewmodels:AccountViewModel"
-             Title="Account"
+             Title=""
              Shell.NavBarIsVisible="True"
              BackgroundColor="#F4F7F5">
 
