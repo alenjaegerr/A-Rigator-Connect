@@ -4,7 +4,7 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.MainPage"
              x:DataType="viewmodels:DashboardViewModel"
-             Title="Dashboard"
+             Title=""
              Shell.NavBarIsVisible="True"
              BackgroundColor="#F3F6F3">
     <ScrollView>
