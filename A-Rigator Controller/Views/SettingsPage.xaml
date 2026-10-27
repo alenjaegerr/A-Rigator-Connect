@@ -20,7 +20,7 @@
             </Border>
             <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ACCOUNT & CLOUD" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
+                    <Label Text="ACCOUNT &amp; CLOUD" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
                     <Label Text="Sign-in and service configuration" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
                     <Label Text="Manage Google sign-in, Supabase settings, and backend API configuration. Local robot control remains separate from cloud account status." FontSize="13" TextColor="#52615A" />
                     <Button Text="ACCOUNT MANAGEMENT" Clicked="OnAccountClicked" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
