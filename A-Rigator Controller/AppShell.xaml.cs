@@ -13,6 +13,7 @@ namespace A_Rigator_Controller
             PairingPage pairingPage,
             RemoteWifiSetupPage remoteWifiSetupPage,
             AccountPage accountPage,
+            SettingsPage settingsPage,
             IUserProfileService userProfileService,
             IAccountService accountService)
         {
@@ -89,6 +90,18 @@ namespace A_Rigator_Controller
                 Content = accountPage
             });
             Items.Add(accountItem);
+
+            var settingsItem = new FlyoutItem
+            {
+                Title = "Settings"
+            };
+            settingsItem.Items.Add(new ShellContent
+            {
+                Title = "Settings",
+                Route = "settings",
+                Content = settingsPage
+            });
+            Items.Add(settingsItem);
 
             welcomePage.DisplayNameSaved += (_, _) =>
             {
