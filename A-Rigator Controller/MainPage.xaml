@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
@@ -6,95 +6,139 @@
              x:DataType="viewmodels:DashboardViewModel"
              Title="Dashboard"
              Shell.NavBarIsVisible="True"
-             BackgroundColor="#F4F7F5">
-
+             BackgroundColor="#F3F6F3">
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="18">
-            <VerticalStackLayout Spacing="5">
-                <Image Source="projectlogo.svg"
-                       HeightRequest="170"
-                       MaximumWidthRequest="300"
-                       Aspect="AspectFit"
-                       HorizontalOptions="Center"
-                       SemanticProperties.Description="A-Rigator robot project logo" />
-                <Label Text="A-RIGATOR CONNECT"
-                       FontSize="23"
-                       FontAttributes="Bold"
-                       TextColor="#176B45"
-                       SemanticProperties.HeadingLevel="Level1" />
-                <Label Text="Local robot dashboard"
-                       FontSize="15"
-                       TextColor="#52615A" />
-                <Label Text="{Binding Greeting}"
-                       FontSize="20"
-                       FontAttributes="Bold"
-                       TextColor="#176B45" />
-            </VerticalStackLayout>
+        <VerticalStackLayout Padding="18" Spacing="16">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="3">
+                    <Label Text="A-RIGATOR CONNECT" FontSize="12" FontAttributes="Bold" TextColor="#23724C" />
+                    <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="#17231C" />
+                    <Label Text="Smart irrigation control center" FontSize="14" TextColor="#52615A" />
+                </VerticalStackLayout>
+                <Border Grid.Column="1" Padding="10,7" BackgroundColor="{Binding ConnectionBadgeColor}" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                    <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
+                        <BoxView WidthRequest="8" HeightRequest="8" Color="{Binding ConnectionDotColor}" CornerRadius="4" VerticalOptions="Center" />
+                        <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="#17231C" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+            </Grid>
 
-            <Border Padding="12"
-                    IsVisible="{Binding IsControlWarningVisible}"
-                    BackgroundColor="#FFF1D6"
-                    Stroke="#E9BA58"
-                    StrokeShape="RoundRectangle 12">
-                <Label Text="{Binding ControlAccessMessage}"
-                       FontSize="12"
-                       FontAttributes="Bold"
-                       TextColor="#72510D" />
+            <Border Padding="16" BackgroundColor="#173D2B" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="ROBOT STATUS" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
+                        <Label Text="{Binding RobotStatus}" FontSize="25" FontAttributes="Bold" TextColor="White" />
+                        <Label Text="{Binding ModeSummary}" FontSize="13" TextColor="#D4E7DA" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" Grid.RowSpan="2" Padding="12" BackgroundColor="#2D5D43" StrokeThickness="0" StrokeShape="RoundRectangle 14" VerticalOptions="Center">
+                        <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
+                            <Label Text="MODE" FontSize="10" FontAttributes="Bold" TextColor="#B8D7C3" HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding ModeStatus}" FontSize="13" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Label Grid.Row="1" Text="{Binding LastUpdatedText}" FontSize="11" TextColor="#B8D7C3" />
+                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="42" BackgroundColor="#E1F1E5" TextColor="#173D2B" />
+                </Grid>
             </Border>
 
-            <Border Padding="18"
-                    BackgroundColor="White"
-                    Stroke="#D8E3DC"
-                    StrokeShape="RoundRectangle 16">
-                <VerticalStackLayout Spacing="10">
+            <Border Padding="13" IsVisible="{Binding IsControlWarningVisible}" BackgroundColor="#FFF0D3" Stroke="#E8C16D" StrokeShape="RoundRectangle 12">
+                <Label Text="{Binding ControlAccessMessage}" FontSize="12" FontAttributes="Bold" TextColor="#72510D" />
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <Label Text="PUMP" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
+                        <Label Grid.Row="1" Text="{Binding PumpStatus}" FontSize="20" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Grid.Column="1" Grid.RowSpan="2" Text="◉" FontSize="24" TextColor="#2879A8" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+                <Border Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                        <Label Text="DRIVE" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
+                        <Label Grid.Row="1" Text="{Binding MotorStatus}" FontSize="20" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Grid.Column="1" Grid.RowSpan="2" Text="↗" FontSize="25" TextColor="#23724C" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+                <Border Grid.Row="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="{Binding RobotName}"
-                               FontSize="22"
-                               FontAttributes="Bold"
-                               TextColor="#17231C" />
+                        <Label Text="OBSTACLE DISTANCE" FontSize="10" FontAttributes="Bold" TextColor="#52615A" />
+                        <Label Text="{Binding ObstacleDistanceText}" FontSize="19" FontAttributes="Bold" TextColor="#17231C" />
                     </VerticalStackLayout>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="LINE SENSORS" FontSize="10" FontAttributes="Bold" TextColor="#52615A" />
+                        <Label Text="{Binding LineSensorSummary}" FontSize="16" FontAttributes="Bold" TextColor="#17231C" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="12">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="AUTONOMOUS IRRIGATION" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Text="Let A-Rigator follow its line, avoid obstacles, and irrigate marked zones." FontSize="13" TextColor="#52615A" />
+                    </VerticalStackLayout>
+                    <Border Padding="12" BackgroundColor="#F3F6F3" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="{Binding AutonomousStatusTitle}" FontSize="14" FontAttributes="Bold" TextColor="#23724C" />
+                            <Label Text="{Binding AutonomousStatusDescription}" FontSize="12" TextColor="#52615A" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="START AUTONOMOUS" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="STOP ROBOT" Command="{Binding StopCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
 
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                <Border Grid.Row="0" Grid.Column="0" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="CONNECTION" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding ConnectionStatus}" FontSize="15" FontAttributes="Bold" TextColor="#17231C" />
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="0" Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="MOTOR" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding MotorStatus}" FontSize="15" FontAttributes="Bold" TextColor="#17231C" />
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="0" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="ROBOT STATE" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding RobotStatus}" FontSize="15" FontAttributes="Bold" TextColor="#17231C" />
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="PUMP" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding PumpStatus}" FontSize="15" FontAttributes="Bold" TextColor="#17231C" />
-                    </VerticalStackLayout>
-                </Border>
-            </Grid>
+            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="WATER LEVEL" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
+                            <Label Text="Tank monitoring" FontSize="12" TextColor="#52615A" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="1" Text="{Binding WaterStatus}" FontSize="13" FontAttributes="Bold" TextColor="#2879A8" VerticalOptions="Center" />
+                    </Grid>
+                    <Grid HeightRequest="86" ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*" ColumnSpacing="4" VerticalOptions="End">
+                        <BoxView Grid.Column="0" HeightRequest="12" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="1" HeightRequest="20" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="2" HeightRequest="28" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="3" HeightRequest="36" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="4" HeightRequest="44" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="5" HeightRequest="52" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="6" HeightRequest="60" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="7" HeightRequest="68" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="8" HeightRequest="60" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="9" HeightRequest="48" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="10" HeightRequest="34" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="11" HeightRequest="22" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                    </Grid>
+                    <Label Text="{Binding WaterGraphMessage}" FontSize="12" TextColor="#52615A" />
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="CONTROLS" FontSize="14" FontAttributes="Bold" TextColor="#52615A" />
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                <Button Grid.Row="0" Grid.Column="0" Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
-                <Button Grid.Row="0" Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
-                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="STOP" Command="{Binding StopCommand}" MinimumHeightRequest="58" BackgroundColor="#A23A32" TextColor="White" />
-                <Button Grid.Row="2" Grid.Column="0" Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#2879A8" TextColor="White" />
-                <Button Grid.Row="2" Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" MinimumHeightRequest="54" BackgroundColor="#52615A" TextColor="White" />
-                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="50" BackgroundColor="#72510D" TextColor="White" />
-            </Grid>
+            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="MANUAL CONTROLS" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Button Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Row="1" Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#52615A" TextColor="White" />
+                    </Grid>
+                    <Button Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="44" BackgroundColor="#72510D" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="{Binding Message}" FontSize="14" TextColor="#52615A" />
-            <Button Text="REFRESH STATUS" Command="{Binding RefreshCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" />
+            <Border Padding="14" BackgroundColor="#E9F0EB" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="SYSTEM MESSAGE" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
+                    <Label Text="{Binding Message}" FontSize="13" TextColor="#17231C" />
+                </VerticalStackLayout>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
