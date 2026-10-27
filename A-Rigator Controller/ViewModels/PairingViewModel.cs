@@ -200,6 +200,20 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
     }
 
+    private void ProceedWithoutConnecting()
+    {
+        if (IsBusy)
+        {
+            return;
+        }
+
+        ErrorMessage = string.Empty;
+        ResultMessage = string.Empty;
+        IsConnectionVerified = false;
+        IsDevelopmentBypass = true;
+        SetStage(PairingStage.Result);
+    }
+
     private void StartOver()
     {
         StartNewPairingFlow();
