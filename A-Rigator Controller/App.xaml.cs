@@ -7,6 +7,11 @@
         public App(AppShell appShell)
         {
             InitializeComponent();
+
+            // Apply the saved appearance before any screen is displayed.
+            var darkModeEnabled = Preferences.Get("DarkModeEnabled", false);
+            UserAppTheme = darkModeEnabled ? AppTheme.Dark : AppTheme.Light;
+
             _appShell = appShell;
         }
 
