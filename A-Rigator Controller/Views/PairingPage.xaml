@@ -6,7 +6,7 @@
              x:DataType="viewmodels:PairingViewModel"
              Title=""
              Shell.NavBarIsVisible="True"
-             BackgroundColor="#F4F7F5">
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#121814}">
 
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="20">
@@ -14,30 +14,30 @@
                 <Label Text="Pair your A-Rigator"
                        FontSize="26"
                        FontAttributes="Bold"
-                       TextColor="#176B45"
+                       TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}"
                        SemanticProperties.HeadingLevel="Level1" />
             </VerticalStackLayout>
 
             <Border IsVisible="{Binding IsWifiInstructionsVisible}"
                     Padding="18"
-                    BackgroundColor="White"
-                    Stroke="#D8E3DC"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
                     StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="2. Connect to the A-Rigator Wi-Fi"
                            FontSize="19"
                            FontAttributes="Bold"
-                           TextColor="#17231C" />
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Label Text="{Binding WifiStatusMessage}"
                            FontSize="15"
-                           TextColor="#52615A" />
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="Robot network name:"
                            FontSize="15"
-                           TextColor="#52615A" />
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="{Binding RobotAccessPointSsid}"
                            FontSize="15"
                            FontAttributes="Bold"
-                           TextColor="#17231C" />
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Label Text="{Binding ErrorMessage}"
                            FontSize="14"
                            TextColor="#A23A32" />
@@ -72,17 +72,17 @@
 
             <Border IsVisible="{Binding IsResultVisible}"
                     Padding="18"
-                    BackgroundColor="White"
-                    Stroke="#D8E3DC"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
                     StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="16">
                     <Label Text="3. ROBOT CONNECTION CONFIRMED"
                            FontSize="19"
                            FontAttributes="Bold"
-                           TextColor="#176B45" />
+                           TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     <Label Text="{Binding SuccessfulResultMessage}"
                            FontSize="15"
-                           TextColor="#35443B" />
+                           TextColor="{AppThemeBinding Light=#35443B, Dark=#D4E0D7}" />
                     <Button Text="OPEN DASHBOARD"
                             Command="{Binding OpenDashboardPreviewCommand}"
                             MinimumHeightRequest="52"
