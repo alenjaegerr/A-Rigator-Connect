@@ -27,7 +27,7 @@ namespace A_Rigator_Controller
             var loadingPage = new LoadingPage(() =>
             {
                 window.Page = _appShell;
-                _ = _appShell.FadeTo(1, 320, Easing.CubicInOut);
+                _ = _appShell.FadeTo(1, 550, Easing.CubicInOut);
             });
 
             window.Page = loadingPage;
