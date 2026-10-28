@@ -27,7 +27,7 @@
                         </Style>
                     </Border.Style>
                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
-                        <BoxView WidthRequest="8" HeightRequest="8" Color="{Binding ConnectionDotColor}" CornerRadius="4" VerticalOptions="Center" />
+                        <Border WidthRequest="8" HeightRequest="8" BackgroundColor="Transparent" Stroke="{Binding ConnectionDotColor}" StrokeThickness="2" StrokeShape="Ellipse" VerticalOptions="Center" />
                         <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" VerticalOptions="Center" />
                     </HorizontalStackLayout>
                 </Border>
