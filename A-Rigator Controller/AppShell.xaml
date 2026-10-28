@@ -5,15 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Title=""
     FlyoutBehavior="Flyout"
-    FlyoutBackgroundColor="White"
-    BackgroundColor="White"
-    ForegroundColor="#173D2B"
-    TitleColor="White"
+    FlyoutBackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+    ForegroundColor="{AppThemeBinding Light=#173D2B, Dark=#8ED6AC}"
+    TitleColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}"
     FlyoutWidth="300">
     <Shell.ItemTemplate>
         <DataTemplate>
-            <Grid Padding="16,13" ColumnDefinitions="Auto,*" ColumnSpacing="14" BackgroundColor="White">
-                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" FontAttributes="None" TextColor="#173D2B" VerticalOptions="Center" />
+            <Grid Padding="16,13" ColumnDefinitions="Auto,*" ColumnSpacing="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}">
+                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" FontAttributes="None" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" VerticalOptions="Center" />
             </Grid>
         </DataTemplate>
     </Shell.ItemTemplate>
