@@ -9,14 +9,13 @@ public sealed class LoadingPage : ContentPage
     private readonly ProgressBar _progressBar;
     private readonly Label _progressText;
     private readonly Label _statusText;
-    private readonly Label _alligator;
+    private readonly Image _alligator;
     private readonly Grid _track;
     private bool _started;
 
     public LoadingPage(Action onComplete)
     {
         _onComplete = onComplete;
-
         BackgroundColor = Color.FromArgb("#F3F6F3");
         Shell.SetNavBarIsVisible(this, false);
 
@@ -72,24 +71,36 @@ public sealed class LoadingPage : ContentPage
             ProgressColor = Color.FromArgb("#29A653"),
             BackgroundColor = Color.FromArgb("#DCE7DE"),
             HeightRequest = 10,
-            VerticalOptions = LayoutOptions.Center
+            VerticalOptions = LayoutOptions.Center,
+            HorizontalOptions = LayoutOptions.Fill
         };
 
-        _alligator = new Label
+        _alligator = new Image
         {
-            Text = "🐊",
-            FontSize = 30,
+            Source = "alligator_runner.svg",
+            Aspect = Aspect.AspectFit,
+            WidthRequest = 58,
+            HeightRequest = 34,
             HorizontalOptions = LayoutOptions.Start,
             VerticalOptions = LayoutOptions.Center
         };
 
+        // The mascot has its own row above a conventional horizontal progress bar.
         _track = new Grid
         {
-            HeightRequest = 48,
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) }
+            HeightRequest = 52,
+            RowSpacing = 1,
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
+            RowDefinitions =
+            {
+                new RowDefinition { Height = new GridLength(36) },
+                new RowDefinition { Height = new GridLength(12) }
+            }
         };
-        _track.Add(_progressBar);
         _track.Add(_alligator);
+        Grid.SetRow(_alligator, 0);
+        _track.Add(_progressBar);
+        Grid.SetRow(_progressBar, 1);
 
         var footer = new Label
         {
@@ -169,7 +180,8 @@ public sealed class LoadingPage : ContentPage
             _progressText.Text = $"{(int)Math.Round(progress * 100)}%";
 
             var targetX = Math.Max(0, (_track.Width - _alligator.Width) * progress);
-            var move = _alligator.TranslateTo(targetX, (i % 2 == 0) ? -3 : 1, 75, Easing.Linear);
+            var bounceY = i % 2 == 0 ? -2 : 1;
+            var move = _alligator.TranslateTo(targetX, bounceY, 75, Easing.Linear);
             var fill = _progressBar.ProgressTo(progress, 75, Easing.Linear);
             await Task.WhenAll(move, fill);
         }
