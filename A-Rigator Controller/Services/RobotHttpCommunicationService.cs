@@ -110,28 +110,41 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync(RobotNetworkOptions.StatusEndpoint, cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var statusResponse = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
-        if (statusResponse is not { Success: true })
+        try
         {
-            return null;
+            using var response = await _httpClient.GetAsync(RobotNetworkOptions.StatusEndpoint, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            var statusResponse = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
+            if (statusResponse is not { Success: true })
+            {
+                return null;
+            }
+
+            var state = Enum.TryParse<RobotState>(statusResponse.State, true, out var parsedState)
+                ? parsedState
+                : RobotState.Idle;
+            var mode = Enum.TryParse<OperatingMode>(statusResponse.Mode, true, out var parsedMode)
+                ? parsedMode
+                : (OperatingMode?)null;
+
+            return new RobotStatus
+            {
+                State = state,
+                Mode = mode,
+                PumpIsOn = statusResponse.PumpIsOn ?? false,
+                ControlsEnabled = statusResponse.ControlsEnabled
+            };
         }
-
-        var state = Enum.TryParse<RobotState>(statusResponse.State, true, out var parsedState)
-            ? parsedState
-            : RobotState.Idle;
-        var mode = Enum.TryParse<OperatingMode>(statusResponse.Mode, true, out var parsedMode)
-            ? parsedMode
-            : (OperatingMode?)null;
-
-        return new RobotStatus
+        catch (HttpRequestException)
         {
-            State = state,
-            Mode = mode,
-            PumpIsOn = statusResponse.PumpIsOn ?? false,
-            ControlsEnabled = statusResponse.ControlsEnabled
-        };
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
     }
 
     public void Dispose()
