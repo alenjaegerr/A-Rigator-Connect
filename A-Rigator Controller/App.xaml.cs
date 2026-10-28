@@ -22,7 +22,15 @@ namespace A_Rigator_Controller
         protected override Window CreateWindow(IActivationState? activationState)
         {
             var window = new Window();
-            window.Page = new LoadingPage(() => window.Page = _appShell);
+            _appShell.Opacity = 0;
+
+            var loadingPage = new LoadingPage(() =>
+            {
+                window.Page = _appShell;
+                _ = _appShell.FadeTo(1, 320, Easing.CubicInOut);
+            });
+
+            window.Page = loadingPage;
             return window;
         }
     }
