@@ -83,9 +83,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         ? "Telemetry has not been received"
         : $"Updated {_lastUpdated.Value.ToLocalTime():HH:mm:ss}";
 
-    public Color ConnectionBadgeColor => IsConnected ? Color.FromArgb("#DDF1E2") : Color.FromArgb("#F1E7D9");
+    public Color ConnectionBadgeColor => IsConnected ? Color.FromArgb("#E5F5E9") : Color.FromArgb("#F9E2E2");
 
-    public Color ConnectionDotColor => IsConnected ? Color.FromArgb("#23834C") : Color.FromArgb("#A87525");
+    public Color ConnectionDotColor => IsConnected ? Color.FromArgb("#23834C") : Color.FromArgb("#D93025");
 
     public string Message
     {
