@@ -23,7 +23,7 @@
                 </Border>
             </Grid>
 
-            <Border Padding="16" BackgroundColor="#173D2B" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#2B4032}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                     <VerticalStackLayout Spacing="4">
                         <Label Text="ROBOT STATUS" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
