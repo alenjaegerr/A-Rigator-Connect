@@ -8,8 +8,13 @@ namespace A_Rigator_Controller
         {
             InitializeComponent();
 
-            // Start every fresh app session in light mode. Dark mode is a session-only choice.
-            UserAppTheme = AppTheme.Light;
+            // Restore the user's saved theme before the loading screen appears.
+            bool darkModeEnabled =
+                Preferences.Default.Get("DarkModeEnabled", false);
+
+            UserAppTheme = darkModeEnabled
+                ? AppTheme.Dark
+                : AppTheme.Light;
 
             _appShell = appShell;
         }
