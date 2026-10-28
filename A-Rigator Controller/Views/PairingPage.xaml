@@ -12,7 +12,7 @@
         <VerticalStackLayout Padding="24" Spacing="20">
             <VerticalStackLayout Spacing="6">
                 <Label Text="Pair your A-Rigator"
-                       FontSize="26"
+                       FontSize="30"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}"
                        SemanticProperties.HeadingLevel="Level1" />
