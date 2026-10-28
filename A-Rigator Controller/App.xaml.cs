@@ -8,9 +8,8 @@
         {
             InitializeComponent();
 
-            // Apply the saved appearance before any screen is displayed.
-            var darkModeEnabled = Preferences.Get("DarkModeEnabled", false);
-            UserAppTheme = darkModeEnabled ? AppTheme.Dark : AppTheme.Light;
+            // Start every fresh app session in light mode. Dark mode is a session-only choice.
+            UserAppTheme = AppTheme.Light;
 
             _appShell = appShell;
         }
