@@ -167,7 +167,7 @@ namespace A_Rigator_Controller
             _homeContent = dashboardContent;
             CurrentItem = dashboardContent;
 
-            await dashboardPage.FadeTo(1, 320, Easing.CubicInOut);
+            await dashboardPage.FadeTo(1, 550, Easing.CubicInOut);
         }
     }
 }
