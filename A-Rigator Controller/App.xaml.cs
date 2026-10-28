@@ -1,4 +1,4 @@
-﻿namespace A_Rigator_Controller
+namespace A_Rigator_Controller
 {
     public partial class App : Application
     {
@@ -16,7 +16,9 @@
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(_appShell);
+            var window = new Window();
+            window.Page = new LoadingPage(() => window.Page = _appShell);
+            return window;
         }
     }
 }
