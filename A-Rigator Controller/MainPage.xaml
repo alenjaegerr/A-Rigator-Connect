@@ -15,7 +15,17 @@
                     <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Label Text="Smart irrigation control center" FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                 </VerticalStackLayout>
-                <Border Grid.Column="1" Padding="10,7" BackgroundColor="{Binding ConnectionBadgeColor}" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                <Border Grid.Column="1" Padding="10,7" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#F9E2E2, Dark=#482B2D}" />
+                            <Style.Triggers>
+                                <DataTrigger TargetType="Border" Binding="{Binding IsConnected}" Value="True">
+                                    <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E5F5E9, Dark=#35483A}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
                         <BoxView WidthRequest="8" HeightRequest="8" Color="{Binding ConnectionDotColor}" CornerRadius="4" VerticalOptions="Center" />
                         <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" VerticalOptions="Center" />
