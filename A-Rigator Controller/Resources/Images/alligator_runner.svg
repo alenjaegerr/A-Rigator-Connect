@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="80" viewBox="0 0 180 80">
+  <g stroke="#174A2B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tail -->
+    <path d="M54 39 C38 34 25 28 9 19 C16 36 26 45 43 49 Z" fill="#2E9B4F"/>
+    <!-- body -->
+    <path d="M42 31 C55 20 81 20 104 29 L119 39 L106 53 C82 60 58 55 43 47 Z" fill="#36B45B"/>
+    <!-- back scutes -->
+    <path d="M52 27 L58 18 L64 27 L71 17 L77 26 L84 18 L90 28" fill="#218342"/>
+    <!-- snout and jaw -->
+    <path d="M98 31 C113 25 126 27 140 31 L164 36 L167 44 L143 48 L119 48 L104 43 Z" fill="#36B45B"/>
+    <path d="M118 45 L165 44 L157 51 L125 51 Z" fill="#B7E27A"/>
+    <!-- nostril and eye -->
+    <circle cx="148" cy="34" r="3" fill="#F7FBEF" stroke="none"/>
+    <circle cx="149" cy="34" r="1.7" fill="#173B24" stroke="none"/>
+    <circle cx="162" cy="38" r="1.7" fill="#173B24" stroke="none"/>
+    <!-- running legs -->
+    <path d="M58 49 L48 61 L35 65 L33 70 L51 70 L67 56" fill="#2E9B4F"/>
+    <path d="M83 53 L95 63 L108 65 L111 70 L91 70 L75 59" fill="#2E9B4F"/>
+    <path d="M104 46 L115 57 L128 58 L131 63 L112 64 L98 53" fill="#2E9B4F"/>
+    <path d="M48 43 L36 51 L24 51 L21 56 L39 57 L55 49" fill="#2E9B4F"/>
+  </g>
+</svg>
