@@ -189,6 +189,9 @@ public sealed class LoadingPage : ContentPage
         _statusText.Text = "Ready — welcome in!";
         _progressText.Text = "100%";
         await Task.Delay(250);
+
+        // Fade the intro away before handing off to the dashboard.
+        await Content.FadeTo(0, 220, Easing.CubicInOut);
         _onComplete();
     }
 
