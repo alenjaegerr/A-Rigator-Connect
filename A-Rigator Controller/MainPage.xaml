@@ -41,8 +41,8 @@
                 </Grid>
             </Border>
 
-            <Border Padding="13" IsVisible="{Binding IsControlWarningVisible}" BackgroundColor="#FFF0D3" Stroke="#E8C16D" StrokeShape="RoundRectangle 12">
-                <Label Text="{Binding ControlAccessMessage}" FontSize="12" FontAttributes="Bold" TextColor="#72510D" />
+            <Border Padding="13" IsVisible="{Binding IsControlWarningVisible}" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 12">
+                <Label Text="{Binding ControlAccessMessage}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
             </Border>
 
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
@@ -103,18 +103,18 @@
                         <Label Grid.Column="1" Text="{Binding WaterStatus}" FontSize="13" FontAttributes="Bold" TextColor="#2879A8" VerticalOptions="Center" />
                     </Grid>
                     <Grid HeightRequest="86" ColumnDefinitions="*,*,*,*,*,*,*,*,*,*,*,*" ColumnSpacing="4" VerticalOptions="End">
-                        <BoxView Grid.Column="0" HeightRequest="12" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="1" HeightRequest="20" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="2" HeightRequest="28" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="3" HeightRequest="36" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="4" HeightRequest="44" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="5" HeightRequest="52" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="6" HeightRequest="60" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="7" HeightRequest="68" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="8" HeightRequest="60" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="9" HeightRequest="48" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="10" HeightRequest="34" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
-                        <BoxView Grid.Column="11" HeightRequest="22" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
+                        <BoxView Grid.Column="0" HeightRequest="12" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="1" HeightRequest="20" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="2" HeightRequest="28" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="3" HeightRequest="36" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="4" HeightRequest="44" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="5" HeightRequest="52" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="6" HeightRequest="60" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="7" HeightRequest="68" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="8" HeightRequest="60" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="9" HeightRequest="48" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="10" HeightRequest="34" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
+                        <BoxView Grid.Column="11" HeightRequest="22" VerticalOptions="End" Color="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" CornerRadius="3" />
                     </Grid>
                     <Label Text="{Binding WaterGraphMessage}" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                 </VerticalStackLayout>
