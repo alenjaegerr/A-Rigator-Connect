@@ -2,20 +2,17 @@ namespace A_Rigator_Controller.Views;
 
 public partial class SettingsPage : ContentPage
 {
-    private const string DarkModePreferenceKey = "DarkModeEnabled";
-
     public SettingsPage()
     {
         InitializeComponent();
 
-        var darkModeEnabled = Preferences.Get(DarkModePreferenceKey, false);
-        DarkModeSwitch.IsToggled = darkModeEnabled;
-        ApplyTheme(darkModeEnabled);
+        // Dark mode is intentionally not persisted between app launches.
+        DarkModeSwitch.IsToggled = false;
+        ApplyTheme(false);
     }
 
     private void OnDarkModeToggled(object? sender, ToggledEventArgs e)
     {
-        Preferences.Set(DarkModePreferenceKey, e.Value);
         ApplyTheme(e.Value);
     }
 
