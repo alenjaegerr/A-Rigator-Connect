@@ -18,7 +18,7 @@
                             <Label Text="Dark mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
                             <Label Text="Use a darker color scheme throughout supported app screens." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                         </VerticalStackLayout>
-                        <Switch x:Name="DarkModeSwitch" Grid.Column="1" VerticalOptions="Center" IsToggled="False" Toggled="OnDarkModeToggled" />
+                        <Switch x:Name="DarkModeSwitch" Grid.Column="1" VerticalOptions="Center" Toggled="OnDarkModeToggled" />
                     </Grid>
                 </VerticalStackLayout>
             </Border>
