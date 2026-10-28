@@ -6,19 +6,19 @@
              x:DataType="viewmodels:DashboardViewModel"
              Title=""
              Shell.NavBarIsVisible="True"
-             BackgroundColor="#F3F6F3">
+             BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
     <ScrollView>
         <VerticalStackLayout Padding="18" Spacing="16">
             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10">
                 <VerticalStackLayout Spacing="3">
-                    <Label Text="A-RIGATOR CONNECT" FontSize="12" FontAttributes="Bold" TextColor="#23724C" />
-                    <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="#17231C" />
-                    <Label Text="Smart irrigation control center" FontSize="14" TextColor="#52615A" />
+                    <Label Text="A-RIGATOR CONNECT" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
+                    <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                    <Label Text="Smart irrigation control center" FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                 </VerticalStackLayout>
                 <Border Grid.Column="1" Padding="10,7" BackgroundColor="{Binding ConnectionBadgeColor}" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
                     <HorizontalStackLayout Spacing="6" VerticalOptions="Center">
                         <BoxView WidthRequest="8" HeightRequest="8" Color="{Binding ConnectionDotColor}" CornerRadius="4" VerticalOptions="Center" />
-                        <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="#17231C" VerticalOptions="Center" />
+                        <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" VerticalOptions="Center" />
                     </HorizontalStackLayout>
                 </Border>
             </Grid>
@@ -46,44 +46,44 @@
             </Border>
 
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                <Border Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                        <Label Text="PUMP" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Grid.Row="1" Text="{Binding PumpStatus}" FontSize="20" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Text="PUMP" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Row="1" Text="{Binding PumpStatus}" FontSize="20" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                         <Label Grid.Column="1" Grid.RowSpan="2" Text="◉" FontSize="24" TextColor="#2879A8" VerticalOptions="Center" />
                     </Grid>
                 </Border>
-                <Border Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                <Border Grid.Column="1" Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                        <Label Text="DRIVE" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Grid.Row="1" Text="{Binding MotorStatus}" FontSize="20" FontAttributes="Bold" TextColor="#17231C" />
-                        <Label Grid.Column="1" Grid.RowSpan="2" Text="↗" FontSize="25" TextColor="#23724C" VerticalOptions="Center" />
+                        <Label Text="DRIVE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Row="1" Text="{Binding MotorStatus}" FontSize="20" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Grid.RowSpan="2" Text="↗" FontSize="25" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" VerticalOptions="Center" />
                     </Grid>
                 </Border>
-                <Border Grid.Row="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                <Border Grid.Row="1" Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="OBSTACLE DISTANCE" FontSize="10" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding ObstacleDistanceText}" FontSize="19" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Text="OBSTACLE DISTANCE" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Text="{Binding ObstacleDistanceText}" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     </VerticalStackLayout>
                 </Border>
-                <Border Grid.Row="1" Grid.Column="1" Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 15">
+                <Border Grid.Row="1" Grid.Column="1" Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
                     <VerticalStackLayout Spacing="4">
-                        <Label Text="LINE SENSORS" FontSize="10" FontAttributes="Bold" TextColor="#52615A" />
-                        <Label Text="{Binding LineSensorSummary}" FontSize="16" FontAttributes="Bold" TextColor="#17231C" />
+                        <Label Text="LINE SENSORS" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Text="{Binding LineSensorSummary}" FontSize="16" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     </VerticalStackLayout>
                 </Border>
             </Grid>
 
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="12">
                     <VerticalStackLayout Spacing="3">
-                        <Label Text="AUTONOMOUS IRRIGATION" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
-                        <Label Text="Let A-Rigator follow its line, avoid obstacles, and irrigate marked zones." FontSize="13" TextColor="#52615A" />
+                        <Label Text="AUTONOMOUS IRRIGATION" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                        <Label Text="Let A-Rigator follow its line, avoid obstacles, and irrigate marked zones." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     </VerticalStackLayout>
-                    <Border Padding="12" BackgroundColor="#F3F6F3" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                    <Border Padding="12" BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}" StrokeThickness="0" StrokeShape="RoundRectangle 12">
                         <VerticalStackLayout Spacing="5">
-                            <Label Text="{Binding AutonomousStatusTitle}" FontSize="14" FontAttributes="Bold" TextColor="#23724C" />
-                            <Label Text="{Binding AutonomousStatusDescription}" FontSize="12" TextColor="#52615A" />
+                            <Label Text="{Binding AutonomousStatusTitle}" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
+                            <Label Text="{Binding AutonomousStatusDescription}" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                         </VerticalStackLayout>
                     </Border>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
@@ -93,12 +93,12 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="3">
-                            <Label Text="WATER LEVEL" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
-                            <Label Text="Tank monitoring" FontSize="12" TextColor="#52615A" />
+                            <Label Text="WATER LEVEL" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                            <Label Text="Tank monitoring" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                         </VerticalStackLayout>
                         <Label Grid.Column="1" Text="{Binding WaterStatus}" FontSize="13" FontAttributes="Bold" TextColor="#2879A8" VerticalOptions="Center" />
                     </Grid>
@@ -116,13 +116,13 @@
                         <BoxView Grid.Column="10" HeightRequest="34" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
                         <BoxView Grid.Column="11" HeightRequest="22" VerticalOptions="End" Color="#D8E3DC" CornerRadius="3" />
                     </Grid>
-                    <Label Text="{Binding WaterGraphMessage}" FontSize="12" TextColor="#52615A" />
+                    <Label Text="{Binding WaterGraphMessage}" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                 </VerticalStackLayout>
             </Border>
 
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 18">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="MANUAL CONTROLS" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
+                    <Label Text="MANUAL CONTROLS" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                         <Button Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                         <Button Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
@@ -133,10 +133,10 @@
                 </VerticalStackLayout>
             </Border>
 
-            <Border Padding="14" BackgroundColor="#E9F0EB" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+            <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#E9F0EB, Dark=#26352B}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="5">
-                    <Label Text="SYSTEM MESSAGE" FontSize="11" FontAttributes="Bold" TextColor="#52615A" />
-                    <Label Text="{Binding Message}" FontSize="13" TextColor="#17231C" />
+                    <Label Text="SYSTEM MESSAGE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="{Binding Message}" FontSize="13" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>
