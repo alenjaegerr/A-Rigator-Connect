@@ -6,7 +6,7 @@
              x:DataType="viewmodels:WelcomeViewModel"
              Title=""
              Shell.NavBarIsVisible="True"
-             BackgroundColor="#F4F7F5">
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#121814}">
 
     <Grid Padding="24" RowDefinitions="*,Auto,*">
         <VerticalStackLayout Grid.Row="1" Spacing="18" VerticalOptions="Center">
@@ -19,16 +19,16 @@
             <Label Text="Welcome to A-Rigator Connect"
                    FontSize="26"
                    FontAttributes="Bold"
-                   TextColor="#176B45"
+                   TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}"
                    SemanticProperties.HeadingLevel="Level1" />
             <Label Text="Choose how to use A-Rigator Connect"
                    FontSize="17"
-                   TextColor="#52615A" />
+                   TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
             <Button Text="SIGN IN WITH GOOGLE"
                     Command="{Binding SelectGoogleCommand}"
                     MinimumHeightRequest="52"
-                    BackgroundColor="#D8E3DC"
-                    TextColor="#17231C" />
+                    BackgroundColor="{AppThemeBinding Light=#D8E3DC, Dark=#34443A}"
+                    TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
             <Button Text="CONTINUE LOCALLY"
                     Command="{Binding SelectLocalCommand}"
                     MinimumHeightRequest="52"
@@ -37,12 +37,12 @@
             <Label Text="What should we call you?"
                    IsVisible="{Binding IsNameEntryVisible}"
                    FontSize="17"
-                   TextColor="#52615A" />
+                   TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
             <Entry Text="{Binding DisplayName, Mode=TwoWay}"
                    IsVisible="{Binding IsNameEntryVisible}"
                    Placeholder="Your name"
-                   PlaceholderColor="Black"
-                   TextColor="Black"
+                   PlaceholderColor="{AppThemeBinding Light=Black, Dark=#B3C3B9}"
+                   TextColor="{AppThemeBinding Light=Black, Dark=White}"
                    ReturnType="Done"
                    SemanticProperties.Hint="Enter the name you want the app to use when greeting you." />
             <Label Text="{Binding StatusMessage}"
