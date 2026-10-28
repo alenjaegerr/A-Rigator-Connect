@@ -3,36 +3,48 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="A_Rigator_Controller.Views.SettingsPage"
              Title=""
-             BackgroundColor="#F3F6F3">
+             BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <VerticalStackLayout Spacing="4">
-                <Label Text="Settings" FontSize="28" FontAttributes="Bold" TextColor="#176B45" />
-                <Label Text="Manage your app, robot connection, and account." FontSize="14" TextColor="#52615A" />
+                <Label Text="Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                <Label Text="Manage your app, robot connection, and account." FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
             </VerticalStackLayout>
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 16">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ROBOT" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                    <Label Text="Local connection" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
-                    <Label Text="Connect your phone to the A-Rigator Wi-Fi access point to use the local dashboard. The robot must be powered on and within Wi-Fi range." FontSize="13" TextColor="#52615A" />
+                    <Label Text="APPEARANCE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Grid.Column="0" Spacing="4" VerticalOptions="Center">
+                            <Label Text="Dark mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                            <Label Text="Use a darker color scheme throughout supported app screens." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        </VerticalStackLayout>
+                        <Switch x:Name="DarkModeSwitch" Grid.Column="1" VerticalOptions="Center" IsToggled="False" Toggled="OnDarkModeToggled" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ROBOT" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="Local connection" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label Text="Connect your phone to the A-Rigator Wi-Fi access point to use the local dashboard. The robot must be powered on and within Wi-Fi range." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Button Text="OPEN ROBOT SETUP" Clicked="OnRobotSetupClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 16">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ACCOUNT &amp; CLOUD" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                    <Label Text="Sign-in and service configuration" FontSize="17" FontAttributes="Bold" TextColor="#17231C" />
-                    <Label Text="Manage Google sign-in, Supabase settings, and backend API configuration. Local robot control remains separate from cloud account status." FontSize="13" TextColor="#52615A" />
+                    <Label Text="ACCOUNT &amp; CLOUD" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="Sign-in and service configuration" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label Text="Manage Google sign-in, Supabase settings, and backend API configuration. Local robot control remains separate from cloud account status." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Button Text="ACCOUNT MANAGEMENT" Clicked="OnAccountClicked" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
-            <Border Padding="16" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 16">
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="SAFETY" FontSize="12" FontAttributes="Bold" TextColor="#52615A" />
-                    <Label Text="Test autonomous movement in a clear, supervised area. Keep hands away from moving parts and stop the robot if its behavior differs from expectations." FontSize="13" TextColor="#17231C" />
+                    <Label Text="SAFETY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="Test autonomous movement in a clear, supervised area. Keep hands away from moving parts and stop the robot if its behavior differs from expectations." FontSize="13" TextColor="{AppThemeBinding Light=#17231C, Dark=#E0E8E2}" />
                 </VerticalStackLayout>
             </Border>
-            <Label Text="A-Rigator Connect • Local-first controller" FontSize="12" TextColor="#52615A" HorizontalTextAlignment="Center" />
+            <Label Text="A-Rigator Connect • Local-first controller" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" HorizontalTextAlignment="Center" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
