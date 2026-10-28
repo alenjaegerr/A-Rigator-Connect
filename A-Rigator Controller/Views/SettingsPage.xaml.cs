@@ -6,7 +6,7 @@ public partial class SettingsPage : ContentPage
     {
         InitializeComponent();
 
-        // Reflect the current session theme without resetting it when this page opens.
+        // Reflect the current theme without resetting it when this page opens.
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
     }
 
@@ -17,9 +17,13 @@ public partial class SettingsPage : ContentPage
 
     private static void ApplyTheme(bool darkModeEnabled)
     {
+        Preferences.Default.Set("DarkModeEnabled", darkModeEnabled);
+
         if (Application.Current is not null)
         {
-            Application.Current.UserAppTheme = darkModeEnabled ? AppTheme.Dark : AppTheme.Light;
+            Application.Current.UserAppTheme = darkModeEnabled
+                ? AppTheme.Dark
+                : AppTheme.Light;
         }
     }
 
