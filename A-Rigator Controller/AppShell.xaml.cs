@@ -149,8 +149,11 @@ namespace A_Rigator_Controller
             CurrentItem = remoteWifiContent;
         }
 
-        private void ShowDashboard(MainPage dashboardPage)
+        private async void ShowDashboard(MainPage dashboardPage)
         {
+            // Start transparent so the dashboard fades in instead of popping into view.
+            dashboardPage.Opacity = 0;
+
             var dashboardContent = new ShellContent
             {
                 Title = "A-Rigator Connect",
@@ -163,6 +166,8 @@ namespace A_Rigator_Controller
             Items.Insert(homeContentIndex, dashboardContent);
             _homeContent = dashboardContent;
             CurrentItem = dashboardContent;
+
+            await dashboardPage.FadeTo(1, 320, Easing.CubicInOut);
         }
     }
 }
