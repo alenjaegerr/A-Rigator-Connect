@@ -6,9 +6,8 @@ public partial class SettingsPage : ContentPage
     {
         InitializeComponent();
 
-        // Dark mode is intentionally not persisted between app launches.
-        DarkModeSwitch.IsToggled = false;
-        ApplyTheme(false);
+        // Reflect the current session theme without resetting it when this page opens.
+        DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
     }
 
     private void OnDarkModeToggled(object? sender, ToggledEventArgs e)
