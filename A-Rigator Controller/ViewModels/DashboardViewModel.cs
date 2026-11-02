@@ -31,7 +31,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         ReverseCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Reverse), () => CanControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
         PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanControl);
-        PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanControl);
+        PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanManualControl);
         ResetShieldCommand = new Command(async () => await ResetShieldAsync(), () => CanControl);
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
@@ -126,11 +126,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
 
         _monitoringCancellation = null;
+        var shouldStopManualOutputs = !IsAutonomous &&
+            (_activeMotorCommand is not null || _pumpRequested);
         cancellation.Cancel();
         _activeMotorCommand = null;
         _pumpRequested = false;
         NotifyControlStateChanged();
-        _ = StopOutputsAfterMonitoringAsync(cancellation);
+        _ = StopOutputsAfterMonitoringAsync(cancellation, shouldStopManualOutputs);
     }
 
     private async Task StartAutonomousAsync()
@@ -339,12 +341,17 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task StopOutputsAfterMonitoringAsync(CancellationTokenSource cancellation)
+    private async Task StopOutputsAfterMonitoringAsync(
+        CancellationTokenSource cancellation,
+        bool shouldStopManualOutputs)
     {
         try
         {
             await cancellation.CancelAsync();
-            await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None);
+            if (shouldStopManualOutputs)
+            {
+                await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None);
+            }
         }
         finally
         {
