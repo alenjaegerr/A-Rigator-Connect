@@ -83,14 +83,29 @@
                 </Border>
             </Grid>
 
+            <Label Text="AUTONOMOUS IRRIGATION" FontSize="14" FontAttributes="Bold" TextColor="#52615A" />
+            <Border Padding="14" BackgroundColor="White" Stroke="#D8E3DC" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Operating mode" FontSize="13" TextColor="#52615A" VerticalOptions="Center" />
+                        <Label Grid.Column="1" Text="{Binding ModeStatus}" FontSize="13" FontAttributes="Bold" TextColor="#176B45" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button Grid.Column="0" Text="START AUTONOMOUS" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="STOP AUTONOMOUS" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
+                    </Grid>
+                    <Label Text="The ESP32 handles navigation, obstacle detection, and irrigation. The app sends the start/stop command and monitors the robot." FontSize="12" TextColor="#52615A" />
+                </VerticalStackLayout>
+            </Border>
+
             <Label Text="CONTROLS" FontSize="14" FontAttributes="Bold" TextColor="#52615A" />
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                <Button Grid.Row="0" Grid.Column="0" Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
-                <Button Grid.Row="0" Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                <Button Grid.Row="0" Grid.Column="0" Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                <Button Grid.Row="0" Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
                 <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Text="STOP" Command="{Binding StopCommand}" MinimumHeightRequest="58" BackgroundColor="#A23A32" TextColor="White" />
-                <Button Grid.Row="2" Grid.Column="0" Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="54" BackgroundColor="#2879A8" TextColor="White" />
+                <Button Grid.Row="2" Grid.Column="0" Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#2879A8" TextColor="White" />
                 <Button Grid.Row="2" Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" MinimumHeightRequest="54" BackgroundColor="#52615A" TextColor="White" />
-                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanControl}" MinimumHeightRequest="50" BackgroundColor="#72510D" TextColor="White" />
+                <Button Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="50" BackgroundColor="#72510D" TextColor="White" />
             </Grid>
 
             <Label Text="{Binding Message}" FontSize="14" TextColor="#52615A" />
