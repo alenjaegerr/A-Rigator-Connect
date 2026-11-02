@@ -40,8 +40,15 @@ void handleResetShield();
 
 #define LINE_LEFT_PIN       14    // TCRT5000 Left Digital (D14)
 #define LINE_RIGHT_PIN      27    // TCRT5000 Right Digital (D27)
-#define SONAR_TRIG_PIN      18    // JSN-B02 Trigger (D18)
-#define SONAR_ECHO_PIN      19    // JSN-B02 Echo (D19)
+
+// Front obstacle-detection sonar
+#define OBSTACLE_TRIG_PIN   18    // JSN-B02 Trigger (D18)
+#define OBSTACLE_ECHO_PIN   19    // JSN-B02 Echo (D19)
+
+// Reservoir water-level sonar (GPIOs reserved; placement/calibration pending)
+#define WATER_TRIG_PIN      25
+#define WATER_ECHO_PIN      26
+
 #define CHASSIS_BTN_PIN     15    // Twist Car Top Button (D15)
 
 // ============================================================================
@@ -369,13 +376,13 @@ void enforceManualControlTimeout() {
 }
 
 float getObstacleDistanceCM() {
-  digitalWrite(SONAR_TRIG_PIN, LOW);
+  digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(SONAR_TRIG_PIN, HIGH);
+  digitalWrite(OBSTACLE_TRIG_PIN, HIGH);
   delayMicroseconds(15);
-  digitalWrite(SONAR_TRIG_PIN, LOW);
+  digitalWrite(OBSTACLE_TRIG_PIN, LOW);
 
-  long duration = pulseIn(SONAR_ECHO_PIN, HIGH, 30000);
+  long duration = pulseIn(OBSTACLE_ECHO_PIN, HIGH, 30000);
   if (duration == 0) return 999.0;
   return (duration * 0.0343) / 2.0;
 }
@@ -544,8 +551,8 @@ void setup() {
 
   pinMode(LINE_LEFT_PIN, INPUT);
   pinMode(LINE_RIGHT_PIN, INPUT);
-  pinMode(SONAR_TRIG_PIN, OUTPUT);
-  pinMode(SONAR_ECHO_PIN, INPUT);
+  pinMode(OBSTACLE_TRIG_PIN, OUTPUT);
+  pinMode(OBSTACLE_ECHO_PIN, INPUT);
 
   pinMode(PUMP_RELAY_PIN, OUTPUT);
   digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
