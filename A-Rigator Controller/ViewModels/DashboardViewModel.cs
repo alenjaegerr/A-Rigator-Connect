@@ -34,6 +34,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanControl);
         ResetShieldCommand = new Command(async () => await ResetShieldAsync(), () => CanControl);
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
+        StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
+        StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -68,6 +70,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool CanControl => IsConnected && _latestStatus?.ControlsEnabled == true;
 
+    public bool IsAutonomous => _latestStatus?.Mode == OperatingMode.Automatic;
+
+    public bool CanStartAutonomous => CanControl && !IsAutonomous;
+
+    public bool CanStopAutonomous => CanControl && IsAutonomous;
+
+    public bool CanManualControl => CanControl && !IsAutonomous;
+
     public bool IsControlWarningVisible => !CanControl;
 
     public string ControlAccessMessage => !IsConnected
@@ -91,6 +101,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public ICommand ResetShieldCommand { get; }
 
     public ICommand RefreshCommand { get; }
+
+    public ICommand StartAutonomousCommand { get; }
+
+    public ICommand StopAutonomousCommand { get; }
 
     public void StartMonitoring()
     {
@@ -117,6 +131,47 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _pumpRequested = false;
         NotifyControlStateChanged();
         _ = StopOutputsAfterMonitoringAsync(cancellation);
+    }
+
+    private async Task StartAutonomousAsync()
+    {
+        if (!CanStartAutonomous)
+        {
+            Message = "Connect to A-Rigator before starting autonomous irrigation.";
+            return;
+        }
+
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        Message = "Sending autonomous start command to A-Rigator...";
+        NotifyControlStateChanged();
+
+        await SendCommandAsync(RobotControlCommand.AutonomousStart, CancellationToken.None);
+        await RefreshStatusAsync();
+
+        if (IsAutonomous)
+        {
+            Message = "Autonomous irrigation started. A-Rigator is now controlling its own movement and watering.";
+        }
+    }
+
+    private async Task StopAutonomousAsync()
+    {
+        if (!CanStopAutonomous)
+        {
+            return;
+        }
+
+        Message = "Stopping autonomous irrigation...";
+        NotifyControlStateChanged();
+
+        await SendCommandAsync(RobotControlCommand.AutonomousStop, CancellationToken.None);
+        await RefreshStatusAsync();
+
+        if (!IsAutonomous)
+        {
+            Message = "Autonomous irrigation stopped. Robot outputs are disabled.";
+        }
     }
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
@@ -230,6 +285,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(RobotStatus));
             OnPropertyChanged(nameof(ModeStatus));
             OnPropertyChanged(nameof(PumpStatus));
+            OnPropertyChanged(nameof(IsAutonomous));
             NotifyControlStateChanged();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -312,6 +368,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private void NotifyControlStateChanged()
     {
         OnPropertyChanged(nameof(MotorStatus));
+        OnPropertyChanged(nameof(IsAutonomous));
+        OnPropertyChanged(nameof(CanStartAutonomous));
+        OnPropertyChanged(nameof(CanStopAutonomous));
+        OnPropertyChanged(nameof(CanManualControl));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
         OnPropertyChanged(nameof(IsControlWarningVisible));
@@ -323,6 +383,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (PumpOffCommand as Command)?.ChangeCanExecute();
         (ResetShieldCommand as Command)?.ChangeCanExecute();
         (RefreshCommand as Command)?.ChangeCanExecute();
+        (StartAutonomousCommand as Command)?.ChangeCanExecute();
+        (StopAutonomousCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
