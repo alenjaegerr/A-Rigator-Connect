@@ -58,6 +58,15 @@ void handleResetShield();
 
 #define FULL_POWER          100.0
 
+// The factory firmware on some WeMos V1 motor shields can lock its I2C
+// interface after ~10 seconds without a command. Refresh the last output
+// every 4 seconds to keep the shield responsive without changing motor state.
+static const unsigned long SHIELD_KEEPALIVE_INTERVAL_MS = 4000;
+unsigned long lastShieldKeepAlive = 0;
+bool motorShieldInitialized = false;
+uint8_t lastShieldMotorDirection = CMD_BRAKE;
+float lastShieldMotorSpeed = 0.0;
+
 #define RELAY_ON            LOW
 #define RELAY_OFF           HIGH
 
@@ -193,11 +202,30 @@ void sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
 }
 
 void driveMotor(uint8_t dir, float speed_percent) {
+  // Remember the actual output so the keep-alive repeats the current command,
+  // whether the robot is moving, coasting, or braking.
+  lastShieldMotorDirection = dir;
+  lastShieldMotorSpeed = speed_percent;
   sendRawPacket(MOTOR_A, dir, speed_percent);
   sendRawPacket(MOTOR_B, dir, speed_percent);
+  lastShieldKeepAlive = millis();
+}
+
+void refreshMotorShieldKeepAlive() {
+  if (!motorShieldInitialized ||
+      millis() - lastShieldKeepAlive < SHIELD_KEEPALIVE_INTERVAL_MS) {
+    return;
+  }
+
+  // Send the last motor state to both channels. Do not use driveMotor()
+  // here because this is a refresh, not a new motor-state change.
+  sendRawPacket(MOTOR_A, lastShieldMotorDirection, lastShieldMotorSpeed);
+  sendRawPacket(MOTOR_B, lastShieldMotorDirection, lastShieldMotorSpeed);
+  lastShieldKeepAlive = millis();
 }
 
 void initializeMotorShield() {
+  motorShieldInitialized = false;
   digitalWrite(SHIELD_RST_PIN, LOW);
   delay(50);
   digitalWrite(SHIELD_RST_PIN, HIGH);
@@ -205,6 +233,7 @@ void initializeMotorShield() {
   initShieldFrequency(1000);
   delay(80);
   initShieldFrequency(1000);
+  motorShieldInitialized = true;
   driveMotor(CMD_BRAKE, 0.0);
 }
 
@@ -229,6 +258,9 @@ void writeServo(int pin, int angle) {
 	delayMicroseconds(pulse_us);
 	digitalWrite(pin, LOW);
 	delay(20);
+    // Servo routines block the main loop; service the shield here as well
+    // so long nozzle sweeps cannot exceed the keep-alive interval.
+    refreshMotorShieldKeepAlive();
   }
 }
 
@@ -540,6 +572,7 @@ void setup() {
 void loop() {
   server.handleClient();
   enforceManualControlTimeout();
+  refreshMotorShieldKeepAlive();
 
   if (Serial.available() > 0) {
 	char c = Serial.read();
