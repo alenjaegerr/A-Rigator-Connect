@@ -21,6 +21,7 @@ void handleForward();
 void handleReverse();
 void handleStop();
 void handleAutonomousStart();
+void handleAutonomousStop();
 void handlePumpOn();
 void handlePumpOff();
 void handleHeartbeat();
@@ -146,6 +147,7 @@ void startWifiApi() {
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
+	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
 	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
 	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
 	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
@@ -282,6 +284,17 @@ void handleAutonomousStart() {
   currentMode = MODE_AUTONOMOUS;
   sendControlResponse("autonomous_start");
   Serial.println(">> [MODE] AUTONOMOUS ENGAGED over Wi-Fi API");
+}
+
+void handleAutonomousStop() {
+  currentMode = MODE_MANUAL;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  sendControlResponse("autonomous_stop");
+  Serial.println(">> [MODE] AUTONOMOUS STOPPED over Wi-Fi API");
 }
 
 void handlePumpOn() {
