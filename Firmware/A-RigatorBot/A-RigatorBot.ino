@@ -21,6 +21,7 @@ void handleForward();
 void handleReverse();
 void handleStop();
 void handleAutonomousStart();
+void handleAutonomousStop();
 void handlePumpOn();
 void handlePumpOff();
 void handleHeartbeat();
@@ -39,8 +40,15 @@ void handleResetShield();
 
 #define LINE_LEFT_PIN       14    // TCRT5000 Left Digital (D14)
 #define LINE_RIGHT_PIN      27    // TCRT5000 Right Digital (D27)
-#define SONAR_TRIG_PIN      18    // JSN-B02 Trigger (D18)
-#define SONAR_ECHO_PIN      19    // JSN-B02 Echo (D19)
+
+// Front obstacle-detection sonar
+#define OBSTACLE_TRIG_PIN   18    // JSN-B02 Trigger (D18)
+#define OBSTACLE_ECHO_PIN   19    // JSN-B02 Echo (D19)
+
+// Reservoir water-level sonar (GPIOs reserved; placement/calibration pending)
+#define WATER_TRIG_PIN      25
+#define WATER_ECHO_PIN      26
+
 #define CHASSIS_BTN_PIN     15    // Twist Car Top Button (D15)
 
 // ============================================================================
@@ -56,6 +64,15 @@ void handleResetShield();
 #define CMD_STOP            0x03
 
 #define FULL_POWER          100.0
+
+// The factory firmware on some WeMos V1 motor shields can lock its I2C
+// interface after ~10 seconds without a command. Refresh the last output
+// every 4 seconds to keep the shield responsive without changing motor state.
+static const unsigned long SHIELD_KEEPALIVE_INTERVAL_MS = 4000;
+unsigned long lastShieldKeepAlive = 0;
+bool motorShieldInitialized = false;
+uint8_t lastShieldMotorDirection = CMD_BRAKE;
+float lastShieldMotorSpeed = 0.0;
 
 #define RELAY_ON            LOW
 #define RELAY_OFF           HIGH
@@ -146,6 +163,7 @@ void startWifiApi() {
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
+	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
 	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
 	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
 	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
@@ -191,11 +209,30 @@ void sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
 }
 
 void driveMotor(uint8_t dir, float speed_percent) {
+  // Remember the actual output so the keep-alive repeats the current command,
+  // whether the robot is moving, coasting, or braking.
+  lastShieldMotorDirection = dir;
+  lastShieldMotorSpeed = speed_percent;
   sendRawPacket(MOTOR_A, dir, speed_percent);
   sendRawPacket(MOTOR_B, dir, speed_percent);
+  lastShieldKeepAlive = millis();
+}
+
+void refreshMotorShieldKeepAlive() {
+  if (!motorShieldInitialized ||
+      millis() - lastShieldKeepAlive < SHIELD_KEEPALIVE_INTERVAL_MS) {
+    return;
+  }
+
+  // Send the last motor state to both channels. Do not use driveMotor()
+  // here because this is a refresh, not a new motor-state change.
+  sendRawPacket(MOTOR_A, lastShieldMotorDirection, lastShieldMotorSpeed);
+  sendRawPacket(MOTOR_B, lastShieldMotorDirection, lastShieldMotorSpeed);
+  lastShieldKeepAlive = millis();
 }
 
 void initializeMotorShield() {
+  motorShieldInitialized = false;
   digitalWrite(SHIELD_RST_PIN, LOW);
   delay(50);
   digitalWrite(SHIELD_RST_PIN, HIGH);
@@ -203,6 +240,7 @@ void initializeMotorShield() {
   initShieldFrequency(1000);
   delay(80);
   initShieldFrequency(1000);
+  motorShieldInitialized = true;
   driveMotor(CMD_BRAKE, 0.0);
 }
 
@@ -227,6 +265,9 @@ void writeServo(int pin, int angle) {
 	delayMicroseconds(pulse_us);
 	digitalWrite(pin, LOW);
 	delay(20);
+    // Servo routines block the main loop; service the shield here as well
+    // so long nozzle sweeps cannot exceed the keep-alive interval.
+    refreshMotorShieldKeepAlive();
   }
 }
 
@@ -284,6 +325,17 @@ void handleAutonomousStart() {
   Serial.println(">> [MODE] AUTONOMOUS ENGAGED over Wi-Fi API");
 }
 
+void handleAutonomousStop() {
+  currentMode = MODE_MANUAL;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  sendControlResponse("autonomous_stop");
+  Serial.println(">> [MODE] AUTONOMOUS STOPPED over Wi-Fi API");
+}
+
 void handlePumpOn() {
 	if (currentMode == MODE_AUTONOMOUS) {
 	manualMotorDir = CMD_STOP;
@@ -324,13 +376,13 @@ void enforceManualControlTimeout() {
 }
 
 float getObstacleDistanceCM() {
-  digitalWrite(SONAR_TRIG_PIN, LOW);
+  digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   delayMicroseconds(2);
-  digitalWrite(SONAR_TRIG_PIN, HIGH);
+  digitalWrite(OBSTACLE_TRIG_PIN, HIGH);
   delayMicroseconds(15);
-  digitalWrite(SONAR_TRIG_PIN, LOW);
+  digitalWrite(OBSTACLE_TRIG_PIN, LOW);
 
-  long duration = pulseIn(SONAR_ECHO_PIN, HIGH, 30000);
+  long duration = pulseIn(OBSTACLE_ECHO_PIN, HIGH, 30000);
   if (duration == 0) return 999.0;
   return (duration * 0.0343) / 2.0;
 }
@@ -499,8 +551,8 @@ void setup() {
 
   pinMode(LINE_LEFT_PIN, INPUT);
   pinMode(LINE_RIGHT_PIN, INPUT);
-  pinMode(SONAR_TRIG_PIN, OUTPUT);
-  pinMode(SONAR_ECHO_PIN, INPUT);
+  pinMode(OBSTACLE_TRIG_PIN, OUTPUT);
+  pinMode(OBSTACLE_ECHO_PIN, INPUT);
 
   pinMode(PUMP_RELAY_PIN, OUTPUT);
   digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
@@ -527,6 +579,7 @@ void setup() {
 void loop() {
   server.handleClient();
   enforceManualControlTimeout();
+  refreshMotorShieldKeepAlive();
 
   if (Serial.available() > 0) {
 	char c = Serial.read();

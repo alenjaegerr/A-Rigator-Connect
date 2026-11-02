@@ -8,5 +8,7 @@ public enum RobotControlCommand
     PumpOn,
     PumpOff,
     ResetShield,
-    Heartbeat
+    Heartbeat,
+    AutonomousStart,
+    AutonomousStop
 }
