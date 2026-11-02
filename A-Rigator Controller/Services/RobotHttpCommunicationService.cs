@@ -30,6 +30,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             RobotControlCommand.PumpOff => "api/control/pump/off",
             RobotControlCommand.ResetShield => "api/control/shield/reset",
             RobotControlCommand.Heartbeat => "api/control/heartbeat",
+            RobotControlCommand.AutonomousStart => "api/control/autonomous/start",
+            RobotControlCommand.AutonomousStop => "api/control/autonomous/stop",
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported robot command.")
         };
 
