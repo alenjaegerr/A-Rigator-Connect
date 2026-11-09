@@ -18,6 +18,51 @@
                        SemanticProperties.HeadingLevel="Level1" />
             </VerticalStackLayout>
 
+            <Border Padding="18"
+                    BackgroundColor="White"
+                    Stroke="#D8E3DC"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Find your robot with Bluetooth"
+                           FontSize="19"
+                           FontAttributes="Bold"
+                           TextColor="#17231C" />
+                    <Label Text="Discover and connect to a nearby A-Rigator without first joining its Wi-Fi access point."
+                           FontSize="14"
+                           TextColor="#52615A" />
+                    <Button Text="SCAN FOR A-RIGATOR"
+                            Command="{Binding ScanForBleRobotsCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            MinimumHeightRequest="48"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                    <Picker Title="Select a discovered robot"
+                            ItemsSource="{Binding NearbyBleRobots}"
+                            ItemDisplayBinding="{Binding Name}"
+                            SelectedItem="{Binding SelectedBleRobot}" />
+                    <Label Text="{Binding BleStatusMessage}"
+                           FontSize="14"
+                           TextColor="#52615A" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="CONNECT"
+                                Command="{Binding ConnectToBleRobotCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                HorizontalOptions="FillAndExpand"
+                                BackgroundColor="#2879A8"
+                                TextColor="White" />
+                        <Button Text="DISCONNECT"
+                                Command="{Binding DisconnectBleRobotCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                HorizontalOptions="FillAndExpand"
+                                BackgroundColor="#52615A"
+                                TextColor="White" />
+                    </HorizontalStackLayout>
+                    <Label Text="Prototype: Bluetooth discovery and connection only. Wi-Fi credential transfer is not available yet."
+                           FontSize="12"
+                           TextColor="#8A5A20" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border IsVisible="{Binding IsWifiInstructionsVisible}"
                     Padding="18"
                     BackgroundColor="White"
