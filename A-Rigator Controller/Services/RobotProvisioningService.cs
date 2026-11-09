@@ -10,9 +10,9 @@ using System.Text.Json;
 namespace A_Rigator_Controller.Services;
 
 /// <summary>
-/// First-stage BLE transport: discovers A-Rigator and establishes a GATT connection.
-/// Wi-Fi provisioning operations remain deliberately unavailable until the firmware
-/// implements an authenticated write protocol and acknowledgements.
+/// BLE transport for A-Rigator discovery, GATT connection, and read-only Wi-Fi scanning.
+/// Credential writes remain disabled until the authenticated encryption protocol
+/// and robot-side connection acknowledgements are implemented.
 /// </summary>
 public sealed class RobotProvisioningService : IRobotProvisioningService
 {
