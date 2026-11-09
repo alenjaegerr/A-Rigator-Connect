@@ -4,8 +4,8 @@ namespace A_Rigator_Controller.Services;
 
 /// <summary>
 /// Transport-independent contract for BLE robot discovery and Wi-Fi provisioning.
-/// BLE discovery and read-only Wi-Fi scanning are implemented. Credential writes
-/// remain disabled until the authenticated encryption protocol is complete.
+/// BLE discovery, Wi-Fi scanning, and credential transfer use the robot's
+/// bonded encrypted BLE connection. Just Works does not provide MITM protection.
 /// </summary>
 public interface IRobotProvisioningService
 {
