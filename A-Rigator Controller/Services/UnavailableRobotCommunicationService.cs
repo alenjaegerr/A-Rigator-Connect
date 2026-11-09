@@ -32,6 +32,8 @@ public sealed class UnavailableRobotCommunicationService : IRobotCommunicationSe
         return Task.FromResult<RobotStatus?>(null);
     }
 
+    public void SetRobotAddress(string address) { }
+
     public Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
