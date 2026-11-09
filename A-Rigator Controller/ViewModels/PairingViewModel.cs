@@ -123,7 +123,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public bool IsBleConnected
     {
         get => _isBleConnected;
-        private set => SetField(ref _isBleConnected, value);
+        private set
+        {
+            if (SetField(ref _isBleConnected, value))
+                OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+        }
     }
 
     public string BleStatusMessage
