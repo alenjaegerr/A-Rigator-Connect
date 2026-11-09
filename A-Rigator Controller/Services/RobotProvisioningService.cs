@@ -4,6 +4,8 @@ using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Microsoft.Maui.ApplicationModel;
+using System.Text;
+using System.Text.Json;
 
 namespace A_Rigator_Controller.Services;
 
@@ -18,7 +20,11 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         Guid.Parse("7a1c0001-8f2d-4b6a-9c31-4a5249474154");
 
     private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
+    public static readonly Guid WifiScanCharacteristicUuid =
+        Guid.Parse("7a1c0003-8f2d-4b6a-9c31-4a5249474154");
+
     private readonly Dictionary<string, IDevice> _discoveredDevices = new();
+    private readonly SemaphoreSlim _gattLock = new(1, 1);
     private IDevice? _connectedDevice;
     private RobotProvisioningState _state = RobotProvisioningState.Idle;
 
@@ -94,10 +100,83 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         }
     }
 
-    public Task<IReadOnlyList<RobotWifiNetwork>> ScanWifiNetworksAsync(
+    public async Task<IReadOnlyList<RobotWifiNetwork>> ScanWifiNetworksAsync(
         CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IReadOnlyList<RobotWifiNetwork>>(Array.Empty<RobotWifiNetwork>());
+        if (_connectedDevice is null)
+            throw new InvalidOperationException("Connect to A-Rigator over Bluetooth before scanning for Wi-Fi.");
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            SetState(RobotProvisioningState.ScanningForNetworks);
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid);
+            var characteristic = await service.GetCharacteristicAsync(WifiScanCharacteristicUuid);
+            if (characteristic is null)
+                throw new InvalidOperationException("This A-Rigator firmware does not support BLE Wi-Fi scanning yet.");
+
+            await characteristic.WriteAsync(Encoding.UTF8.GetBytes("SCAN"));
+
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(500, cancellationToken);
+
+                var payload = await characteristic.ReadAsync();
+                using var document = JsonDocument.Parse(payload);
+                var root = document.RootElement;
+                var state = root.TryGetProperty("state", out var stateElement)
+                    ? stateElement.GetString()
+                    : null;
+
+                if (state == "error")
+                    throw new InvalidOperationException("A-Rigator could not scan for nearby Wi-Fi networks.");
+
+                if (state != "complete")
+                    continue;
+
+                var networks = new List<RobotWifiNetwork>();
+                if (root.TryGetProperty("networks", out var networkArray) &&
+                    networkArray.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var network in networkArray.EnumerateArray())
+                    {
+                        var ssid = network.TryGetProperty("ssid", out var ssidElement)
+                            ? ssidElement.GetString()
+                            : null;
+                        if (string.IsNullOrEmpty(ssid))
+                            continue;
+
+                        var rssi = network.TryGetProperty("rssi", out var rssiElement)
+                            ? rssiElement.GetInt32()
+                            : -100;
+                        var secured = network.TryGetProperty("secured", out var securedElement) &&
+                                      securedElement.GetBoolean();
+
+                        networks.Add(new RobotWifiNetwork(ssid, rssi, secured));
+                    }
+                }
+
+                SetState(RobotProvisioningState.Completed);
+                return networks
+                    .GroupBy(network => network.Ssid, StringComparer.Ordinal)
+                    .Select(group => group.OrderByDescending(network => network.SignalStrength).First())
+                    .OrderByDescending(network => network.SignalStrength)
+                    .ToArray();
+            }
+
+            throw new TimeoutException("A-Rigator did not finish scanning for Wi-Fi networks in time.");
+        }
+        catch
+        {
+            SetState(RobotProvisioningState.Failed);
+            throw;
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
     }
 
     public Task<RobotProvisioningResult> SendWifiCredentialsAsync(
