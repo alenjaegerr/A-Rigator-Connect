@@ -23,6 +23,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isBleConnected;
     private string _wifiScanStatusMessage = "Connect to A-Rigator, then scan for nearby Wi-Fi networks.";
     private bool _hasScannedWifiNetworks;
+    private RobotWifiNetwork? _selectedWifiNetwork;
+    private string _wifiPassword = string.Empty;
 
     public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
@@ -39,6 +41,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ConnectToBleRobotCommand = new Command(async () => await ConnectToBleRobotAsync());
         DisconnectBleRobotCommand = new Command(async () => await DisconnectBleRobotAsync());
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
+        ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
         RefreshWifiState();
     }
 
@@ -69,6 +72,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(HasSelectedBleRobot));
+                OnPropertyChanged(nameof(CanSubmitWifiCredentials));
             }
         }
     }
@@ -92,6 +96,15 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         get => _hasScannedWifiNetworks;
         private set => SetField(ref _hasScannedWifiNetworks, value);
     }
+
+    public RobotWifiNetwork? SelectedWifiNetwork
+    {
+        get => _selectedWifiNetwork;
+        set { if (SetField(ref _selectedWifiNetwork, value)) OnPropertyChanged(nameof(CanSubmitWifiCredentials)); }
+    }
+
+    public string WifiPassword { get => _wifiPassword; set => SetField(ref _wifiPassword, value); }
+    public bool CanSubmitWifiCredentials => IsBleConnected && SelectedWifiNetwork is not null && !IsBusy;
 
     public RobotProvisioningDevice? SelectedBleRobot
     {
@@ -146,6 +159,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand DisconnectBleRobotCommand { get; }
 
     public ICommand ScanWifiNetworksCommand { get; }
+    public ICommand ConnectRobotToWifiCommand { get; }
 
     public string ErrorMessage
     {
@@ -323,7 +337,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             HasScannedWifiNetworks = true;
             WifiScanStatusMessage = networks.Count == 0
                 ? "No Wi-Fi networks were found. Move the robot closer to your router and try again."
-                : $"{networks.Count} Wi-Fi network(s) found. Credential setup is the next step.";
+                : $"{networks.Count} Wi-Fi network(s) found. Select your network, enter its password, then connect A-Rigator.";
         }
         catch (Exception ex)
         {
@@ -334,6 +348,35 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             IsBusy = false;
         }
     }
+    private async Task ConnectRobotToWifiAsync()
+    {
+        if (IsBusy || !IsBleConnected || SelectedWifiNetwork is null) return;
+
+        IsBusy = true;
+        WifiScanStatusMessage = $"Sending Wi-Fi settings for {SelectedWifiNetwork.Ssid}...";
+        try
+        {
+            var result = await _robotProvisioningService.SendWifiCredentialsAsync(
+                SelectedWifiNetwork.Ssid,
+                WifiPassword);
+
+            WifiScanStatusMessage = result.Message;
+            if (result.Success)
+            {
+                WifiPassword = string.Empty;
+                BleStatusMessage = "A-Rigator joined the selected Wi-Fi network. Its direct hotspot remains enabled.";
+            }
+        }
+        catch (Exception ex)
+        {
+            WifiScanStatusMessage = $"Could not provision Wi-Fi: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     private void OpenWifiSettings()
     {
         try
