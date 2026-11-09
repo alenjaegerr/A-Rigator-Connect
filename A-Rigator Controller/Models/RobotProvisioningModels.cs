@@ -1,0 +1,27 @@
+namespace A_Rigator_Controller.Models;
+
+public sealed record RobotProvisioningDevice(
+    string DeviceId,
+    string Name,
+    int SignalStrength);
+
+public sealed record RobotWifiNetwork(
+    string Ssid,
+    int SignalStrength,
+    bool IsSecured);
+
+public sealed record RobotProvisioningResult(
+    bool Success,
+    string Message);
+
+public enum RobotProvisioningState
+{
+    Idle,
+    ScanningForRobots,
+    ConnectingToRobot,
+    ScanningForNetworks,
+    SendingCredentials,
+    WaitingForRobotConnection,
+    Completed,
+    Failed
+}
