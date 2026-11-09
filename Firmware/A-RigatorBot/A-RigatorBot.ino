@@ -26,13 +26,18 @@ RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
 
-// BLE discovery service. Credential transfer will be added in the next stage.
+// BLE provisioning transport. Network scanning is read-only; credential writes
+// will remain disabled until the authenticated session protocol is implemented.
 static const char* BLE_DEVICE_NAME = "A-Rigator";
 static const char* BLE_PROVISIONING_SERVICE_UUID = "7a1c0001-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
+BLECharacteristic* bleWifiScanCharacteristic = nullptr;
+volatile bool bleWifiScanRequested = false;
+bool bleWifiScanRunning = false;
 void handleForward();
 void handleReverse();
 void handleStop();
@@ -44,8 +49,74 @@ void handleHeartbeat();
 void handleResetShield();
 
 // ============================================================================
-// BLE DISCOVERY (credential provisioning is a later stage)
+// BLE DISCOVERY + READ-ONLY WI-FI SCAN
 // ============================================================================
+class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const std::string command = characteristic->getValue();
+    if (command == "SCAN") {
+      bleWifiScanRequested = true;
+      characteristic->setValue("{\"state\":\"scanning\",\"networks\":[]}");
+    } else {
+      characteristic->setValue("{\"state\":\"error\",\"message\":\"Unsupported command\",\"networks\":[]}");
+    }
+  }
+};
+
+String escapeJsonString(const String& value) {
+  String escaped;
+  escaped.reserve(value.length() + 8);
+  for (size_t i = 0; i < value.length(); ++i) {
+    const char ch = value[i];
+    if (ch == '\\' || ch == '"') {
+      escaped += '\\';
+      escaped += ch;
+    } else if ((uint8_t)ch >= 0x20) {
+      escaped += ch;
+    }
+  }
+  return escaped;
+}
+
+void serviceBleWifiScan() {
+  if (bleWifiScanRequested && !bleWifiScanRunning) {
+    bleWifiScanRequested = false;
+    const int result = WiFi.scanNetworks(true, true);
+    if (result == WIFI_SCAN_FAILED) {
+      bleWifiScanCharacteristic->setValue("{\"state\":\"error\",\"networks\":[]}");
+    } else {
+      bleWifiScanRunning = true;
+      bleWifiScanCharacteristic->setValue("{\"state\":\"scanning\",\"networks\":[]}");
+    }
+  }
+
+  if (!bleWifiScanRunning) return;
+
+  const int count = WiFi.scanComplete();
+  if (count == WIFI_SCAN_RUNNING) return;
+
+  if (count == WIFI_SCAN_FAILED) {
+    bleWifiScanCharacteristic->setValue("{\"state\":\"error\",\"networks\":[]}");
+  } else {
+    String json = "{\"state\":\"complete\",\"networks\":[";
+    for (int i = 0; i < count; ++i) {
+      if (i > 0) json += ",";
+      json += "{\"ssid\":\"";
+      json += escapeJsonString(WiFi.SSID(i));
+      json += "\",\"rssi\":";
+      json += String(WiFi.RSSI(i));
+      json += ",\"secured\":";
+      json += (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "false" : "true");
+      json += "}";
+    }
+    json += "]}";
+    bleWifiScanCharacteristic->setValue(json.c_str());
+  }
+
+  WiFi.scanDelete();
+  bleWifiScanRunning = false;
+}
+
 void startBleDiscovery() {
   BLEDevice::init(BLE_DEVICE_NAME);
   bleServer = BLEDevice::createServer();
@@ -55,6 +126,14 @@ void startBleDiscovery() {
     BLECharacteristic::PROPERTY_READ
   );
   bleDiscoveryCharacteristic->setValue("A-Rigator Wi-Fi provisioning available");
+
+  bleWifiScanCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_WIFI_SCAN_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
+  );
+  bleWifiScanCharacteristic->setCallbacks(new WifiScanCommandCallbacks());
+  bleWifiScanCharacteristic->setValue("{\"state\":\"idle\",\"networks\":[]}");
+
   bleProvisioningService->start();
 
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
@@ -635,6 +714,7 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  serviceBleWifiScan();
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
