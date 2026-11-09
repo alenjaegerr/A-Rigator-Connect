@@ -27,6 +27,7 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+bool mdnsStarted = false;
 
 // BLE provisioning transport. Network scanning is read-only; credential writes
 // will remain disabled until the authenticated session protocol is implemented.
@@ -122,8 +123,9 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentials.ssid = pendingWifiSsid;
       savedWifiCredentials.password = pendingWifiPassword;
       savedWifiCredentialsAvailable = true;
-      MDNS.end();
-      if (MDNS.begin("arigator")) MDNS.addService("http", "tcp", 80);
+      if (mdnsStarted) MDNS.end();
+      mdnsStarted = MDNS.begin("arigator");
+      if (mdnsStarted) MDNS.addService("http", "tcp", 80);
       const String result = String("CONNECTED:") + WiFi.localIP().toString();
       bleWifiStatusCharacteristic->setValue(result.c_str());
       Serial.printf(">> Wi-Fi provisioned. STA IP: %s (mDNS: arigator.local)\n",
@@ -429,6 +431,11 @@ void handleStatus() {
   json += pumpState ? "true" : "false";
 	json += ",\"controlsEnabled\":";
   json += controlsEnabled ? "true" : "false";
+  json += ",\"wifiConnected\":";
+  json += WiFi.status() == WL_CONNECTED ? "true" : "false";
+  json += ",\"wifiIp\":\"";
+  json += WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
+  json += "\",\"hostname\":\"arigator.local\"";
   json += "}";
   server.send(200, "application/json", json);
 }
@@ -912,9 +919,15 @@ void loop() {
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
   if (stationConnected && !stationWasConnected) {
-    Serial.printf(">> Saved Wi-Fi connected. Robot network IP: %s\\n",
+    if (!mdnsStarted) {
+      mdnsStarted = MDNS.begin("arigator");
+      if (mdnsStarted) MDNS.addService("http", "tcp", 80);
+    }
+    Serial.printf(">> Wi-Fi connected. Robot network IP: %s (arigator.local)\\n",
                   WiFi.localIP().toString().c_str());
   } else if (!stationConnected && stationWasConnected) {
+    if (mdnsStarted) MDNS.end();
+    mdnsStarted = false;
     Serial.println(">> Saved Wi-Fi disconnected. ESP32 will attempt to reconnect.");
   }
   stationWasConnected = stationConnected;
