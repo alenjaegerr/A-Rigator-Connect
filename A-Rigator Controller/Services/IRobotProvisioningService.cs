@@ -4,8 +4,8 @@ namespace A_Rigator_Controller.Services;
 
 /// <summary>
 /// Transport-independent contract for BLE robot discovery and Wi-Fi provisioning.
-/// The BLE implementation will be added after the board's exact ESP32 variant
-/// and the physical reset-button wiring are confirmed.
+/// BLE discovery and read-only Wi-Fi scanning are implemented. Credential writes
+/// remain disabled until the authenticated encryption protocol is complete.
 /// </summary>
 public interface IRobotProvisioningService
 {
