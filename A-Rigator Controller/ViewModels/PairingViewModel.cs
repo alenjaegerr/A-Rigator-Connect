@@ -127,7 +127,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         private set
         {
             if (SetField(ref _isBleConnected, value))
+            {
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+                OnPropertyChanged(nameof(IsWifiInstructionsVisible));
+            }
         }
     }
 
@@ -331,6 +334,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
         IsBusy = true;
         HasScannedWifiNetworks = false;
+        SelectedWifiNetwork = null;
+        WifiPassword = string.Empty;
         NearbyWifiNetworks.Clear();
         WifiScanStatusMessage = "Scanning for nearby Wi-Fi networks...";
         try
