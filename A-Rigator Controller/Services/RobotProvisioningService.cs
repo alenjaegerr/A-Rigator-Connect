@@ -243,9 +243,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
                 await Task.Delay(700, cancellationToken);
                 var readResult = await status.ReadAsync(cancellationToken);
                 var response = Encoding.UTF8.GetString(readResult.data).Trim('\0', ' ', '\r', '\n');
-                if (response.StartsWith("CONNECTED:", StringComparison.Ordinal))
+                if (response.StartsWith("OK:", StringComparison.Ordinal))
                 {
-                    var address = response["CONNECTED:".Length..].Trim();
+                    var address = response["OK:".Length..].Trim();
                     SetState(RobotProvisioningState.Completed);
                     return new RobotProvisioningResult(true,
                         $"A-Rigator joined the Wi-Fi network. Local address: {address}",
