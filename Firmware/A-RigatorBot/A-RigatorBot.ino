@@ -38,6 +38,7 @@ BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 BLECharacteristic* bleWifiScanCharacteristic = nullptr;
 volatile bool bleWifiScanRequested = false;
 bool bleWifiScanRunning = false;
+String bleWifiScanJson = "{\"networks\":[]}";
 void handleForward();
 void handleReverse();
 void handleStop();
@@ -56,9 +57,17 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
     const std::string command = characteristic->getValue();
     if (command == "SCAN") {
       bleWifiScanRequested = true;
-      characteristic->setValue("{\"state\":\"scanning\",\"networks\":[]}");
+      characteristic->setValue("SCANNING");
+    } else if (command.rfind("GET:", 0) == 0) {
+      const int offset = atoi(command.c_str() + 4);
+      if (offset < 0 || offset >= (int)bleWifiScanJson.length()) {
+        characteristic->setValue("");
+      } else {
+        const String chunk = bleWifiScanJson.substring(offset, offset + 18);
+        characteristic->setValue(chunk.c_str());
+      }
     } else {
-      characteristic->setValue("{\"state\":\"error\",\"message\":\"Unsupported command\",\"networks\":[]}");
+      characteristic->setValue("ERROR");
     }
   }
 };
@@ -83,10 +92,10 @@ void serviceBleWifiScan() {
     bleWifiScanRequested = false;
     const int result = WiFi.scanNetworks(true, true);
     if (result == WIFI_SCAN_FAILED) {
-      bleWifiScanCharacteristic->setValue("{\"state\":\"error\",\"networks\":[]}");
+      bleWifiScanCharacteristic->setValue("ERROR");
     } else {
       bleWifiScanRunning = true;
-      bleWifiScanCharacteristic->setValue("{\"state\":\"scanning\",\"networks\":[]}");
+      bleWifiScanCharacteristic->setValue("SCANNING");
     }
   }
 
@@ -96,10 +105,11 @@ void serviceBleWifiScan() {
   if (count == WIFI_SCAN_RUNNING) return;
 
   if (count == WIFI_SCAN_FAILED) {
-    bleWifiScanCharacteristic->setValue("{\"state\":\"error\",\"networks\":[]}");
+    bleWifiScanCharacteristic->setValue("ERROR");
   } else {
-    String json = "{\"state\":\"complete\",\"networks\":[";
-    for (int i = 0; i < count; ++i) {
+    String json = "{\"networks\":[";
+    const int resultCount = count < 12 ? count : 12;
+    for (int i = 0; i < resultCount; ++i) {
       if (i > 0) json += ",";
       json += "{\"ssid\":\"";
       json += escapeJsonString(WiFi.SSID(i));
@@ -110,7 +120,8 @@ void serviceBleWifiScan() {
       json += "}";
     }
     json += "]}";
-    bleWifiScanCharacteristic->setValue(json.c_str());
+    bleWifiScanJson = json;
+    bleWifiScanCharacteristic->setValue((String("DONE:") + String(bleWifiScanJson.length())).c_str());
   }
 
   WiFi.scanDelete();
