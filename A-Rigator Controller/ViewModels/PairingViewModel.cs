@@ -20,6 +20,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isConnectionVerified;
     private bool _isWifiEnabled;
     private bool _isBusy;
+    private bool _isBleConnected;
 
     public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
@@ -64,6 +65,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             if (SetField(ref _isBusy, value))
             {
                 OnPropertyChanged(nameof(IsNotBusy));
+                OnPropertyChanged(nameof(HasSelectedBleRobot));
             }
         }
     }
@@ -78,6 +80,14 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         get => _selectedBleRobot;
         set => SetField(ref _selectedBleRobot, value);
+    }
+
+    public bool HasSelectedBleRobot => SelectedBleRobot is not null && !IsBusy;
+
+    public bool IsBleConnected
+    {
+        get => _isBleConnected;
+        private set => SetField(ref _isBleConnected, value);
     }
 
     public string BleStatusMessage
@@ -211,8 +221,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 NearbyBleRobots.Add(device);
 
             BleStatusMessage = devices.Count == 0
-                ? "No A-Rigator found. Make sure the robot is powered on and BLE advertising is active."
-                : $"Found {devices.Count} A-Rigator device(s). Select one to connect.";
+                ? "No robot found. Check that A-Rigator is powered on, then scan again."
+                : devices.Count == 1
+                    ? "A-Rigator found. Select the device card, then tap Connect."
+                    : $"{devices.Count} robots found. Select the one you want to connect to.";
         }
         catch (Exception ex)
         {
@@ -233,7 +245,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         try
         {
             await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
-            BleStatusMessage = $"Bluetooth connected to {SelectedBleRobot.Name}. Wi-Fi provisioning is not enabled yet.";
+            IsBleConnected = true;
+            BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
         }
         catch (Exception ex)
         {
@@ -250,11 +263,12 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         try
         {
             await _robotProvisioningService.DisconnectAsync();
-            BleStatusMessage = "Bluetooth disconnected.";
+            IsBleConnected = false;
+            BleStatusMessage = "Disconnected from A-Rigator.";
         }
         catch (Exception ex)
         {
-            BleStatusMessage = $"Bluetooth disconnect failed: {ex.Message}";
+            BleStatusMessage = $"Could not disconnect: {ex.Message}";
         }
     }
 
