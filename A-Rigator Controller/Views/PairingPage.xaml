@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             xmlns:models="clr-namespace:A_Rigator_Controller.Models"
              x:Class="A_Rigator_Controller.Views.PairingPage"
              x:DataType="viewmodels:PairingViewModel"
              Title="Pair A-Rigator"
@@ -11,55 +12,126 @@
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="20">
             <VerticalStackLayout Spacing="6">
-                <Label Text="Pair your A-Rigator"
-                       FontSize="26"
+                <Label Text="Connect your A-Rigator"
+                       FontSize="27"
                        FontAttributes="Bold"
                        TextColor="#176B45"
                        SemanticProperties.HeadingLevel="Level1" />
+                <Label Text="Find your robot nearby and connect it to this phone."
+                       FontSize="15"
+                       TextColor="#52615A" />
             </VerticalStackLayout>
 
             <Border Padding="18"
                     BackgroundColor="White"
                     Stroke="#D8E3DC"
-                    StrokeShape="RoundRectangle 16">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="Find your robot with Bluetooth"
+                    StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="14">
+                    <Label Text="1. Find your robot"
                            FontSize="19"
                            FontAttributes="Bold"
                            TextColor="#17231C" />
-                    <Label Text="Discover and connect to a nearby A-Rigator without first joining its Wi-Fi access point."
+                    <Label Text="Turn on your A-Rigator, then scan. Keep your phone close to the robot."
                            FontSize="14"
                            TextColor="#52615A" />
-                    <Button Text="SCAN FOR A-RIGATOR"
+                    <Button Text="FIND MY A-RIGATOR"
                             Command="{Binding ScanForBleRobotsCommand}"
                             IsEnabled="{Binding IsNotBusy}"
-                            MinimumHeightRequest="48"
+                            MinimumHeightRequest="54"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
                             BackgroundColor="#176B45"
                             TextColor="White" />
-                    <Picker Title="Select a discovered robot"
-                            ItemsSource="{Binding NearbyBleRobots}"
-                            ItemDisplayBinding="{Binding Name}"
-                            SelectedItem="{Binding SelectedBleRobot}" />
+
+                    <Label Text="NEARBY ROBOTS"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#718078" />
+
+                    <CollectionView ItemsSource="{Binding NearbyBleRobots}"
+                                    SelectedItem="{Binding SelectedBleRobot, Mode=TwoWay}"
+                                    SelectionMode="Single"
+                                    HeightRequest="150"
+                                    EmptyView="No robot found yet. Tap Find My A-Rigator to scan.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:RobotProvisioningDevice">
+                                <Border Margin="0,3"
+                                        Padding="14"
+                                        BackgroundColor="#F4F8F5"
+                                        Stroke="#D8E3DC"
+                                        StrokeShape="RoundRectangle 14">
+                                    <Grid ColumnDefinitions="48,*,Auto"
+                                          ColumnSpacing="12">
+                                        <Border Grid.Column="0"
+                                                WidthRequest="44"
+                                                HeightRequest="44"
+                                                BackgroundColor="#E0EFE6"
+                                                StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 12"
+                                                VerticalOptions="Center">
+                                            <Label Text="🐊"
+                                                   FontSize="23"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center" />
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1"
+                                                             Spacing="3"
+                                                             VerticalOptions="Center">
+                                            <Label Text="{Binding Name}"
+                                                   FontSize="16"
+                                                   FontAttributes="Bold"
+                                                   TextColor="#17231C" />
+                                            <Label Text="{Binding SignalStrength, StringFormat='Bluetooth signal: {0} dBm'}"
+                                                   FontSize="12"
+                                                   TextColor="#64736B" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2"
+                                               Text="›"
+                                               FontSize="28"
+                                               TextColor="#176B45"
+                                               VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+
                     <Label Text="{Binding BleStatusMessage}"
                            FontSize="14"
                            TextColor="#52615A" />
-                    <HorizontalStackLayout Spacing="10">
-                        <Button Text="CONNECT"
-                                Command="{Binding ConnectToBleRobotCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                HorizontalOptions="FillAndExpand"
-                                BackgroundColor="#2879A8"
-                                TextColor="White" />
-                        <Button Text="DISCONNECT"
-                                Command="{Binding DisconnectBleRobotCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                HorizontalOptions="FillAndExpand"
-                                BackgroundColor="#52615A"
-                                TextColor="White" />
-                    </HorizontalStackLayout>
-                    <Label Text="Prototype: Bluetooth discovery and connection only. Wi-Fi credential transfer is not available yet."
-                           FontSize="12"
-                           TextColor="#8A5A20" />
+
+                    <Button Text="CONNECT TO SELECTED ROBOT"
+                            Command="{Binding ConnectToBleRobotCommand}"
+                            IsEnabled="{Binding HasSelectedBleRobot}"
+                            MinimumHeightRequest="52"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
+
+                    <Button Text="DISCONNECT"
+                            Command="{Binding DisconnectBleRobotCommand}"
+                            IsVisible="{Binding IsBleConnected}"
+                            MinimumHeightRequest="46"
+                            CornerRadius="14"
+                            BackgroundColor="#E9EFEB"
+                            TextColor="#35443B" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border IsVisible="{Binding IsBleConnected}"
+                    Padding="18"
+                    BackgroundColor="#EAF5EE"
+                    Stroke="#B9D9C5"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Bluetooth connection established"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="#176B45" />
+                    <Label Text="Your phone can communicate with A-Rigator. Wi-Fi setup and credential transfer are not available yet."
+                           FontSize="14"
+                           TextColor="#35443B" />
                 </VerticalStackLayout>
             </Border>
 
