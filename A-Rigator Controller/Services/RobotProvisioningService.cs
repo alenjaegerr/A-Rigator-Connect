@@ -10,9 +10,9 @@ using System.Text.Json;
 namespace A_Rigator_Controller.Services;
 
 /// <summary>
-/// BLE transport for A-Rigator discovery, GATT connection, and read-only Wi-Fi scanning.
-/// Credential writes remain disabled until the authenticated encryption protocol
-/// and robot-side connection acknowledgements are implemented.
+/// BLE transport for A-Rigator discovery, Wi-Fi scanning, and Wi-Fi credential
+/// provisioning over a bonded encrypted GATT characteristic. The BLE Just Works
+/// pairing method does not provide MITM protection.
 /// </summary>
 public sealed class RobotProvisioningService : IRobotProvisioningService
 {
