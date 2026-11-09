@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include "RobotWifiConfig.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
@@ -17,6 +18,10 @@ static const uint8_t WIFI_AP_START_RETRIES = 3;
 static const unsigned long WIFI_AP_RETRY_DELAY_MS = 400;
 
 WebServer server(80);
+RobotWifiCredentialStore wifiCredentialStore;
+RobotWifiCredentials savedWifiCredentials;
+bool savedWifiCredentialsAvailable = false;
+bool stationWasConnected = false;
 void handleForward();
 void handleReverse();
 void handleStop();
@@ -136,7 +141,10 @@ void startWifiApi() {
 	return;
   }
 
-  WiFi.mode(WIFI_AP);
+  // Keep the existing A-Rigator setup/control AP available. When credentials
+  // have been provisioned, join the saved network in AP+STA mode as well.
+  // This preserves the current 192.168.4.1 local-control path during migration.
+  WiFi.mode(savedWifiCredentialsAvailable ? WIFI_AP_STA : WIFI_AP);
   WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET);
 
   bool apStarted = false;
@@ -565,6 +573,15 @@ void setup() {
   pinMode(SHIELD_RST_PIN, OUTPUT);
   digitalWrite(SHIELD_RST_PIN, LOW);
 
+  if (wifiCredentialStore.begin()) {
+    savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
+    Serial.println(savedWifiCredentialsAvailable
+      ? ">> Saved Wi-Fi credentials found in NVS."
+      : ">> No saved Wi-Fi credentials. Local setup AP only.");
+  } else {
+    Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
+  }
+
   startWifiApi();
 
   Wire.begin(SDA_PIN, SCL_PIN);
@@ -578,6 +595,17 @@ void setup() {
 
 void loop() {
   server.handleClient();
+
+  // Report station connectivity transitions without exposing the password.
+  const bool stationConnected = WiFi.status() == WL_CONNECTED;
+  if (stationConnected && !stationWasConnected) {
+    Serial.printf(">> Saved Wi-Fi connected. Robot network IP: %s\\n",
+                  WiFi.localIP().toString().c_str());
+  } else if (!stationConnected && stationWasConnected) {
+    Serial.println(">> Saved Wi-Fi disconnected. ESP32 will attempt to reconnect.");
+  }
+  stationWasConnected = stationConnected;
+
   enforceManualControlTimeout();
   refreshMotorShieldKeepAlive();
 
