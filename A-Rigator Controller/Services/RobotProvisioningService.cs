@@ -1,5 +1,6 @@
 using A_Rigator_Controller.Models;
 using Plugin.BLE;
+using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Microsoft.Maui.ApplicationModel;
@@ -51,7 +52,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             _adapter.ScanTimeout = 10000;
             await _adapter.StartScanningForDevicesAsync(
                 new ScanFilterOptions { ServiceUuids = new[] { ProvisioningServiceUuid } },
-                cancellationToken);
+                cancellationToken: cancellationToken);
 
             SetState(RobotProvisioningState.Idle);
             return found.Values.OrderByDescending(device => device.SignalStrength).ToArray();
@@ -81,7 +82,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         SetState(RobotProvisioningState.ConnectingToRobot);
         try
         {
-            await _adapter.ConnectToDeviceAsync(device, cancellationToken);
+            await _adapter.ConnectToDeviceAsync(device, cancellationToken: cancellationToken);
             _connectedDevice = device;
             SetState(RobotProvisioningState.Completed);
         }
