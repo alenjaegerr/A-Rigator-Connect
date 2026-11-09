@@ -1,8 +1,7 @@
 using A_Rigator_Controller.Models;
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.Exceptions;
-using Plugin.BLE.Abstractions;
+using Plugin.BLE.Abstractions.EventArgs;
 using Microsoft.Maui.ApplicationModel;
 
 namespace A_Rigator_Controller.Services;
