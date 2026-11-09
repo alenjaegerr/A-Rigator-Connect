@@ -120,7 +120,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync(RobotNetworkOptions.StatusEndpoint, cancellationToken);
+        using var response = await _httpClient.GetAsync(new Uri(_baseAddress, RobotNetworkOptions.StatusEndpoint), cancellationToken);
         response.EnsureSuccessStatusCode();
         var statusResponse = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
         if (statusResponse is not { Success: true })
