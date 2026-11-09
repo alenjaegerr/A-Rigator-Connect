@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using System.Text;
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.Models;
 
@@ -183,7 +184,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsSuccessVisible => IsConnectionVerified;
 
-    public bool IsWifiInstructionsVisible => _stage == PairingStage.WifiInstructions;
+    public bool IsWifiInstructionsVisible => _stage == PairingStage.WifiInstructions && !IsBleConnected;
 
     public bool IsResultVisible => _stage == PairingStage.Result;
 
@@ -355,6 +356,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private async Task ConnectRobotToWifiAsync()
     {
         if (IsBusy || !IsBleConnected || SelectedWifiNetwork is null) return;
+        if (SelectedWifiNetwork.IsSecured && Encoding.UTF8.GetByteCount(WifiPassword) < 8)
+        {
+            WifiScanStatusMessage = "This network is secured. Enter its Wi-Fi password before connecting.";
+            return;
+        }
 
         IsBusy = true;
         WifiScanStatusMessage = $"Sending Wi-Fi settings for {SelectedWifiNetwork.Ssid}...";
