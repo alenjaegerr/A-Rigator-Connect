@@ -12,7 +12,8 @@ public sealed record RobotWifiNetwork(
 
 public sealed record RobotProvisioningResult(
     bool Success,
-    string Message);
+    string Message,
+    string? DeviceAddress = null);
 
 public enum RobotProvisioningState
 {
