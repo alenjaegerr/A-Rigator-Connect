@@ -133,18 +133,19 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             if (totalLength < 0)
                 throw new TimeoutException("A-Rigator did not finish scanning for Wi-Fi networks in time.");
 
-            var json = new StringBuilder(totalLength);
+            using var payloadStream = new MemoryStream(totalLength);
             for (var offset = 0; offset < totalLength; offset += 18)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"));
-                var chunk = Encoding.UTF8.GetString(await characteristic.ReadAsync());
-                if (string.IsNullOrEmpty(chunk))
+                var chunk = await characteristic.ReadAsync();
+                if (chunk.Length == 0)
                     throw new InvalidOperationException("A-Rigator returned an incomplete Wi-Fi scan result.");
-                json.Append(chunk);
+                payloadStream.Write(chunk, 0, chunk.Length);
             }
 
-            using var document = JsonDocument.Parse(json.ToString());
+            var json = Encoding.UTF8.GetString(payloadStream.ToArray());
+            using var document = JsonDocument.Parse(json);
             var networks = new List<RobotWifiNetwork>();
             if (document.RootElement.TryGetProperty("networks", out var networkArray) &&
                 networkArray.ValueKind == JsonValueKind.Array)
