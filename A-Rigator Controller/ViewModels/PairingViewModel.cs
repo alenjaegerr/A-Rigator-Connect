@@ -363,6 +363,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             WifiScanStatusMessage = result.Message;
             if (result.Success)
             {
+                if (!string.IsNullOrWhiteSpace(result.DeviceAddress))
+                    _robotCommunicationService.SetRobotAddress(result.DeviceAddress);
                 WifiPassword = string.Empty;
                 BleStatusMessage = "A-Rigator joined the selected Wi-Fi network. Its direct hotspot remains enabled.";
             }
