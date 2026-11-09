@@ -108,16 +108,22 @@ void serviceBleWifiScan() {
     bleWifiScanCharacteristic->setValue("ERROR");
   } else {
     String json = "{\"networks\":[";
-    const int resultCount = count < 12 ? count : 12;
-    for (int i = 0; i < resultCount; ++i) {
-      if (i > 0) json += ",";
-      json += "{\"ssid\":\"";
-      json += escapeJsonString(WiFi.SSID(i));
-      json += "\",\"rssi\":";
-      json += String(WiFi.RSSI(i));
-      json += ",\"secured\":";
-      json += (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "false" : "true");
-      json += "}";
+    int addedNetworks = 0;
+    for (int i = 0; i < count && addedNetworks < 12; ++i) {
+      String entry = "{\"ssid\":\"";
+      entry += escapeJsonString(WiFi.SSID(i));
+      entry += "\",\"rssi\":";
+      entry += String(WiFi.RSSI(i));
+      entry += ",\"secured\":";
+      entry += (WiFi.encryptionType(i) == WIFI_AUTH_OPEN ? "false" : "true");
+      entry += "}";
+
+      const String candidate = json + (addedNetworks > 0 ? "," : "") + entry + "]}";
+      if (candidate.length() > 480) break;
+
+      if (addedNetworks > 0) json += ",";
+      json += entry;
+      ++addedNetworks;
     }
     json += "]}";
     bleWifiScanJson = json;
