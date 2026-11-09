@@ -54,12 +54,12 @@ void handleResetShield();
 // ============================================================================
 class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
-    const std::string command = characteristic->getValue();
+    const String command = characteristic->getValue();
     if (command == "SCAN") {
       bleWifiScanRequested = true;
       characteristic->setValue("SCANNING");
-    } else if (command.rfind("GET:", 0) == 0) {
-      const int offset = atoi(command.c_str() + 4);
+    } else if (command.startsWith("GET:")) {
+      const int offset = command.substring(4).toInt();
       if (offset < 0 || offset >= (int)bleWifiScanJson.length()) {
         characteristic->setValue("");
       } else {
