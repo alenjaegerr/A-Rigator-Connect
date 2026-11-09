@@ -22,6 +22,10 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
     private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
     public static readonly Guid WifiScanCharacteristicUuid =
         Guid.Parse("7a1c0003-8f2d-4b6a-9c31-4a5249474154");
+    public static readonly Guid WifiCredentialCharacteristicUuid =
+        Guid.Parse("7a1c0004-8f2d-4b6a-9c31-4a5249474154");
+    public static readonly Guid WifiStatusCharacteristicUuid =
+        Guid.Parse("7a1c0005-8f2d-4b6a-9c31-4a5249474154");
 
     private readonly Dictionary<string, IDevice> _discoveredDevices = new();
     private readonly SemaphoreSlim _gattLock = new(1, 1);
@@ -185,14 +189,94 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             _gattLock.Release();
         }
     }
-    public Task<RobotProvisioningResult> SendWifiCredentialsAsync(
+    public async Task<RobotProvisioningResult> SendWifiCredentialsAsync(
         string ssid,
         string password,
         CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(new RobotProvisioningResult(
-            false,
-            "Wi-Fi credential transfer is not enabled yet. The firmware needs an authenticated BLE write protocol first."));
+        if (_connectedDevice is null)
+            return new RobotProvisioningResult(false, "Connect to A-Rigator over Bluetooth first.");
+
+        var ssidBytes = Encoding.UTF8.GetBytes(ssid);
+        var passwordBytes = Encoding.UTF8.GetBytes(password);
+        if (ssidBytes.Length is < 1 or > 32)
+            return new RobotProvisioningResult(false, "The Wi-Fi network name must be between 1 and 32 UTF-8 bytes.");
+        if (passwordBytes.Length > 63 || (passwordBytes.Length > 0 && passwordBytes.Length < 8))
+            return new RobotProvisioningResult(false, "Use an empty password for an open network, or 8–63 UTF-8 bytes for a secured network.");
+
+        var payload = new byte[2 + ssidBytes.Length + passwordBytes.Length];
+        payload[0] = (byte)ssidBytes.Length;
+        payload[1] = (byte)passwordBytes.Length;
+        Buffer.BlockCopy(ssidBytes, 0, payload, 2, ssidBytes.Length);
+        Buffer.BlockCopy(passwordBytes, 0, payload, 2 + ssidBytes.Length, passwordBytes.Length);
+        var hex = Convert.ToHexString(payload);
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            SetState(RobotProvisioningState.SendingCredentials);
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
+            var credential = await service.GetCharacteristicAsync(WifiCredentialCharacteristicUuid, cancellationToken);
+            var status = await service.GetCharacteristicAsync(WifiStatusCharacteristicUuid, cancellationToken);
+            if (credential is null || status is null)
+                return new RobotProvisioningResult(false, "This firmware does not expose Wi-Fi credential provisioning yet.");
+
+            async Task WriteCommand(string command)
+            {
+                await credential.WriteAsync(Encoding.ASCII.GetBytes(command), cancellationToken);
+            }
+
+            await WriteCommand($"BEGIN:{hex.Length}");
+            for (var offset = 0; offset < hex.Length; offset += 12)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = hex.Substring(offset, Math.Min(12, hex.Length - offset));
+                await WriteCommand($"D{offset:D3}:{chunk}");
+            }
+            await WriteCommand("COMMIT");
+
+            SetState(RobotProvisioningState.WaitingForRobotConnection);
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(35);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(700, cancellationToken);
+                var readResult = await status.ReadAsync(cancellationToken);
+                var response = Encoding.UTF8.GetString(readResult.data).Trim('\0', ' ', '\r', '\n');
+                if (response.StartsWith("CONNECTED:", StringComparison.Ordinal))
+                {
+                    var address = response["CONNECTED:".Length..].Trim();
+                    SetState(RobotProvisioningState.Completed);
+                    return new RobotProvisioningResult(true,
+                        $"A-Rigator joined the Wi-Fi network. Local address: {address}",
+                        address);
+                }
+                if (response.StartsWith("ERROR:", StringComparison.Ordinal))
+                {
+                    SetState(RobotProvisioningState.Failed);
+                    var message = response switch
+                    {
+                        "ERROR:CONNECT" => "A-Rigator could not join that network. Check the password and signal, then try again. Its hotspot remains available.",
+                        "ERROR:SAVE" => "A-Rigator connected, but could not save the Wi-Fi profile.",
+                        _ => $"A-Rigator rejected the Wi-Fi setup ({response})."
+                    };
+                    return new RobotProvisioningResult(false, message);
+                }
+            }
+
+            SetState(RobotProvisioningState.Failed);
+            return new RobotProvisioningResult(false,
+                "A-Rigator did not confirm the connection in time. Its direct hotspot should still be available.");
+        }
+        catch
+        {
+            SetState(RobotProvisioningState.Failed);
+            throw;
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
     }
 
     public Task<RobotProvisioningResult> ForgetSavedWifiAsync(
