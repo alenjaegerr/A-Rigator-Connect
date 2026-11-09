@@ -275,16 +275,17 @@ class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
         return;
       }
 
+      for (size_t i = 2; i < byteCount; ++i) {
+        if (payload[i] == 0) {
+          bleWifiStatusCharacteristic->setValue("ERROR:VALIDATION");
+          return;
+        }
+      }
+
       pendingWifiSsid = "";
       pendingWifiPassword = "";
       for (uint8_t i = 0; i < ssidLength; ++i) pendingWifiSsid += (char)payload[2 + i];
       for (uint8_t i = 0; i < passwordLength; ++i) pendingWifiPassword += (char)payload[2 + ssidLength + i];
-      if (pendingWifiSsid.indexOf((char)0) >= 0 || pendingWifiPassword.indexOf((char)0) >= 0) {
-        pendingWifiSsid = "";
-        pendingWifiPassword = "";
-        bleWifiStatusCharacteristic->setValue("ERROR:VALIDATION");
-        return;
-      }
 
       bleWifiConnectRequested = true;
       bleWifiStatusCharacteristic->setValue("RECEIVED");
