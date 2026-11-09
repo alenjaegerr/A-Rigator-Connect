@@ -1,7 +1,9 @@
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using A_Rigator_Controller.Services;
+using A_Rigator_Controller.Models;
 
 namespace A_Rigator_Controller.ViewModels;
 
@@ -9,6 +11,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 {
     private readonly IWifiStatusService _wifiStatusService;
     private readonly IRobotCommunicationService _robotCommunicationService;
+    private readonly IRobotProvisioningService _robotProvisioningService;
+    private RobotProvisioningDevice? _selectedBleRobot;
+    private string _bleStatusMessage = "Use Bluetooth to discover a nearby A-Rigator (BLE discovery prototype).";
     private PairingStage _stage = PairingStage.WifiInstructions;
     private string _errorMessage = string.Empty;
     private string _resultMessage = string.Empty;
@@ -16,16 +21,20 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isWifiEnabled;
     private bool _isBusy;
 
-    public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService)
+    public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
         _wifiStatusService = wifiStatusService;
         _robotCommunicationService = robotCommunicationService;
+        _robotProvisioningService = robotProvisioningService;
         OpenWifiSettingsCommand = new Command(OpenWifiSettings);
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
         StartOverCommand = new Command(StartOver);
+        ScanForBleRobotsCommand = new Command(async () => await ScanForBleRobotsAsync());
+        ConnectToBleRobotCommand = new Command(async () => await ConnectToBleRobotAsync());
+        DisconnectBleRobotCommand = new Command(async () => await DisconnectBleRobotAsync());
         RefreshWifiState();
     }
 
@@ -63,6 +72,20 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public string RobotAccessPointSsid => RobotNetworkOptions.AccessPointSsid;
 
+    public ObservableCollection<RobotProvisioningDevice> NearbyBleRobots { get; } = new();
+
+    public RobotProvisioningDevice? SelectedBleRobot
+    {
+        get => _selectedBleRobot;
+        set => SetField(ref _selectedBleRobot, value);
+    }
+
+    public string BleStatusMessage
+    {
+        get => _bleStatusMessage;
+        private set => SetField(ref _bleStatusMessage, value);
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler? DashboardPreviewRequested;
@@ -82,6 +105,12 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand NotNowCommand { get; }
 
     public ICommand StartOverCommand { get; }
+
+    public ICommand ScanForBleRobotsCommand { get; }
+
+    public ICommand ConnectToBleRobotCommand { get; }
+
+    public ICommand DisconnectBleRobotCommand { get; }
 
     public string ErrorMessage
     {
@@ -164,6 +193,68 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private async Task ScanForBleRobotsAsync()
+    {
+        if (IsBusy) return;
+
+        IsBusy = true;
+        NearbyBleRobots.Clear();
+        SelectedBleRobot = null;
+        BleStatusMessage = "Scanning for A-Rigator over Bluetooth...";
+        try
+        {
+            var devices = await _robotProvisioningService.ScanForRobotsAsync();
+            foreach (var device in devices)
+                NearbyBleRobots.Add(device);
+
+            BleStatusMessage = devices.Count == 0
+                ? "No A-Rigator found. Make sure the robot is powered on and BLE advertising is active."
+                : $"Found {devices.Count} A-Rigator device(s). Select one to connect.";
+        }
+        catch (Exception ex)
+        {
+            BleStatusMessage = $"Bluetooth discovery failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ConnectToBleRobotAsync()
+    {
+        if (IsBusy || SelectedBleRobot is null) return;
+
+        IsBusy = true;
+        BleStatusMessage = $"Connecting to {SelectedBleRobot.Name}...";
+        try
+        {
+            await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
+            BleStatusMessage = $"Bluetooth connected to {SelectedBleRobot.Name}. Wi-Fi provisioning is not enabled yet.";
+        }
+        catch (Exception ex)
+        {
+            BleStatusMessage = $"Could not connect over Bluetooth: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task DisconnectBleRobotAsync()
+    {
+        try
+        {
+            await _robotProvisioningService.DisconnectAsync();
+            BleStatusMessage = "Bluetooth disconnected.";
+        }
+        catch (Exception ex)
+        {
+            BleStatusMessage = $"Bluetooth disconnect failed: {ex.Message}";
         }
     }
 
