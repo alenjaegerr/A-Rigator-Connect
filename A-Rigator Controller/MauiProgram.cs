@@ -41,10 +41,12 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<ISupabaseSyncService, SupabaseSyncService>();
             builder.Services.AddTransient<DashboardViewModel>();
             builder.Services.AddTransient<PairingViewModel>();
+            builder.Services.AddTransient<RemoteWifiSetupViewModel>();
             builder.Services.AddTransient<WelcomeViewModel>();
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
+            builder.Services.AddTransient<RemoteWifiSetupPage>();
             builder.Services.AddTransient<AccountPage>();
             builder.Services.AddTransient<AccountViewModel>();
             builder.Services.AddSingleton<AppShell>();
