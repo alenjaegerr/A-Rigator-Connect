@@ -4,6 +4,8 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <BLESecurity.h>
+#include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
 
 // ============================================================================
@@ -32,10 +34,22 @@ static const char* BLE_DEVICE_NAME = "A-Rigator";
 static const char* BLE_PROVISIONING_SERVICE_UUID = "7a1c0001-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 BLECharacteristic* bleWifiScanCharacteristic = nullptr;
+BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
+BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
+String bleCredentialHexBuffer;
+int bleCredentialExpectedHexLength = -1;
+volatile bool bleWifiConnectRequested = false;
+String pendingWifiSsid;
+String pendingWifiPassword;
+unsigned long wifiProvisioningStartedAt = 0;
+bool wifiProvisioningInProgress = false;
+static const unsigned long WIFI_PROVISIONING_TIMEOUT_MS = 25000;
 volatile bool bleWifiScanRequested = false;
 bool bleWifiScanRunning = false;
 String bleWifiScanJson = "{\"networks\":[]}";
@@ -48,6 +62,7 @@ void handlePumpOn();
 void handlePumpOff();
 void handleHeartbeat();
 void handleResetShield();
+void serviceBleWifiProvisioning();
 
 // ============================================================================
 // BLE DISCOVERY + READ-ONLY WI-FI SCAN
@@ -85,6 +100,55 @@ String escapeJsonString(const String& value) {
     }
   }
   return escaped;
+}
+
+void serviceBleWifiProvisioning() {
+  if (bleWifiConnectRequested && !wifiProvisioningInProgress) {
+    bleWifiConnectRequested = false;
+    wifiProvisioningInProgress = true;
+    wifiProvisioningStartedAt = millis();
+    bleWifiStatusCharacteristic->setValue("CONNECTING");
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.disconnect(false, false);
+    WiFi.begin(pendingWifiSsid.c_str(), pendingWifiPassword.c_str());
+  }
+
+  if (!wifiProvisioningInProgress) return;
+
+  if (WiFi.status() == WL_CONNECTED) {
+    const bool saved = wifiCredentialStore.save(pendingWifiSsid, pendingWifiPassword);
+    if (saved) {
+      savedWifiCredentials.ssid = pendingWifiSsid;
+      savedWifiCredentials.password = pendingWifiPassword;
+      savedWifiCredentialsAvailable = true;
+      MDNS.end();
+      if (MDNS.begin("arigator")) MDNS.addService("http", "tcp", 80);
+      const String result = String("CONNECTED:") + WiFi.localIP().toString();
+      bleWifiStatusCharacteristic->setValue(result.c_str());
+      Serial.printf(">> Wi-Fi provisioned. STA IP: %s (mDNS: arigator.local)\n",
+                    WiFi.localIP().toString().c_str());
+    } else {
+      bleWifiStatusCharacteristic->setValue("ERROR:SAVE");
+      Serial.println(">> Wi-Fi connected, but credential storage verification failed.");
+    }
+    wifiProvisioningInProgress = false;
+    pendingWifiSsid = "";
+    pendingWifiPassword = "";
+    return;
+  }
+
+  if (millis() - wifiProvisioningStartedAt >= WIFI_PROVISIONING_TIMEOUT_MS) {
+    WiFi.disconnect(false, false);
+    bleWifiStatusCharacteristic->setValue("ERROR:CONNECT");
+    wifiProvisioningInProgress = false;
+    pendingWifiSsid = "";
+    pendingWifiPassword = "";
+    Serial.println(">> Wi-Fi provisioning timed out. A-Rigator AP remains available.");
+    if (savedWifiCredentialsAvailable) {
+      WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
+    }
+  }
 }
 
 void serviceBleWifiScan() {
@@ -134,6 +198,100 @@ void serviceBleWifiScan() {
   bleWifiScanRunning = false;
 }
 
+class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const String command = characteristic->getValue();
+    if (command.startsWith("BEGIN:")) {
+      const int expected = command.substring(6).toInt();
+      if (expected < 4 || expected > 194 || (expected % 2) != 0) {
+        bleCredentialExpectedHexLength = -1;
+        bleCredentialHexBuffer = "";
+        bleWifiStatusCharacteristic->setValue("ERROR:SIZE");
+        return;
+      }
+      bleCredentialExpectedHexLength = expected;
+      bleCredentialHexBuffer = "";
+      bleCredentialHexBuffer.reserve(expected);
+      bleWifiStatusCharacteristic->setValue("RECEIVING");
+      return;
+    }
+
+    if (command.startsWith("D") && command.length() >= 6 && command[4] == ':') {
+      if (bleCredentialExpectedHexLength < 0) {
+        bleWifiStatusCharacteristic->setValue("ERROR:NO_BEGIN");
+        return;
+      }
+      const int offset = command.substring(1, 4).toInt();
+      const String chunk = command.substring(5);
+      if (offset != (int)bleCredentialHexBuffer.length() ||
+          bleCredentialHexBuffer.length() + chunk.length() > bleCredentialExpectedHexLength) {
+        bleCredentialExpectedHexLength = -1;
+        bleCredentialHexBuffer = "";
+        bleWifiStatusCharacteristic->setValue("ERROR:ORDER");
+        return;
+      }
+      for (size_t i = 0; i < chunk.length(); ++i) {
+        if (!isHexadecimalDigit(chunk[i])) {
+          bleCredentialExpectedHexLength = -1;
+          bleCredentialHexBuffer = "";
+          bleWifiStatusCharacteristic->setValue("ERROR:FORMAT");
+          return;
+        }
+      }
+      bleCredentialHexBuffer += chunk;
+      return;
+    }
+
+    if (command == "COMMIT") {
+      if (bleCredentialExpectedHexLength < 0 ||
+          bleCredentialHexBuffer.length() != bleCredentialExpectedHexLength) {
+        bleWifiStatusCharacteristic->setValue("ERROR:INCOMPLETE");
+        bleCredentialExpectedHexLength = -1;
+        bleCredentialHexBuffer = "";
+        return;
+      }
+
+      uint8_t payload[97];
+      const size_t byteCount = bleCredentialHexBuffer.length() / 2;
+      for (size_t i = 0; i < byteCount; ++i) {
+        payload[i] = (uint8_t)strtol(bleCredentialHexBuffer.substring(i * 2, i * 2 + 2).c_str(), nullptr, 16);
+      }
+      bleCredentialExpectedHexLength = -1;
+      bleCredentialHexBuffer = "";
+
+      if (byteCount < 2) {
+        bleWifiStatusCharacteristic->setValue("ERROR:FORMAT");
+        return;
+      }
+      const uint8_t ssidLength = payload[0];
+      const uint8_t passwordLength = payload[1];
+      if (ssidLength == 0 || ssidLength > 32 || passwordLength > 63 ||
+          byteCount != (size_t)(2 + ssidLength + passwordLength) ||
+          (passwordLength != 0 && passwordLength < 8)) {
+        bleWifiStatusCharacteristic->setValue("ERROR:VALIDATION");
+        return;
+      }
+
+      pendingWifiSsid = "";
+      pendingWifiPassword = "";
+      for (uint8_t i = 0; i < ssidLength; ++i) pendingWifiSsid += (char)payload[2 + i];
+      for (uint8_t i = 0; i < passwordLength; ++i) pendingWifiPassword += (char)payload[2 + ssidLength + i];
+      if (pendingWifiSsid.indexOf((char)0) >= 0 || pendingWifiPassword.indexOf((char)0) >= 0) {
+        pendingWifiSsid = "";
+        pendingWifiPassword = "";
+        bleWifiStatusCharacteristic->setValue("ERROR:VALIDATION");
+        return;
+      }
+
+      bleWifiConnectRequested = true;
+      bleWifiStatusCharacteristic->setValue("RECEIVED");
+      return;
+    }
+
+    bleWifiStatusCharacteristic->setValue("ERROR:COMMAND");
+  }
+};
+
 void startBleDiscovery() {
   BLEDevice::init(BLE_DEVICE_NAME);
   bleServer = BLEDevice::createServer();
@@ -150,6 +308,23 @@ void startBleDiscovery() {
   );
   bleWifiScanCharacteristic->setCallbacks(new WifiScanCommandCallbacks());
   bleWifiScanCharacteristic->setValue("{\"state\":\"idle\",\"networks\":[]}");
+
+  bleWifiCredentialCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_WRITE
+  );
+  bleWifiCredentialCharacteristic->setAccessPermissions(ESP_GATT_PERM_WRITE_ENCRYPTED);
+  bleWifiCredentialCharacteristic->setCallbacks(new WifiCredentialCommandCallbacks());
+
+  bleWifiStatusCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_WIFI_STATUS_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ
+  );
+  bleWifiStatusCharacteristic->setValue("IDLE");
+
+  BLESecurity* security = new BLESecurity();
+  security->setAuthenticationMode(ESP_LE_AUTH_BOND);
+  security->setCapability(ESP_IO_CAP_NONE);
 
   bleProvisioningService->start();
 
@@ -732,6 +907,7 @@ void setup() {
 void loop() {
   server.handleClient();
   serviceBleWifiScan();
+  serviceBleWifiProvisioning();
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
