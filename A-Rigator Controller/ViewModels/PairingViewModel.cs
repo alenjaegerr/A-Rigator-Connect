@@ -181,7 +181,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsWifiSettingsButtonVisible => true;
 
-    public string SuccessfulResultMessage => "A-Rigator is reachable over local Wi-Fi. You can continue to the dashboard.";
+    public string SuccessfulResultMessage => "A-Rigator has joined your Wi-Fi network. Connect this phone to the same network to control it.";
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
