@@ -77,7 +77,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
     {
         var candidates = _fallbackBaseAddress is null
             ? new[] { _baseAddress }
-            : new[] { _baseAddress, _fallbackBaseAddress };
+            : new[] { _baseAddress, _fallbackBaseAddress! };
 
         foreach (var candidate in candidates)
         {
