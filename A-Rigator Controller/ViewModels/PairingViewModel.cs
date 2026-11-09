@@ -79,7 +79,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public RobotProvisioningDevice? SelectedBleRobot
     {
         get => _selectedBleRobot;
-        set => SetField(ref _selectedBleRobot, value);
+        set
+        {
+            if (SetField(ref _selectedBleRobot, value))
+            {
+                OnPropertyChanged(nameof(HasSelectedBleRobot));
+            }
+        }
     }
 
     public bool HasSelectedBleRobot => SelectedBleRobot is not null && !IsBusy;
@@ -219,6 +225,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             var devices = await _robotProvisioningService.ScanForRobotsAsync();
             foreach (var device in devices)
                 NearbyBleRobots.Add(device);
+
+            if (devices.Count == 1)
+                SelectedBleRobot = devices[0];
 
             BleStatusMessage = devices.Count == 0
                 ? "No robot found. Check that A-Rigator is powered on, then scan again."
