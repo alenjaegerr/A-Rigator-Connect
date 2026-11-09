@@ -366,6 +366,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             WifiScanStatusMessage = "This network is secured. Enter its Wi-Fi password before connecting.";
             return;
         }
+        if (!SelectedWifiNetwork.IsSecured && !string.IsNullOrEmpty(WifiPassword))
+        {
+            WifiScanStatusMessage = "This network is open. Clear the password field before connecting.";
+            return;
+        }
 
         IsBusy = true;
         WifiScanStatusMessage = $"Sending Wi-Fi settings for {SelectedWifiNetwork.Ssid}...";
