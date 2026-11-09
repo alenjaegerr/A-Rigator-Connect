@@ -29,8 +29,9 @@ bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
 bool mdnsStarted = false;
 
-// BLE provisioning transport. Network scanning is read-only; credential writes
-// will remain disabled until the authenticated session protocol is implemented.
+// BLE credential writes require an encrypted, bonded link. Just Works does
+// not provide MITM protection; production pairing needs physical presence or
+// a device-identity mechanism.
 static const char* BLE_DEVICE_NAME = "A-Rigator";
 static const char* BLE_PROVISIONING_SERVICE_UUID = "7a1c0001-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-4a5249474154";
@@ -126,7 +127,7 @@ void serviceBleWifiProvisioning() {
       if (mdnsStarted) MDNS.end();
       mdnsStarted = MDNS.begin("arigator");
       if (mdnsStarted) MDNS.addService("http", "tcp", 80);
-      const String result = String("CONNECTED:") + WiFi.localIP().toString();
+      const String result = String("OK:") + WiFi.localIP().toString();
       bleWifiStatusCharacteristic->setValue(result.c_str());
       Serial.printf(">> Wi-Fi provisioned. STA IP: %s (mDNS: arigator.local)\n",
                     WiFi.localIP().toString().c_str());
@@ -325,7 +326,7 @@ void startBleDiscovery() {
   bleWifiStatusCharacteristic->setValue("IDLE");
 
   BLESecurity* security = new BLESecurity();
-  security->setAuthenticationMode(ESP_LE_AUTH_BOND);
+  security->setAuthenticationMode(true, false, true);
   security->setCapability(ESP_IO_CAP_NONE);
 
   bleProvisioningService->start();
