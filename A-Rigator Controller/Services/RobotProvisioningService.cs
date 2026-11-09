@@ -110,12 +110,12 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         try
         {
             SetState(RobotProvisioningState.ScanningForNetworks);
-            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid);
-            var characteristic = await service.GetCharacteristicAsync(WifiScanCharacteristicUuid);
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
+            var characteristic = await service.GetCharacteristicAsync(WifiScanCharacteristicUuid, cancellationToken);
             if (characteristic is null)
                 throw new InvalidOperationException("This A-Rigator firmware does not support BLE Wi-Fi scanning yet.");
 
-            await characteristic.WriteAsync(Encoding.UTF8.GetBytes("SCAN"));
+            await characteristic.WriteAsync(Encoding.UTF8.GetBytes("SCAN"), cancellationToken);
             var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
             var totalLength = -1;
             while (DateTimeOffset.UtcNow < deadline)
@@ -138,7 +138,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             for (var offset = 0; offset < totalLength; offset += 18)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"));
+                await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"), cancellationToken);
                 var readResult = await characteristic.ReadAsync(cancellationToken);
                 var chunk = readResult.data;
                 if (chunk.Length == 0)
