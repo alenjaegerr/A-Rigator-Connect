@@ -58,6 +58,15 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
         }
     }
 
+    public void SetRobotAddress(string address)
+    {
+        if (!Uri.TryCreate($"http://{address}/", UriKind.Absolute, out var uri) ||
+            uri.Scheme != Uri.UriSchemeHttp || string.IsNullOrWhiteSpace(uri.Host))
+            throw new ArgumentException("The robot returned an invalid network address.", nameof(address));
+
+        _httpClient.BaseAddress = uri;
+    }
+
     public ConnectionState ConnectionState => _connectionState;
 
     public event Action<ConnectionState>? ConnectionStateChanged;
