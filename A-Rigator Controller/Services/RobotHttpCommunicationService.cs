@@ -8,13 +8,13 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
+    private Uri _baseAddress = new(RobotNetworkOptions.BaseAddress);
     private ConnectionState _connectionState = ConnectionState.Disconnected;
 
     public RobotHttpCommunicationService()
     {
         _httpClient = new HttpClient
         {
-            BaseAddress = new Uri(RobotNetworkOptions.BaseAddress),
             Timeout = TimeSpan.FromSeconds(5)
         };
     }
@@ -37,7 +37,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
         try
         {
-            using var response = await _httpClient.PostAsync(endpoint, content: null, cancellationToken);
+            using var response = await _httpClient.PostAsync(new Uri(_baseAddress, endpoint), content: null, cancellationToken);
             response.EnsureSuccessStatusCode();
 
             var commandResponse = await response.Content.ReadFromJsonAsync<RobotCommandResponse>(JsonOptions, cancellationToken);
@@ -64,7 +64,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             uri.Scheme != Uri.UriSchemeHttp || string.IsNullOrWhiteSpace(uri.Host))
             throw new ArgumentException("The robot returned an invalid network address.", nameof(address));
 
-        _httpClient.BaseAddress = uri;
+        _baseAddress = uri;
     }
 
     public ConnectionState ConnectionState => _connectionState;
@@ -75,7 +75,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
     {
         try
         {
-            using var response = await _httpClient.GetAsync(RobotNetworkOptions.StatusEndpoint, cancellationToken);
+            using var response = await _httpClient.GetAsync(new Uri(_baseAddress, RobotNetworkOptions.StatusEndpoint), cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return false;
