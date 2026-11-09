@@ -129,7 +129,7 @@
                            FontSize="17"
                            FontAttributes="Bold"
                            TextColor="#176B45" />
-                    <Label Text="Your phone is connected to A-Rigator. You can now scan for nearby Wi-Fi networks. Secure password transfer is the next development step."
+                    <Label Text="Scan nearby networks, select yours, and enter its password. A-Rigator will join that network while keeping its own hotspot available."
                            FontSize="14"
                            TextColor="#35443B" />
                     <Button Text="SCAN FOR WI-FI NETWORKS"
@@ -144,7 +144,8 @@
                            TextColor="#35443B" />
                     <CollectionView ItemsSource="{Binding NearbyWifiNetworks}"
                                     IsVisible="{Binding HasScannedWifiNetworks}"
-                                    SelectionMode="None"
+                                    SelectedItem="{Binding SelectedWifiNetwork, Mode=TwoWay}"
+                                    SelectionMode="Single"
                                     HeightRequest="220">
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:RobotWifiNetwork">
@@ -174,6 +175,24 @@
                             </DataTemplate>
                         </CollectionView.ItemTemplate>
                     </CollectionView>
+                    <Label Text="WI-FI PASSWORD"
+                           FontSize="12"
+                           FontAttributes="Bold"
+                           TextColor="#718078" />
+                    <Entry Text="{Binding WifiPassword}"
+                           Placeholder="Enter network password (leave blank for open Wi-Fi)"
+                           IsPassword="True"
+                           ClearButtonVisibility="WhileEditing"
+                           BackgroundColor="#F4F8F5"
+                           TextColor="#17231C" />
+                    <Button Text="CONNECT A-RIGATOR TO THIS WI-FI"
+                            Command="{Binding ConnectRobotToWifiCommand}"
+                            IsEnabled="{Binding CanSubmitWifiCredentials}"
+                            MinimumHeightRequest="52"
+                            CornerRadius="12"
+                            FontAttributes="Bold"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
