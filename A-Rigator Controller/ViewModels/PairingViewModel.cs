@@ -21,6 +21,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isWifiEnabled;
     private bool _isBusy;
     private bool _isBleConnected;
+    private string _wifiScanStatusMessage = "Connect to A-Rigator, then scan for nearby Wi-Fi networks.";
+    private bool _hasScannedWifiNetworks;
 
     public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
@@ -36,6 +38,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ScanForBleRobotsCommand = new Command(async () => await ScanForBleRobotsAsync());
         ConnectToBleRobotCommand = new Command(async () => await ConnectToBleRobotAsync());
         DisconnectBleRobotCommand = new Command(async () => await DisconnectBleRobotAsync());
+        ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         RefreshWifiState();
     }
 
@@ -75,6 +78,20 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public string RobotAccessPointSsid => RobotNetworkOptions.AccessPointSsid;
 
     public ObservableCollection<RobotProvisioningDevice> NearbyBleRobots { get; } = new();
+
+    public ObservableCollection<RobotWifiNetwork> NearbyWifiNetworks { get; } = new();
+
+    public string WifiScanStatusMessage
+    {
+        get => _wifiScanStatusMessage;
+        private set => SetField(ref _wifiScanStatusMessage, value);
+    }
+
+    public bool HasScannedWifiNetworks
+    {
+        get => _hasScannedWifiNetworks;
+        private set => SetField(ref _hasScannedWifiNetworks, value);
+    }
 
     public RobotProvisioningDevice? SelectedBleRobot
     {
@@ -127,6 +144,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand ConnectToBleRobotCommand { get; }
 
     public ICommand DisconnectBleRobotCommand { get; }
+
+    public ICommand ScanWifiNetworksCommand { get; }
 
     public string ErrorMessage
     {
@@ -256,6 +275,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
             IsBleConnected = true;
             BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
+            WifiScanStatusMessage = "Bluetooth is ready. Scan to see Wi-Fi networks detected by the robot.";
+            HasScannedWifiNetworks = false;
+            NearbyWifiNetworks.Clear();
         }
         catch (Exception ex)
         {
@@ -274,6 +296,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             await _robotProvisioningService.DisconnectAsync();
             IsBleConnected = false;
             BleStatusMessage = "Disconnected from A-Rigator.";
+            NearbyWifiNetworks.Clear();
+            HasScannedWifiNetworks = false;
+            WifiScanStatusMessage = "Connect to A-Rigator, then scan for nearby Wi-Fi networks.";
         }
         catch (Exception ex)
         {
@@ -281,6 +306,34 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task ScanWifiNetworksAsync()
+    {
+        if (IsBusy || !IsBleConnected) return;
+
+        IsBusy = true;
+        HasScannedWifiNetworks = false;
+        NearbyWifiNetworks.Clear();
+        WifiScanStatusMessage = "Scanning for nearby Wi-Fi networks...";
+        try
+        {
+            var networks = await _robotProvisioningService.ScanWifiNetworksAsync();
+            foreach (var network in networks)
+                NearbyWifiNetworks.Add(network);
+
+            HasScannedWifiNetworks = true;
+            WifiScanStatusMessage = networks.Count == 0
+                ? "No Wi-Fi networks were found. Move the robot closer to your router and try again."
+                : $"{networks.Count} Wi-Fi network(s) found. Credential setup is the next step.";
+        }
+        catch (Exception ex)
+        {
+            WifiScanStatusMessage = $"Wi-Fi scan failed: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
     private void OpenWifiSettings()
     {
         try
