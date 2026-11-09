@@ -116,57 +116,61 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
                 throw new InvalidOperationException("This A-Rigator firmware does not support BLE Wi-Fi scanning yet.");
 
             await characteristic.WriteAsync(Encoding.UTF8.GetBytes("SCAN"));
-
             var deadline = DateTimeOffset.UtcNow.AddSeconds(20);
+            var totalLength = -1;
             while (DateTimeOffset.UtcNow < deadline)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(500, cancellationToken);
-
-                var payload = await characteristic.ReadAsync();
-                using var document = JsonDocument.Parse(payload);
-                var root = document.RootElement;
-                var state = root.TryGetProperty("state", out var stateElement)
-                    ? stateElement.GetString()
-                    : null;
-
-                if (state == "error")
+                await Task.Delay(400, cancellationToken);
+                var response = Encoding.UTF8.GetString(await characteristic.ReadAsync());
+                if (response == "ERROR")
                     throw new InvalidOperationException("A-Rigator could not scan for nearby Wi-Fi networks.");
-
-                if (state != "complete")
-                    continue;
-
-                var networks = new List<RobotWifiNetwork>();
-                if (root.TryGetProperty("networks", out var networkArray) &&
-                    networkArray.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var network in networkArray.EnumerateArray())
-                    {
-                        var ssid = network.TryGetProperty("ssid", out var ssidElement)
-                            ? ssidElement.GetString()
-                            : null;
-                        if (string.IsNullOrEmpty(ssid))
-                            continue;
-
-                        var rssi = network.TryGetProperty("rssi", out var rssiElement)
-                            ? rssiElement.GetInt32()
-                            : -100;
-                        var secured = network.TryGetProperty("secured", out var securedElement) &&
-                                      securedElement.GetBoolean();
-
-                        networks.Add(new RobotWifiNetwork(ssid, rssi, secured));
-                    }
-                }
-
-                SetState(RobotProvisioningState.Completed);
-                return networks
-                    .GroupBy(network => network.Ssid, StringComparer.Ordinal)
-                    .Select(group => group.OrderByDescending(network => network.SignalStrength).First())
-                    .OrderByDescending(network => network.SignalStrength)
-                    .ToArray();
+                if (response.StartsWith("DONE:", StringComparison.Ordinal) &&
+                    int.TryParse(response.AsSpan(5), out totalLength) && totalLength >= 0)
+                    break;
             }
 
-            throw new TimeoutException("A-Rigator did not finish scanning for Wi-Fi networks in time.");
+            if (totalLength < 0)
+                throw new TimeoutException("A-Rigator did not finish scanning for Wi-Fi networks in time.");
+
+            var json = new StringBuilder(totalLength);
+            for (var offset = 0; offset < totalLength; offset += 18)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"));
+                var chunk = Encoding.UTF8.GetString(await characteristic.ReadAsync());
+                if (string.IsNullOrEmpty(chunk))
+                    throw new InvalidOperationException("A-Rigator returned an incomplete Wi-Fi scan result.");
+                json.Append(chunk);
+            }
+
+            using var document = JsonDocument.Parse(json.ToString());
+            var networks = new List<RobotWifiNetwork>();
+            if (document.RootElement.TryGetProperty("networks", out var networkArray) &&
+                networkArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var network in networkArray.EnumerateArray())
+                {
+                    var ssid = network.TryGetProperty("ssid", out var ssidElement)
+                        ? ssidElement.GetString()
+                        : null;
+                    if (string.IsNullOrEmpty(ssid)) continue;
+
+                    var rssi = network.TryGetProperty("rssi", out var rssiElement)
+                        ? rssiElement.GetInt32()
+                        : -100;
+                    var secured = network.TryGetProperty("secured", out var securedElement) &&
+                                  securedElement.GetBoolean();
+                    networks.Add(new RobotWifiNetwork(ssid, rssi, secured));
+                }
+            }
+
+            SetState(RobotProvisioningState.Completed);
+            return networks
+                .GroupBy(network => network.Ssid, StringComparer.Ordinal)
+                .Select(group => group.OrderByDescending(network => network.SignalStrength).First())
+                .OrderByDescending(network => network.SignalStrength)
+                .ToArray();
         }
         catch
         {
@@ -178,7 +182,6 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             _gattLock.Release();
         }
     }
-
     public Task<RobotProvisioningResult> SendWifiCredentialsAsync(
         string ssid,
         string password,
