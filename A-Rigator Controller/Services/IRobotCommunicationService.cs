@@ -17,4 +17,6 @@ public interface IRobotCommunicationService
     Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default);
 
     Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default);
+
+    void SetRobotAddress(string address);
 }
