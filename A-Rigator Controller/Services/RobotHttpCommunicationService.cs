@@ -9,6 +9,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
     private Uri _baseAddress = new(RobotNetworkOptions.BaseAddress);
+    private Uri? _fallbackBaseAddress;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
 
     public RobotHttpCommunicationService()
@@ -64,7 +65,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             uri.Scheme != Uri.UriSchemeHttp || string.IsNullOrWhiteSpace(uri.Host))
             throw new ArgumentException("The robot returned an invalid network address.", nameof(address));
 
-        _baseAddress = uri;
+        _fallbackBaseAddress = uri;
+        _baseAddress = new Uri("http://arigator.local/");
     }
 
     public ConnectionState ConnectionState => _connectionState;
@@ -73,29 +75,39 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
     public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            using var response = await _httpClient.GetAsync(new Uri(_baseAddress, RobotNetworkOptions.StatusEndpoint), cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                return false;
-            }
+        var candidates = _fallbackBaseAddress is null
+            ? new[] { _baseAddress }
+            : new[] { _baseAddress, _fallbackBaseAddress };
 
-            var status = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
-            return status is { Success: true };
-        }
-        catch (HttpRequestException)
+        foreach (var candidate in candidates)
         {
-            return false;
+            try
+            {
+                using var response = await _httpClient.GetAsync(new Uri(candidate, RobotNetworkOptions.StatusEndpoint), cancellationToken);
+                if (!response.IsSuccessStatusCode) continue;
+
+                var status = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
+                if (status is { Success: true })
+                {
+                    _baseAddress = candidate;
+                    return true;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // Try the BLE-provided station IP if mDNS is unavailable.
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // A local mDNS lookup can time out on Android; continue to the IP fallback.
+            }
+            catch (JsonException)
+            {
+                // Try the next known address.
+            }
         }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return false;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+
+        return false;
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
