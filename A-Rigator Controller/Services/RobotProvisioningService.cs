@@ -122,7 +122,8 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await Task.Delay(400, cancellationToken);
-                var response = Encoding.UTF8.GetString(await characteristic.ReadAsync());
+                var readResult = await characteristic.ReadAsync(cancellationToken);
+                var response = Encoding.UTF8.GetString(readResult.data);
                 if (response == "ERROR")
                     throw new InvalidOperationException("A-Rigator could not scan for nearby Wi-Fi networks.");
                 if (response.StartsWith("DONE:", StringComparison.Ordinal) &&
@@ -138,7 +139,8 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"));
-                var chunk = await characteristic.ReadAsync();
+                var readResult = await characteristic.ReadAsync(cancellationToken);
+                var chunk = readResult.data;
                 if (chunk.Length == 0)
                     throw new InvalidOperationException("A-Rigator returned an incomplete Wi-Fi scan result.");
                 payloadStream.Write(chunk, 0, chunk.Length);
