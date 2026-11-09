@@ -81,7 +81,7 @@
                                                    FontSize="16"
                                                    FontAttributes="Bold"
                                                    TextColor="#17231C" />
-                                            <Label Text="{Binding SignalStrength, StringFormat='Bluetooth signal: {0} dBm'}"
+                                            <Label Text="{Binding SignalStrength, StringFormat='{}Bluetooth signal: {0} dBm'}"
                                                    FontSize="12"
                                                    TextColor="#64736B" />
                                         </VerticalStackLayout>
