@@ -10,7 +10,7 @@ struct RobotWifiCredentials {
   String password;
 
   bool isValid() const {
-    return ssid.length() > 0 && password.length() > 0;
+    return ssid.length() > 0;
   }
 };
 
