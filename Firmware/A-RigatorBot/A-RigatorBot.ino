@@ -1,6 +1,9 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <WebServer.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
 #include "RobotWifiConfig.h"
 
 // ============================================================================
@@ -22,6 +25,14 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+
+// BLE discovery service. Credential transfer will be added in the next stage.
+static const char* BLE_DEVICE_NAME = "A-Rigator";
+static const char* BLE_PROVISIONING_SERVICE_UUID = "7a1c0001-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-4a5249474154";
+BLEServer* bleServer = nullptr;
+BLEService* bleProvisioningService = nullptr;
+BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 void handleForward();
 void handleReverse();
 void handleStop();
@@ -31,6 +42,27 @@ void handlePumpOn();
 void handlePumpOff();
 void handleHeartbeat();
 void handleResetShield();
+
+// ============================================================================
+// BLE DISCOVERY (credential provisioning is a later stage)
+// ============================================================================
+void startBleDiscovery() {
+  BLEDevice::init(BLE_DEVICE_NAME);
+  bleServer = BLEDevice::createServer();
+  bleProvisioningService = bleServer->createService(BLE_PROVISIONING_SERVICE_UUID);
+  bleDiscoveryCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_DISCOVERY_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ
+  );
+  bleDiscoveryCharacteristic->setValue("A-Rigator Wi-Fi provisioning available");
+  bleProvisioningService->start();
+
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  advertising->addServiceUUID(BLE_PROVISIONING_SERVICE_UUID);
+  advertising->setScanResponse(true);
+  BLEDevice::startAdvertising();
+  Serial.println(">> BLE discovery advertising started (A-Rigator).");
+}
 
 // ============================================================================
 // 2. PIN DEFINITIONS
@@ -179,6 +211,13 @@ void startWifiApi() {
   }
   server.onNotFound(handleNotFound);
   server.begin();
+
+  if (savedWifiCredentialsAvailable) {
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(savedWifiCredentials.ssid.c_str(),
+               savedWifiCredentials.password.c_str());
+    Serial.println(">> Attempting to connect to the saved Wi-Fi network in the background.");
+  }
 
   Serial.println(controlsEnabled
 	  ? ">> WPA2 AP and manual-control API ready."
@@ -583,6 +622,7 @@ void setup() {
   }
 
   startWifiApi();
+  startBleDiscovery();
 
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(10000);
