@@ -1,4 +1,4 @@
-﻿namespace A_Rigator_Controller
+namespace A_Rigator_Controller
 {
     public partial class App : Application
     {
@@ -7,12 +7,24 @@
         public App(AppShell appShell)
         {
             InitializeComponent();
+            var darkModeEnabled = Preferences.Default.Get("DarkModeEnabled", false);
+            UserAppTheme = darkModeEnabled ? AppTheme.Dark : AppTheme.Light;
             _appShell = appShell;
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            return new Window(_appShell);
+            var window = new Window();
+            _appShell.Opacity = 0;
+
+            var loadingPage = new LoadingPage(() =>
+            {
+                window.Page = _appShell;
+                _ = _appShell.FadeTo(1, 550, Easing.CubicInOut);
+            });
+
+            window.Page = loadingPage;
+            return window;
         }
     }
 }
