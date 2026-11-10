@@ -13,6 +13,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private readonly IUserProfileService _userProfileService;
     private readonly IWifiSettingsService _wifiSettingsService;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
+    private readonly SemaphoreSlim _statusLock = new(1, 1);
     private CancellationTokenSource? _monitoringCancellation;
     private Task? _monitoringTask;
     private RobotStatus? _latestStatus;
@@ -21,6 +22,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private string _message = string.Empty;
     private int _reconnectTicks;
     private bool _hasAttemptedConnection;
+    private bool _isRefreshing;
+    private bool _isCommandRunning;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -98,6 +101,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public bool IsConnected => _communicationService.ConnectionState == ConnectionState.Connected;
 
     public bool IsConnecting => _communicationService.ConnectionState is ConnectionState.Connecting or ConnectionState.Reconnecting;
+
+    public bool IsRefreshing
+    {
+        get => _isRefreshing;
+        private set => SetField(ref _isRefreshing, value);
+    }
+
+    public bool IsCommandRunning
+    {
+        get => _isCommandRunning;
+        private set => SetField(ref _isCommandRunning, value);
+    }
 
     public bool CanControl => IsConnected && _latestStatus?.ControlsEnabled == true;
 
@@ -385,34 +400,42 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private async Task RefreshStatusAsync(CancellationToken cancellationToken = default)
     {
         if (!IsConnected)
-        {
             return;
-        }
 
+        await _statusLock.WaitAsync(cancellationToken);
         try
         {
-            _latestStatus = await _communicationService.GetStatusAsync(cancellationToken);
-            OnPropertyChanged(nameof(RobotStatus));
-            OnPropertyChanged(nameof(ModeStatus));
-            OnPropertyChanged(nameof(PumpStatus));
-            OnPropertyChanged(nameof(ConnectionModeLabel));
-            OnPropertyChanged(nameof(ConnectionDetails));
-            OnPropertyChanged(nameof(ConnectionRecoveryMessage));
-            OnPropertyChanged(nameof(IsAutonomous));
-            NotifyControlStateChanged();
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-        }
-        catch (Exception)
-        {
-            if (!IsConnected)
+            IsRefreshing = true;
+            try
             {
-                _activeMotorCommand = null;
-                _pumpRequested = false;
-                Message = "Robot connection lost. Manual controls are locked while the ESP32 safety timeout handles active outputs.";
+                _latestStatus = await _communicationService.GetStatusAsync(cancellationToken);
+                OnPropertyChanged(nameof(RobotStatus));
+                OnPropertyChanged(nameof(ModeStatus));
+                OnPropertyChanged(nameof(PumpStatus));
+                OnPropertyChanged(nameof(ConnectionModeLabel));
+                OnPropertyChanged(nameof(ConnectionDetails));
+                OnPropertyChanged(nameof(ConnectionRecoveryMessage));
+                OnPropertyChanged(nameof(IsAutonomous));
+                NotifyControlStateChanged();
             }
-            NotifyConnectionStateChanged();
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+            }
+            catch (Exception)
+            {
+                if (!IsConnected)
+                {
+                    _activeMotorCommand = null;
+                    _pumpRequested = false;
+                    Message = "Robot connection lost. Manual controls are locked while the ESP32 safety timeout handles active outputs.";
+                }
+                NotifyConnectionStateChanged();
+            }
+        }
+        finally
+        {
+            IsRefreshing = false;
+            _statusLock.Release();
         }
     }
 
@@ -439,10 +462,17 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             await _commandLock.WaitAsync(cancellationToken);
             try
             {
+                if (command != RobotControlCommand.Heartbeat)
+                {
+                    IsCommandRunning = true;
+                }
+
                 await _communicationService.SendCommandAsync(command, cancellationToken);
             }
             finally
             {
+                if (command != RobotControlCommand.Heartbeat)
+                    IsCommandRunning = false;
                 _commandLock.Release();
             }
         }
