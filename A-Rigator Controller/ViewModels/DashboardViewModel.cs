@@ -76,6 +76,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? $"{distance:0.0} cm"
             : _latestStatus?.ObstacleEchoDetected == false ? "No echo" : "UNAVAILABLE";
 
+    public string ObstacleStopThresholdStatus => _latestStatus?.ObstacleStopThresholdCm is int threshold
+        ? $"{threshold} cm"
+        : "UNAVAILABLE";
+
+    public string ManualControlTimeoutStatus => _latestStatus?.ManualControlTimeoutMs is uint timeout
+        ? $"{timeout} ms"
+        : "UNAVAILABLE";
+
     public string ObstacleStatus => _latestStatus is null
         ? "UNAVAILABLE"
         : _latestStatus.ObstacleEchoDetected switch
@@ -469,6 +477,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(PumpStatus));
                 OnPropertyChanged(nameof(ObstacleDistanceStatus));
                 OnPropertyChanged(nameof(ObstacleStatus));
+                OnPropertyChanged(nameof(ObstacleStopThresholdStatus));
+                OnPropertyChanged(nameof(ManualControlTimeoutStatus));
                 OnPropertyChanged(nameof(LineGpio14Status));
                 OnPropertyChanged(nameof(LineGpio27Status));
                 OnPropertyChanged(nameof(ConnectionModeLabel));
