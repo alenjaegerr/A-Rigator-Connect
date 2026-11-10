@@ -1,128 +1,114 @@
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.Views;
 
-namespace A_Rigator_Controller
+namespace A_Rigator_Controller;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    private readonly ShellContent _homeContent;
+
+    public AppShell(
+        MainPage dashboardPage,
+        ControlPage controlPage,
+        TelemetryPage telemetryPage,
+        WelcomePage welcomePage,
+        PairingPage pairingPage,
+        RemoteWifiSetupPage remoteWifiSetupPage,
+        AccountPage accountPage,
+        SettingsPage settingsPage,
+        IUserProfileService userProfileService)
     {
-        private ShellContent _homeContent = null!;
+        InitializeComponent();
 
-        public AppShell(
-            MainPage dashboardPage,
-            WelcomePage welcomePage,
-            PairingPage pairingPage,
-            RemoteWifiSetupPage remoteWifiSetupPage,
-            AccountPage accountPage,
-            SettingsPage settingsPage,
-            IUserProfileService userProfileService,
-            IAccountService accountService)
+        var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
+        if (hasDisplayName)
+            pairingPage.StartNewPairingFlow();
+
+        var tabBar = new TabBar { Route = "main" };
+
+        var homeTab = new Tab { Title = "Home", Route = "home" };
+        _homeContent = new ShellContent
         {
-            InitializeComponent();
+            Title = "Home",
+            Route = "home-content",
+            Content = !hasDisplayName ? welcomePage : pairingPage
+        };
+        homeTab.Items.Add(_homeContent);
 
-            var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
-            var remoteModeAvailable = accountService.IsRemoteModeAllowed;
-            var remoteWifiTitle = remoteModeAvailable
-                ? "Remote Wi-Fi"
-                : "Remote Wi-Fi (Google sign-in required)";
-
-            if (hasDisplayName)
-                pairingPage.StartNewPairingFlow();
-
-            var homeItem = new FlyoutItem { Title = "Home" };
-            _homeContent = new ShellContent
-            {
-                Title = "",
-                Route = "Home",
-                Content = !hasDisplayName ? welcomePage : pairingPage
-            };
-            homeItem.Items.Add(_homeContent);
-            Items.Add(homeItem);
-
-            var dashboardItem = new FlyoutItem { Title = "Local Dashboard" };
-            dashboardItem.Items.Add(new ShellContent
-            {
-                Title = "",
-                Route = "dashboard",
-                Content = dashboardPage
-            });
-            Items.Add(dashboardItem);
-
-            var setupItem = new FlyoutItem { Title = "Robot Setup" };
-            setupItem.Items.Add(new ShellContent
-            {
-                Title = "",
-                Route = "pairing",
-                Content = pairingPage
-            });
-            Items.Add(setupItem);
-
-            var remoteWifiItem = new FlyoutItem
-            {
-                Title = remoteWifiTitle,
-                IsEnabled = remoteModeAvailable
-            };
-            remoteWifiItem.Items.Add(new ShellContent
-            {
-                Title = "",
-                Route = "remote-wifi",
-                Content = remoteWifiSetupPage,
-                IsEnabled = remoteModeAvailable
-            });
-            Items.Add(remoteWifiItem);
-
-            var accountItem = new FlyoutItem { Title = "Account" };
-            accountItem.Items.Add(new ShellContent
-            {
-                Title = "",
-                Route = "account",
-                Content = accountPage
-            });
-            Items.Add(accountItem);
-
-            var settingsItem = new FlyoutItem { Title = "Settings" };
-            settingsItem.Items.Add(new ShellContent
-            {
-                Title = "",
-                Route = "settings",
-                Content = settingsPage
-            });
-            Items.Add(settingsItem);
-
-            welcomePage.DisplayNameSaved += (_, _) =>
-            {
-                pairingPage.StartNewPairingFlow();
-                ReplaceHomeContent(pairingPage);
-            };
-            pairingPage.DashboardPreviewRequested += (_, _) => ShowDashboard(dashboardPage);
-            pairingPage.RemoteWifiSetupRequested += (_, _) => ReplaceHomeContent(remoteWifiSetupPage);
-            pairingPage.NotNowRequested += (_, _) => ShowDashboard(dashboardPage);
-            remoteWifiSetupPage.DashboardRequested += (_, _) => ShowDashboard(dashboardPage);
-            remoteWifiSetupPage.NotNowRequested += (_, _) => ShowDashboard(dashboardPage);
-
-            CurrentItem = _homeContent;
-        }
-
-        private void ShowDashboard(MainPage dashboardPage)
+        var controlTab = new Tab { Title = "Control", Route = "control" };
+        controlTab.Items.Add(new ShellContent
         {
-            dashboardPage.Opacity = 0;
+            Title = "Control",
+            Route = "control-content",
+            Content = controlPage
+        });
+
+        var telemetryTab = new Tab { Title = "Telemetry", Route = "telemetry" };
+        telemetryTab.Items.Add(new ShellContent
+        {
+            Title = "Telemetry",
+            Route = "telemetry-content",
+            Content = telemetryPage
+        });
+
+        var settingsTab = new Tab { Title = "Settings", Route = "settings-tab" };
+        settingsTab.Items.Add(new ShellContent
+        {
+            Title = "Settings",
+            Route = "settings-content",
+            Content = settingsPage
+        });
+
+        tabBar.Items.Add(homeTab);
+        tabBar.Items.Add(controlTab);
+        tabBar.Items.Add(telemetryTab);
+        tabBar.Items.Add(settingsTab);
+        Items.Add(tabBar);
+
+        Routing.RegisterRoute("welcome", typeof(WelcomePage));
+        Routing.RegisterRoute("pairing", typeof(PairingPage));
+        Routing.RegisterRoute("remote-wifi", typeof(RemoteWifiSetupPage));
+        Routing.RegisterRoute("account", typeof(AccountPage));
+
+        welcomePage.DisplayNameSaved += async (_, _) =>
+        {
+            pairingPage.StartNewPairingFlow();
+            ReplaceHomeContent(pairingPage);
+            await GoToAsync("//main/home");
+        };
+
+        pairingPage.DashboardPreviewRequested += async (_, _) =>
+        {
             ReplaceHomeContent(dashboardPage);
-            _ = dashboardPage.FadeTo(1, 550, Easing.CubicInOut);
-        }
+            await GoToAsync("//main/home");
+        };
 
-        private void ReplaceHomeContent(Page page)
+        pairingPage.RemoteWifiSetupRequested += async (_, _) =>
+            await GoToAsync("remote-wifi");
+
+        pairingPage.NotNowRequested += async (_, _) =>
         {
-            var content = new ShellContent
-            {
-                Title = "",
-                Route = "Home",
-                Content = page
-            };
+            ReplaceHomeContent(dashboardPage);
+            await GoToAsync("//main/home");
+        };
 
-            var index = Items.IndexOf(_homeContent);
-            Items.Remove(_homeContent);
-            Items.Insert(index, content);
-            _homeContent = content;
-            CurrentItem = content;
-        }
+        remoteWifiSetupPage.DashboardRequested += async (_, _) =>
+        {
+            ReplaceHomeContent(dashboardPage);
+            await GoToAsync("//main/home");
+        };
+
+        remoteWifiSetupPage.NotNowRequested += async (_, _) =>
+        {
+            ReplaceHomeContent(dashboardPage);
+            await GoToAsync("//main/home");
+        };
+
+        CurrentItem = tabBar;
+    }
+
+    private void ReplaceHomeContent(Page page)
+    {
+        _homeContent.Content = page;
     }
 }
