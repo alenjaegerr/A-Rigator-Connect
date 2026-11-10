@@ -189,7 +189,12 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
                 WifiConnected = statusResponse.WifiConnected,
                 WifiIp = statusResponse.WifiIp,
                 Hostname = statusResponse.Hostname,
-                ConnectionMode = ActiveConnectionMode
+                ConnectionMode = ActiveConnectionMode,
+                ObstacleDistanceCm = statusResponse.ObstacleDistanceCm,
+                ObstacleEchoDetected = statusResponse.ObstacleEchoDetected,
+                ObstacleDetected = statusResponse.ObstacleDetected,
+                LineLeft = statusResponse.LineLeft,
+                LineRight = statusResponse.LineRight
             };
         }
         catch (HttpRequestException)
