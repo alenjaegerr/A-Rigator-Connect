@@ -60,12 +60,12 @@
                         <Label Grid.Column="1" Text="{Binding ObstacleStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Left line sensor" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                        <Label Grid.Column="1" Text="{Binding LeftLineStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                        <Label Text="Line sensor input · GPIO14" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding LineGpio14Status}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Right line sensor" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                        <Label Grid.Column="1" Text="{Binding RightLineStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                        <Label Text="Line sensor input · GPIO27" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding LineGpio27Status}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Label Text="Reservoir level and battery remain unavailable because their sensor inputs are not yet installed or exposed by firmware." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
