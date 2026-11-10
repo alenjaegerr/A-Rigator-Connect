@@ -15,7 +15,6 @@ public partial class AppShell : Shell
         TelemetryPage telemetryPage,
         WelcomePage welcomePage,
         PairingPage pairingPage,
-        RemoteWifiSetupPage remoteWifiSetupPage,
         SettingsPage settingsPage,
         IUserProfileService userProfileService)
     {
@@ -89,9 +88,6 @@ public partial class AppShell : Shell
         pairingPage.DashboardPreviewRequested += async (_, _) => await ShowDashboardAsync();
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
-
-        remoteWifiSetupPage.DashboardRequested += async (_, _) => await ShowDashboardAsync();
-        remoteWifiSetupPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
 
         CurrentItem = tabBar;
     }
