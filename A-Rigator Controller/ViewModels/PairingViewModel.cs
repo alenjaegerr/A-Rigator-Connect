@@ -377,7 +377,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             try
             {
                 AccessPointPassword = await _robotProvisioningService.GetAccessPointPasswordAsync();
-                AccessPointStatusMessage = "Hotspot password retrieved securely over the encrypted Bluetooth connection.";
+                AccessPointStatusMessage = "Hotspot password received over the encrypted Bluetooth link. BLE Just Works does not protect against an active man-in-the-middle.";
             }
             catch (Exception ex)
             {
@@ -548,6 +548,12 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
+        if (!IsBleConnected || string.IsNullOrWhiteSpace(AccessPointPassword))
+        {
+            ErrorMessage = "Pair with A-Rigator over Bluetooth first. The robot uses a unique hotspot password, which the app retrieves after pairing.";
+            SetStage(PairingStage.DiscoverRobot);
+            return;
+        }
         SetStage(PairingStage.DirectWifi);
     }
 
