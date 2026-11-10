@@ -44,8 +44,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
-        RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected);
-        ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected);
+        RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
+        ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected && !IsConnecting);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -83,7 +83,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? $"Robot router link active · {_latestStatus.WifiIp ?? "IP not reported"}"
             : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
 
-    public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected;
+    public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
     public string ConnectionRecoveryMessage => _latestStatus?.ConnectionMode switch
     {
