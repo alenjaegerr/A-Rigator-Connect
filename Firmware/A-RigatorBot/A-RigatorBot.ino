@@ -30,6 +30,8 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+bool wifiForgetDisconnectPending = false;
+unsigned long wifiForgetDisconnectAt = 0;
 bool mdnsStarted = false;
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
@@ -519,7 +521,7 @@ bool controlsEnabled = false;
 
 // Forget only the saved router profile. Preserve the A-Rigator AP password and
 // keep the local setup hotspot available so the app can provision another network.
-bool forgetSavedWifiNetwork() {
+bool forgetSavedWifiNetwork(bool disconnectNow = true) {
   setPump(false);
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
@@ -544,13 +546,19 @@ bool forgetSavedWifiNetwork() {
   // Disconnect and erase the ESP32 station profile while leaving the AP
   // interface running. The independent arigator-ap namespace is untouched.
   WiFi.setAutoReconnect(false);
-  WiFi.disconnect(false, true);
+  if (disconnectNow) {
+    WiFi.disconnect(false, true);
+  } else {
+    // Let the HTTP response reach the app before dropping the router link.
+    wifiForgetDisconnectPending = true;
+    wifiForgetDisconnectAt = millis() + 750;
+  }
   Serial.println(">> Saved router Wi-Fi forgotten. A-Rigator setup AP remains available.");
   return true;
 }
 
 void handleForgetWifi() {
-  const bool success = forgetSavedWifiNetwork();
+  const bool success = forgetSavedWifiNetwork(false);
   if (success) {
     server.send(200, "application/json",
                 "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
@@ -1078,6 +1086,12 @@ void loop() {
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
+
+  if (wifiForgetDisconnectPending &&
+      (int32_t)(millis() - wifiForgetDisconnectAt) >= 0) {
+    wifiForgetDisconnectPending = false;
+    WiFi.disconnect(false, true);
+  }
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
