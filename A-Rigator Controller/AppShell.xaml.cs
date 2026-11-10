@@ -19,6 +19,7 @@ public partial class AppShell : Shell
         IUserProfileService userProfileService)
     {
         InitializeComponent();
+        Navigated += OnShellNavigated;
         _dashboardPage = dashboardPage;
 
         // Keep one shared telemetry/heartbeat loop alive while users move between tabs.
@@ -97,10 +98,19 @@ public partial class AppShell : Shell
         _dashboardPage.Opacity = 0;
         ReplaceHomeContent(_dashboardPage);
         await GoToAsync("//main/home");
-        await _dashboardPage.FadeTo(1, 350, Easing.CubicInOut);
     }
 
     public Task ShowRemoteAccessInfoAsync() => GoToAsync("remote-wifi");
+
+    private async void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
+    {
+        var page = CurrentPage;
+        if (page is null)
+            return;
+
+        page.Opacity = 0;
+        await page.FadeTo(1, 220, Easing.CubicInOut);
+    }
 
     private void ReplaceHomeContent(Page page)
     {
