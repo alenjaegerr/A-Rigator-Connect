@@ -193,8 +193,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
                 ObstacleDistanceCm = statusResponse.ObstacleDistanceCm,
                 ObstacleEchoDetected = statusResponse.ObstacleEchoDetected,
                 ObstacleDetected = statusResponse.ObstacleDetected,
-                LineLeft = statusResponse.LineLeft,
-                LineRight = statusResponse.LineRight
+                LineGpio14 = statusResponse.LineGpio14,
+                LineGpio27 = statusResponse.LineGpio27
             };
         }
         catch (HttpRequestException)
