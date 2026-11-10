@@ -40,13 +40,16 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<IAccountService, AccountService>();
             builder.Services.AddSingleton<ISupabaseSyncService, SupabaseSyncService>();
 
-            builder.Services.AddTransient<DashboardViewModel>();
+            // One shared dashboard state keeps Home, Control and Telemetry in sync.
+            builder.Services.AddSingleton<DashboardViewModel>();
             builder.Services.AddTransient<PairingViewModel>();
             builder.Services.AddTransient<RemoteWifiSetupViewModel>();
             builder.Services.AddTransient<WelcomeViewModel>();
             builder.Services.AddTransient<AccountViewModel>();
 
             builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<ControlPage>();
+            builder.Services.AddTransient<TelemetryPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
             builder.Services.AddTransient<RemoteWifiSetupPage>();
