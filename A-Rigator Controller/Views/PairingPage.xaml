@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              xmlns:models="clr-namespace:A_Rigator_Controller.Models"
+             xmlns:views="clr-namespace:A_Rigator_Controller.Views"
              x:Class="A_Rigator_Controller.Views.PairingPage"
              x:DataType="viewmodels:PairingViewModel"
              Title="Set up A-Rigator"
@@ -448,5 +449,6 @@
                                    Color="#176B45" />
             </VerticalStackLayout>
         </ScrollView>
+        <views:ConnectionOverlay Grid.RowSpan="2" IsBusy="{Binding IsBusy}" />
     </Grid>
 </ContentPage>
