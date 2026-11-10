@@ -5,31 +5,113 @@
              x:Class="A_Rigator_Controller.Views.AccountPage"
              x:DataType="viewmodels:AccountViewModel"
              Title=""
-             Shell.NavBarIsVisible="False"
+             Shell.NavBarIsVisible="True"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#121814}">
+
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="18">
-            <Label Text="Account" FontSize="26" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-            <Border Padding="18" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+            <Label Text="Account"
+                   FontSize="26"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
+                    StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Google account" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Label Text="{Binding AccountSummary}" FontSize="15" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Button Text="SIGN IN WITH GOOGLE" Command="{Binding SignInCommand}" MinimumHeightRequest="52" BackgroundColor="#176B45" TextColor="White" />
-                    <Button Text="SIGN OUT" Command="{Binding SignOutCommand}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
+                    <Label Text="Google account"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Label Text="{Binding AccountSummary}"
+                           FontSize="15"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+
+                    <Button Text="SIGN IN WITH GOOGLE"
+                            Command="{Binding SignInCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+
+                    <Button Text="SIGN OUT"
+                            Command="{Binding SignOutCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#52615A"
+                            TextColor="White" />
                 </VerticalStackLayout>
             </Border>
-            <Border Padding="18" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
+                    StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="Supabase backend" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Label Text="URL" FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Entry Text="{Binding SupabaseUrl, Mode=TwoWay}" Placeholder="https://xyz.supabase.co" PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Label Text="Anon key" FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Entry Text="{Binding SupabaseAnonKey, Mode=TwoWay}" Placeholder="Paste your anon key" PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}" IsPassword="True" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Button Text="SAVE SUPABASE CONFIG" Command="{Binding SaveSupabaseConfigCommand}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
+                    <Label Text="Supabase backend"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Label Text="URL"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Entry Text="{Binding SupabaseUrl, Mode=TwoWay}"
+                           Placeholder="https://xyz.supabase.co"
+                           PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Label Text="Anon key"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Entry Text="{Binding SupabaseAnonKey, Mode=TwoWay}"
+                           Placeholder="Paste your anon key"
+                           PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
+                           IsPassword="True"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Button Text="SAVE SUPABASE CONFIG"
+                            Command="{Binding SaveSupabaseConfigCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
                 </VerticalStackLayout>
             </Border>
-            <Label Text="{Binding StatusMessage}" FontSize="14" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-            <Label Text="Local robot pairing and control remain available independently of cloud sign-in." FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Backend API"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Label Text="API base URL"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Entry Text="{Binding BackendApiUrl, Mode=TwoWay}"
+                           Placeholder="https://api.yourdomain.com"
+                           PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
+                           TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+                    <Button Text="SAVE BACKEND CONFIG"
+                            Command="{Binding SaveBackendConfigCommand}"
+                            MinimumHeightRequest="52"
+                            BackgroundColor="#176B45"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+
+            <Label Text="Remote mode and cloud sync remain locked until Google auth succeeds."
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="#A23A32" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
