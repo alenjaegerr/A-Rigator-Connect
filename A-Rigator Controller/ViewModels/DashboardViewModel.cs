@@ -22,6 +22,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private string _message = string.Empty;
     private int _reconnectTicks;
     private bool _hasAttemptedConnection;
+    private bool _hasEverConnected;
     private bool _isRefreshing;
     private bool _isCommandRunning;
 
@@ -115,6 +116,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
 
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
+
+    public string ConnectionNoticeTitle => _hasEverConnected
+        ? "ROBOT CONNECTION LOST"
+        : "ROBOT NOT CONNECTED";
 
     public string ConnectionRecoveryMessage => _latestStatus?.ConnectionMode switch
     {
@@ -381,6 +386,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         try
         {
             await _communicationService.ConnectAsync(cancellationToken);
+            _hasEverConnected = true;
+            OnPropertyChanged(nameof(ConnectionNoticeTitle));
             if (!quiet)
                 Message = "A-Rigator connection restored.";
             await RefreshStatusAsync(cancellationToken);
@@ -433,6 +440,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ConnectionModeLabel));
         OnPropertyChanged(nameof(ConnectionDetails));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
+        OnPropertyChanged(nameof(ConnectionNoticeTitle));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(IsConnecting));
