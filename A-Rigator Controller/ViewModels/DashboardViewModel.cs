@@ -44,7 +44,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
-        RetryConnectionCommand = new Command(async () => await RetryConnectionAsync(), () => !IsConnected);
+        RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected);
         ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected);
     }
 
@@ -364,6 +364,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
 
         NotifyConnectionStateChanged();
+    }
+
+    private async Task SearchForRobotAsync()
+    {
+        // Restore IoT discovery preference after a previous direct-AP attempt.
+        if (_latestStatus?.ConnectionMode == RobotConnectionMode.AccessPoint)
+        {
+            var stationAddress = _latestStatus.WifiConnected == true
+                ? _latestStatus.WifiIp
+                : null;
+
+            _communicationService.SetRobotAddress(
+                string.IsNullOrWhiteSpace(stationAddress) ? "arigator.local" : stationAddress);
+        }
+
+        await RetryConnectionAsync();
     }
 
     private async Task ConnectViaAccessPointAsync()
