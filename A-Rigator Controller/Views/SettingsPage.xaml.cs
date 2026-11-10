@@ -5,6 +5,7 @@ public partial class SettingsPage : ContentPage
     public SettingsPage()
     {
         InitializeComponent();
+        Shell.SetTabBarIsVisible(this, true);
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
     }
 
