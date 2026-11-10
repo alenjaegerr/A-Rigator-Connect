@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
@@ -39,22 +39,24 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<ISupabaseConfigService, SupabaseConfigService>();
             builder.Services.AddSingleton<IAccountService, AccountService>();
             builder.Services.AddSingleton<ISupabaseSyncService, SupabaseSyncService>();
+
             builder.Services.AddTransient<DashboardViewModel>();
             builder.Services.AddTransient<PairingViewModel>();
             builder.Services.AddTransient<RemoteWifiSetupViewModel>();
             builder.Services.AddTransient<WelcomeViewModel>();
+            builder.Services.AddTransient<AccountViewModel>();
+
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
             builder.Services.AddTransient<RemoteWifiSetupPage>();
             builder.Services.AddTransient<AccountPage>();
-            builder.Services.AddTransient<AccountViewModel>();
+            builder.Services.AddTransient<SettingsPage>();
             builder.Services.AddSingleton<AppShell>();
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
-
             return builder.Build();
         }
     }
