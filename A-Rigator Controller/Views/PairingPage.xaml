@@ -33,7 +33,7 @@
                          HeightRequest="7" />
         </VerticalStackLayout>
 
-        <ScrollView Grid.Row="1">
+        <ScrollView x:Name="SetupScrollView" Grid.Row="1">
             <VerticalStackLayout Padding="24,8,24,28" Spacing="16">
 
                 <!-- STEP 1: DISCOVER AND CONNECT TO THE ROBOT -->
@@ -303,9 +303,6 @@
                                IsVisible="{Binding IsErrorVisible}"
                                FontSize="13"
                                TextColor="#A23A32" />
-                        <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                           IsVisible="{Binding IsBusy}"
-                                           Color="#176B45" />
                         <Button Text="VERIFY CONNECTION"
                                 Command="{Binding ConfirmWifiConnectionCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
@@ -444,9 +441,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <ActivityIndicator IsRunning="{Binding IsBusy}"
-                                   IsVisible="{Binding IsBusy}"
-                                   Color="#176B45" />
             </VerticalStackLayout>
         </ScrollView>
         <views:ConnectionOverlay Grid.RowSpan="2" IsBusy="{Binding IsBusy}" />
