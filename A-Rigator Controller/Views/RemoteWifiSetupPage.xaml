@@ -4,74 +4,37 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.RemoteWifiSetupPage"
              x:DataType="viewmodels:RemoteWifiSetupViewModel"
-             Title="Remote Wi-Fi"
+             Title="Remote access"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="#F4F7F5">
-
-    <ScrollView>
-        <VerticalStackLayout Padding="24" Spacing="20">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="Connect A-Rigator to nearby Wi‑Fi"
-                       FontSize="26"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
+    <Grid Padding="24">
+        <Border Padding="22"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
+                Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}"
+                StrokeShape="RoundRectangle 22"
+                VerticalOptions="Center">
+            <VerticalStackLayout Spacing="14">
+                <Label Text="Remote access is coming later"
+                       FontSize="25"
                        FontAttributes="Bold"
-                       TextColor="#176B45"
-                       SemanticProperties.HeadingLevel="Level1" />
-                <Label Text="This prepares the robot for remote connection mode. You can skip this step and continue in local mode."
-                       FontSize="15"
-                       TextColor="#52615A" />
+                       TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                <Label Text="The current release supports local IoT Wi-Fi control and direct A-Rigator AP recovery. Remote robot control, cloud telemetry and MQTT relay are not connected yet."
+                       FontSize="14"
+                       TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                <Label Text="{Binding StatusMessage}"
+                       FontSize="13"
+                       TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                <Button Text="CONTINUE IN LOCAL MODE"
+                        Command="{Binding ContinueCommand}"
+                        MinimumHeightRequest="52"
+                        BackgroundColor="#176B45"
+                        TextColor="White" />
+                <Button Text="NOT NOW"
+                        Command="{Binding NotNowCommand}"
+                        MinimumHeightRequest="46"
+                        BackgroundColor="{AppThemeBinding Light=#EEF3EF, Dark=#2A382F}"
+                        TextColor="{AppThemeBinding Light=#35443B, Dark=#E7F0E9}" />
             </VerticalStackLayout>
-
-            <Border Padding="18"
-                    BackgroundColor="White"
-                    Stroke="#D8E3DC"
-                    StrokeShape="RoundRectangle 16">
-                <VerticalStackLayout Spacing="14">
-                    <Label Text="Nearby Wi‑Fi name"
-                           FontSize="15"
-                           TextColor="#52615A" />
-                    <Entry Text="{Binding NetworkName, Mode=TwoWay}"
-                           Placeholder="Home Wi‑Fi"
-                           PlaceholderColor="#52615A"
-                           TextColor="#17231C" />
-
-                    <Label Text="Password"
-                           FontSize="15"
-                           TextColor="#52615A" />
-                    <Entry Text="{Binding Password, Mode=TwoWay}"
-                           Placeholder="Wi‑Fi password"
-                           PlaceholderColor="#52615A"
-                           IsPassword="True"
-                           TextColor="#17231C" />
-
-                    <Button Text="CONNECT TO WI‑FI"
-                            Command="{Binding ConnectCommand}"
-                            MinimumHeightRequest="52"
-                            BackgroundColor="#176B45"
-                            TextColor="White" />
-
-                    <Button Text="NOT NOW"
-                            Command="{Binding NotNowCommand}"
-                            MinimumHeightRequest="52"
-                            BackgroundColor="#52615A"
-                            TextColor="White" />
-
-                    <Label Text="{Binding StatusMessage}"
-                           FontSize="14"
-                           TextColor="#17231C" />
-
-                    <VerticalStackLayout Spacing="10" IsVisible="{Binding IsConnectedMessageVisible}">
-                        <Label Text="Wi‑Fi connected successfully."
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               TextColor="#176B45" />
-                        <Button Text="CONTINUE TO DASHBOARD"
-                                Command="{Binding ContinueCommand}"
-                                MinimumHeightRequest="52"
-                                BackgroundColor="#176B45"
-                                TextColor="White" />
-                    </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
-        </VerticalStackLayout>
-    </ScrollView>
+        </Border>
+    </Grid>
 </ContentPage>
