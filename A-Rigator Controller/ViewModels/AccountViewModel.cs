@@ -207,10 +207,17 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             return;
         }
 
-        _supabaseConfigService.Save(SupabaseUrl, SupabaseAnonKey);
-        StatusMessage = "Supabase settings saved. Google auth and backend URL are now required before remote mode can unlock.";
-        OnPropertyChanged(nameof(IsSupabaseConfigured));
-        OnPropertyChanged(nameof(IsRemoteModeAllowed));
+        try
+        {
+            _supabaseConfigService.Save(SupabaseUrl, SupabaseAnonKey);
+            StatusMessage = "Supabase settings saved. Google auth and a configured backend URL are required for remote-mode prerequisites.";
+            OnPropertyChanged(nameof(IsSupabaseConfigured));
+            OnPropertyChanged(nameof(IsRemoteModeAllowed));
+        }
+        catch (ArgumentException ex)
+        {
+            StatusMessage = ex.Message;
+        }
     }
 
     private void SaveBackendConfig()
