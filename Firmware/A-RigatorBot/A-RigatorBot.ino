@@ -11,9 +11,10 @@
 // ============================================================================
 // 1. WI-FI STATUS API
 // ============================================================================
-// Replace the placeholder locally before flashing. Never publish the password.
+// AP credentials are device-specific. The password is generated once and
+// persisted in NVS; never print it to the serial console or commit it to Git.
 static const char* WIFI_SSID = "A-Rigator";
-String apPassword = "12345678";
+String apPassword;
 RobotApConfigStore apConfigStore;
 bool apConfigStoreAvailable = false;
 static const IPAddress AP_IP(192, 168, 4, 1);
@@ -99,6 +100,10 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
 class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const String command = characteristic->getValue();
+    if (command == "GET") {
+      characteristic->setValue((String("PASSWORD:") + apPassword).c_str());
+      return;
+    }
     if (!command.startsWith("SET:")) {
       characteristic->setValue("ERROR:COMMAND");
       return;
@@ -546,9 +551,9 @@ void handleNotFound() {
 
 void startWifiApi() {
   if (apPassword.length() < 8 || apPassword.length() > 63) {
-    Serial.println(">> Invalid stored AP password. Restoring the default AP password.");
-    apPassword = RobotApConfigStore::defaultPassword();
-    if (apConfigStoreAvailable) apConfigStore.save(apPassword);
+    Serial.println(">> AP password is unavailable or invalid. AP startup is blocked for safety.");
+    controlsEnabled = false;
+    return;
   }
 
   // Keep the local AP available while the ESP32 joins the configured router.
@@ -988,7 +993,7 @@ void setup() {
     apPassword = apConfigStore.load();
     Serial.println(">> AP password loaded from NVS.");
   } else {
-    Serial.println(">> Could not open AP settings storage. Using the existing default AP password.");
+    Serial.println(">> Could not open AP settings storage. AP startup is blocked for safety.");
   }
 
   if (wifiCredentialStore.begin()) {
@@ -1000,6 +1005,9 @@ void setup() {
     Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
   }
 
+  if (apConfigStoreAvailable) {
+    apPassword = apConfigStore.load();
+  }
   startWifiApi();
   startBleDiscovery();
 
