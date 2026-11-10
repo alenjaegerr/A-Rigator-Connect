@@ -8,9 +8,27 @@ public partial class PairingPage : ContentPage
     {
         InitializeComponent();
         BindingContext = viewModel;
-        viewModel.DashboardPreviewRequested += (_, _) => DashboardPreviewRequested?.Invoke(this, EventArgs.Empty);
-        viewModel.RemoteWifiSetupRequested += (_, _) => RemoteWifiSetupRequested?.Invoke(this, EventArgs.Empty);
-        viewModel.NotNowRequested += (_, _) => NotNowRequested?.Invoke(this, EventArgs.Empty);
+        viewModel.DashboardPreviewRequested += (_, _) =>
+        {
+            if (DashboardPreviewRequested is not null)
+                DashboardPreviewRequested.Invoke(this, EventArgs.Empty);
+            else if (Shell.Current is AppShell shell)
+                _ = shell.ShowDashboardAsync();
+        };
+        viewModel.RemoteWifiSetupRequested += (_, _) =>
+        {
+            if (RemoteWifiSetupRequested is not null)
+                RemoteWifiSetupRequested.Invoke(this, EventArgs.Empty);
+            else if (Shell.Current is AppShell shell)
+                _ = shell.ShowRemoteAccessInfoAsync();
+        };
+        viewModel.NotNowRequested += (_, _) =>
+        {
+            if (NotNowRequested is not null)
+                NotNowRequested.Invoke(this, EventArgs.Empty);
+            else if (Shell.Current is AppShell shell)
+                _ = shell.ShowDashboardAsync();
+        };
     }
 
     public event EventHandler? DashboardPreviewRequested;
