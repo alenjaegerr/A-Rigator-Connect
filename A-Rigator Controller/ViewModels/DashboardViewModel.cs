@@ -18,6 +18,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private RobotControlCommand? _activeMotorCommand;
     private bool _pumpRequested;
     private string _message = string.Empty;
+    private int _reconnectTicks;
+    private bool _hasAttemptedConnection;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -36,6 +38,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
+        RetryConnectionCommand = new Command(async () => await RetryConnectionAsync(), () => !IsConnected);
+        ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -59,6 +63,28 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public string WaterStatus => "UNAVAILABLE";
 
     public string BatteryStatus => "UNAVAILABLE";
+
+    public string ConnectionModeLabel => _latestStatus?.ConnectionMode switch
+    {
+        RobotConnectionMode.IoT => "IoT / Router Wi-Fi",
+        RobotConnectionMode.AccessPoint => "Direct AP",
+        _ => "Unknown / Searching"
+    };
+
+    public string ConnectionDetails => _latestStatus is null
+        ? "No recent robot telemetry is available."
+        : _latestStatus.WifiConnected == true
+            ? $"Robot router link active · {_latestStatus.WifiIp ?? "IP not reported"}"
+            : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
+
+    public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected;
+
+    public string ConnectionRecoveryMessage => _latestStatus?.ConnectionMode switch
+    {
+        RobotConnectionMode.IoT => "A-Rigator was last reached over IoT Wi-Fi. Search the local network again, or reconnect your phone to the A-Rigator setup hotspot.",
+        RobotConnectionMode.AccessPoint => "The direct connection was lost. Reconnect your phone to the A-Rigator Wi-Fi hotspot, then try again.",
+        _ => "A-Rigator is not responding. Check that the robot is powered on and that your phone is on the same network, or use the setup AP."
+    };
 
     public string Message
     {
@@ -105,6 +131,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public ICommand StartAutonomousCommand { get; }
 
     public ICommand StopAutonomousCommand { get; }
+
+    public ICommand RetryConnectionCommand { get; }
+
+    public ICommand ConnectViaApCommand { get; }
 
     public void StartMonitoring()
     {
@@ -241,16 +271,24 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         try
         {
-            await RefreshStatusAsync(cancellationToken);
+            _hasAttemptedConnection = true;
+            await RetryConnectionAsync(cancellationToken, quiet: true);
+
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
                 if (!IsConnected)
                 {
+                    if (++_reconnectTicks >= 20)
+                    {
+                        _reconnectTicks = 0;
+                        await RetryConnectionAsync(cancellationToken, quiet: true);
+                    }
                     continue;
                 }
 
+                _reconnectTicks = 0;
                 var manualIntentActive = _activeMotorCommand is not null || _pumpRequested;
-                if (IsConnected && manualIntentActive && _latestStatus?.ControlsEnabled != false)
+                if (manualIntentActive && _latestStatus?.ControlsEnabled != false)
                 {
                     await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
                 }
@@ -269,9 +307,73 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             _activeMotorCommand = null;
             _pumpRequested = false;
-            Message = "Connection lost. The ESP32 manual-control timeout will stop the motor and pump.";
+            Message = "Connection lost. The ESP32 manual-control timeout should stop manual outputs.";
             NotifyControlStateChanged();
         }
+    }
+
+    private async Task RetryConnectionAsync(
+        CancellationToken cancellationToken = default,
+        bool quiet = false)
+    {
+        if (IsConnected)
+        {
+            await RefreshStatusAsync(cancellationToken);
+            return;
+        }
+
+        _hasAttemptedConnection = true;
+        if (!quiet)
+            Message = "Searching for A-Rigator on the last known network and setup AP...";
+
+        NotifyConnectionStateChanged();
+        try
+        {
+            await _communicationService.ConnectAsync(cancellationToken);
+            if (!quiet)
+                Message = "A-Rigator connection restored.";
+            await RefreshStatusAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception)
+        {
+            if (!quiet)
+                Message = "A-Rigator was not found. Check the network or connect directly to its setup AP.";
+        }
+
+        NotifyConnectionStateChanged();
+    }
+
+    private async Task ConnectViaAccessPointAsync()
+    {
+        try
+        {
+            _communicationService.SetRobotAddress("192.168.4.1");
+            Message = "Trying the direct A-Rigator hotspot. Make sure your phone is connected to the A-Rigator Wi-Fi network.";
+            await RetryConnectionAsync();
+        }
+        catch (Exception ex)
+        {
+            Message = ex.Message;
+        }
+    }
+
+    private void NotifyConnectionStateChanged()
+    {
+        OnPropertyChanged(nameof(ConnectionStatus));
+        OnPropertyChanged(nameof(ConnectionModeLabel));
+        OnPropertyChanged(nameof(ConnectionDetails));
+        OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
+        OnPropertyChanged(nameof(ConnectionRecoveryMessage));
+        OnPropertyChanged(nameof(IsConnected));
+        OnPropertyChanged(nameof(CanControl));
+        OnPropertyChanged(nameof(IsControlWarningVisible));
+        OnPropertyChanged(nameof(ControlAccessMessage));
+        (RetryConnectionCommand as Command)?.ChangeCanExecute();
+        (ConnectViaApCommand as Command)?.ChangeCanExecute();
+        NotifyControlStateChanged();
     }
 
     private async Task RefreshStatusAsync(CancellationToken cancellationToken = default)
@@ -287,6 +389,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(RobotStatus));
             OnPropertyChanged(nameof(ModeStatus));
             OnPropertyChanged(nameof(PumpStatus));
+            OnPropertyChanged(nameof(ConnectionModeLabel));
+            OnPropertyChanged(nameof(ConnectionDetails));
+            OnPropertyChanged(nameof(ConnectionRecoveryMessage));
             OnPropertyChanged(nameof(IsAutonomous));
             NotifyControlStateChanged();
         }
@@ -295,7 +400,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            NotifyControlStateChanged();
+            if (!IsConnected)
+            {
+                _activeMotorCommand = null;
+                _pumpRequested = false;
+                Message = "Robot connection lost. Manual controls are locked while the ESP32 safety timeout handles active outputs.";
+            }
+            NotifyConnectionStateChanged();
         }
     }
 
@@ -364,6 +475,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnPropertyChanged(nameof(ConnectionStatus));
+            OnPropertyChanged(nameof(ConnectionModeLabel));
+            OnPropertyChanged(nameof(ConnectionDetails));
+            OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
+            OnPropertyChanged(nameof(ConnectionRecoveryMessage));
             OnPropertyChanged(nameof(IsConnected));
             OnPropertyChanged(nameof(CanControl));
             OnPropertyChanged(nameof(IsControlWarningVisible));
@@ -392,6 +507,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (RefreshCommand as Command)?.ChangeCanExecute();
         (StartAutonomousCommand as Command)?.ChangeCanExecute();
         (StopAutonomousCommand as Command)?.ChangeCanExecute();
+        (RetryConnectionCommand as Command)?.ChangeCanExecute();
+        (ConnectViaApCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
