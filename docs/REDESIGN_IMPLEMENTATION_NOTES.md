@@ -12,9 +12,11 @@
 - Added automatic reconnect attempts every five seconds while disconnected.
 - Added AP recovery guidance that opens Android's Internet connectivity panel, sets the AP endpoint as preferred, and asks the user to reconnect to the A-Rigator SSID.
 - Extended the app's status model to consume the firmware's existing wifiConnected, wifiIp, and hostname fields.
-- Added ActivityIndicator feedback for connection, telemetry refresh, and control operations.
+- Added ActivityIndicator feedback for connection, telemetry refresh, control operations, and account authentication.
+- Stops manual motor/pump output requests when the app backgrounds, then resumes robot monitoring when the app returns.
 - Restored the Supabase Google OAuth implementation with secure token storage and an Android callback activity.
 - Added backend URL configuration as a separate requirement for remote-mode eligibility.
+- Disabled cloud-sync success stubs and replaced the simulated remote Wi-Fi success screen with an honest remote-access-pending explanation.
 - Added a visible note that sensor calibration and writable telemetry settings require firmware API support.
 
 ## Firmware data currently available
