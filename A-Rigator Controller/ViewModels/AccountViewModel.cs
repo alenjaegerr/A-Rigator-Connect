@@ -120,8 +120,8 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         {
             await _accountService.SignInWithGoogleAsync();
             StatusMessage = _backendConfigService.IsConfigured
-                ? "Google auth is ready. Remote mode and cloud sync are now available when Supabase is configured and the backend is reachable."
-                : "Google auth is ready. Add the backend URL and Supabase config to unlock remote mode and cloud sync.";
+                ? "Google authentication succeeded and its session is stored securely. Remote relay and cloud telemetry still require deployed backend endpoints."
+                : "Google authentication succeeded. Configure the backend URL before enabling remote-mode prerequisites.";
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(IsRemoteModeAllowed));
             OnPropertyChanged(nameof(AccountSummary));
@@ -148,9 +148,9 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             await _accountService.InitializeSessionAsync();
             StatusMessage = IsAuthenticated
                 ? (_backendConfigService.IsConfigured
-                    ? "Your secure Google session was restored. Remote mode and cloud sync are available."
-                    : "Your secure Google session was restored. Add the backend API URL and Supabase config to unlock remote mode.")
-                : "Local mode is active. Remote mode and cloud sync remain locked until Google auth is complete.";
+                    ? "Your secure Google session was restored. Remote backend configuration is present; remote relay services still need deployment."
+                    : "Your secure Google session was restored. Add the backend API URL to complete remote-mode configuration.")
+                : "Local mode is active. Sign in with Google only if you need account-linked features.";
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(IsRemoteModeAllowed));
             OnPropertyChanged(nameof(AccountSummary));
@@ -179,14 +179,21 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     {
         if (string.IsNullOrWhiteSpace(BackendApiUrl))
         {
-            StatusMessage = "Enter the backend API base URL to enable authenticated remote calls.";
+            StatusMessage = "Enter the backend API base URL to configure remote services.";
             return;
         }
 
-        _backendConfigService.Save(BackendApiUrl);
-        StatusMessage = "Backend API URL saved. Google auth and Supabase config are now the remaining gate for remote mode.";
-        OnPropertyChanged(nameof(IsBackendConfigured));
-        OnPropertyChanged(nameof(IsRemoteModeAllowed));
+        try
+        {
+            _backendConfigService.Save(BackendApiUrl);
+            StatusMessage = "Backend URL saved. Remote relay and cloud telemetry still require deployed backend endpoints.";
+            OnPropertyChanged(nameof(IsBackendConfigured));
+            OnPropertyChanged(nameof(IsRemoteModeAllowed));
+        }
+        catch (ArgumentException ex)
+        {
+            StatusMessage = ex.Message;
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
