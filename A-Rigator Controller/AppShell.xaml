@@ -3,26 +3,16 @@
     x:Class="A_Rigator_Controller.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title=""
-    FlyoutBehavior="Flyout"
-    FlyoutBackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
-    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
-    ForegroundColor="{AppThemeBinding Light=#173D2B, Dark=#8ED6AC}"
-    TitleColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}"
-    FlyoutWidth="300">
-    <Shell.ItemTemplate>
-        <DataTemplate>
-            <Grid Padding="16,13" ColumnDefinitions="Auto,*" ColumnSpacing="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}">
-                <Label Grid.Column="1" Text="{Binding Title}" FontSize="16" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" VerticalOptions="Center" />
-            </Grid>
-        </DataTemplate>
-    </Shell.ItemTemplate>
-    <Shell.FlyoutHeader>
-        <Grid Padding="20" BackgroundColor="#173D2B" HeightRequest="112">
-            <VerticalStackLayout Spacing="5" VerticalOptions="Center">
-                <Label Text="A-RIGATOR" FontSize="22" FontAttributes="Bold" TextColor="White" />
-                <Label Text="CONNECT • CONTROL CENTER" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
-            </VerticalStackLayout>
-        </Grid>
-    </Shell.FlyoutHeader>
+    Title="A-Rigator Connect"
+    FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
+    <Shell.Resources>
+        <Style TargetType="TabBar">
+            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light=White, Dark=#18221B}" />
+            <Setter Property="Shell.TabBarForegroundColor" Value="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+            <Setter Property="Shell.TabBarTitleColor" Value="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+            <Setter Property="Shell.TabBarUnselectedColor" Value="{AppThemeBinding Light=#718078, Dark=#83958A}" />
+        </Style>
+    </Shell.Resources>
 </Shell>
