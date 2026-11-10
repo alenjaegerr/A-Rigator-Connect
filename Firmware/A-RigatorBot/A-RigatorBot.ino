@@ -228,7 +228,6 @@ void serviceBleApPasswordChange() {
 
   if (apStarted) {
     apPassword = requestedPassword;
-    controlsEnabled = true;
     bleApConfigCharacteristic->setValue("OK:AP_RESTARTED");
     Serial.println(">> AP password updated and access point restarted.");
     Serial.println(">> The app must reconnect to A-Rigator using the new password.");
@@ -1005,9 +1004,6 @@ void setup() {
     Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
   }
 
-  if (apConfigStoreAvailable) {
-    apPassword = apConfigStore.load();
-  }
   startWifiApi();
   startBleDiscovery();
 
