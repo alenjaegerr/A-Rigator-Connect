@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using A_Rigator_Controller.ViewModels;
 
 namespace A_Rigator_Controller.Views;
@@ -9,6 +10,7 @@ public partial class PairingPage : ContentPage
         InitializeComponent();
         Shell.SetTabBarIsVisible(this, false);
         BindingContext = viewModel;
+        viewModel.PropertyChanged += OnPairingViewModelPropertyChanged;
         viewModel.DashboardPreviewRequested += (_, _) =>
         {
             if (DashboardPreviewRequested is not null)
@@ -30,6 +32,15 @@ public partial class PairingPage : ContentPage
             else if (Shell.Current is AppShell shell)
                 _ = shell.ShowDashboardAsync();
         };
+    }
+
+    private async void OnPairingViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(PairingViewModel.SetupStepLabel))
+            return;
+
+        await SetupScrollView.FadeTo(0, 90, Easing.CubicInOut);
+        await SetupScrollView.FadeTo(1, 180, Easing.CubicInOut);
     }
 
     public event EventHandler? DashboardPreviewRequested;
