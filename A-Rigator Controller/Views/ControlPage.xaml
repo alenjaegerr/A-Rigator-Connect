@@ -11,7 +11,7 @@
             <VerticalStackLayout Spacing="4">
                 <Label Text="Control Center" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Operate A-Rigator locally and monitor command feedback." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                <ActivityIndicator IsRunning="{Binding IsCommandRunning}" Color="#238653" HorizontalOptions="Start" />
+                <ActivityIndicator IsRunning="{Binding IsCommandRunning}" IsVisible="{Binding IsCommandRunning}" Color="#238653" HorizontalOptions="Start" />
             </VerticalStackLayout>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
