@@ -601,10 +601,10 @@ void handleStatus() {
   json += obstacleDistanceCm < 998.0 ? "true" : "false";
   json += ",\"obstacleDetected\":";
   json += obstacleDistanceCm < OBSTACLE_STOP_CM ? "true" : "false";
-  json += ",\"lineLeft\":";
-  json += digitalRead(LINE_LEFT_PIN) == HIGH ? "true" : "false";
-  json += ",\"lineRight\":";
-  json += digitalRead(LINE_RIGHT_PIN) == HIGH ? "true" : "false";
+  json += ",\"lineGpio14\":";
+  json += digitalRead(14) == HIGH ? "true" : "false";
+  json += ",\"lineGpio27\":";
+  json += digitalRead(27) == HIGH ? "true" : "false";
   json += "}";
   server.send(200, "application/json", json);
 }
