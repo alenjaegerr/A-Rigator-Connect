@@ -119,9 +119,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string ConnectionDetails => _latestStatus is null
         ? "No recent robot telemetry is available."
-        : _latestStatus.WifiConnected == true
-            ? $"Robot router link active · {_latestStatus.WifiIp ?? "IP not reported"}"
-            : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
+        : _latestStatus.ConnectionMode == RobotConnectionMode.AccessPoint
+            ? (_latestStatus.WifiConnected == true
+                ? $"Phone-to-robot link: Direct AP · Robot router link also active ({_latestStatus.WifiIp ?? "IP not reported"})"
+                : "Phone-to-robot link: Direct AP · Robot is not connected to a router")
+            : _latestStatus.WifiConnected == true
+                ? $"Phone-to-robot link: IoT Wi-Fi · {_latestStatus.WifiIp ?? "IP not reported"}"
+                : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
 
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
