@@ -95,7 +95,7 @@ Local BLE provisioning and local HTTP robot control must continue to work when n
 - The app has not yet been built or run on a physical Android device after this code pass.
 - Android Wi-Fi panel behavior varies by OS/OEM; validate on the target Honor device.
 - mDNS support can vary across Android networks; validate the BLE station-IP fallback.
-- The current firmware does not expose water level, battery voltage/percentage, line sensors, ultrasonic distances, motor telemetry, or writable sensor settings.
+- The current firmware does not expose reservoir water level, battery voltage/percentage, motor telemetry, historical telemetry, or writable sensor settings. Front obstacle distance and the two line-sensor GPIO states are now exposed.
 - Remote/cloud robot control and OTA are not implemented by this pass.
 - The reconnect loop and heartbeat timing must be exercised on-device; do not assume the configured five-second reconnect cadence is optimal.
 - Google OAuth requires correct Supabase provider configuration, Google credentials, and the exact Android callback URL.
