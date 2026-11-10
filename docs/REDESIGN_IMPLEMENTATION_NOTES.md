@@ -95,6 +95,7 @@ Local BLE provisioning and local HTTP robot control must continue to work when n
 ## Known limitations to debug next
 
 - The app has not yet been built or run on a physical Android device after this code pass.
+- The firmware status API extension has not yet been compiled or uploaded to the ESP32; rebuild and upload the unified-branch sketch before expecting obstacle/line telemetry fields.
 - Android Wi-Fi panel behavior varies by OS/OEM; validate on the target Honor device.
 - mDNS support can vary across Android networks; validate the BLE station-IP fallback.
 - The current firmware does not expose reservoir water level, battery voltage/percentage, motor telemetry, historical telemetry, or writable sensor settings. Front obstacle distance and the two line-sensor GPIO states are now exposed.
