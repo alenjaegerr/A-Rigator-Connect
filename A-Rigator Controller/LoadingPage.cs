@@ -62,9 +62,9 @@ public sealed class LoadingPage : ContentPage
         _track = new Grid
         {
             HeightRequest = 42,
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) }
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
+            Children = { _alligator }
         };
-        _track.Add(_alligator);
 
         var activity = new ActivityIndicator
         {
@@ -109,7 +109,7 @@ public sealed class LoadingPage : ContentPage
                     Stroke = Color.FromArgb("#DDE8DF"),
                     StrokeThickness = 1,
                     BackgroundColor = Colors.White,
-                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 28 },
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(28) },
                     Padding = new Thickness(8),
                     Content = content,
                     VerticalOptions = LayoutOptions.Center,
