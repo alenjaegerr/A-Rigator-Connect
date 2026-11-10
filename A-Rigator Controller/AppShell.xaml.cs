@@ -1,4 +1,5 @@
 using A_Rigator_Controller.Services;
+using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
 
 namespace A_Rigator_Controller;
@@ -19,6 +20,9 @@ public partial class AppShell : Shell
         IUserProfileService userProfileService)
     {
         InitializeComponent();
+
+        // Keep one shared telemetry/heartbeat loop alive while users move between tabs.
+        ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         if (hasDisplayName)
