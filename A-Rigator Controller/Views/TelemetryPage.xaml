@@ -17,7 +17,7 @@
                 <VerticalStackLayout Spacing="8">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="LIVE STATUS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
-                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnected}" Color="#238653" />
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnecting}" Color="#238653" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="14">
                         <VerticalStackLayout Spacing="3">
