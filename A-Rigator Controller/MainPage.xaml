@@ -43,7 +43,7 @@
 
             <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ROBOT CONNECTION LOST" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ConnectionRecoveryMessage}" FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Button Text="SEARCH FOR ROBOT" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                     <Button Text="CONNECT THROUGH A-RIGATOR AP" Command="{Binding ConnectViaApCommand}" MinimumHeightRequest="46" BackgroundColor="{AppThemeBinding Light=#72510D, Dark=#8B6B2D}" TextColor="White" />
