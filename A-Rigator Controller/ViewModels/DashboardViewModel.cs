@@ -70,6 +70,33 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string BatteryStatus => "UNAVAILABLE";
 
+    public string ObstacleDistanceStatus => _latestStatus?.ObstacleEchoDetected == true &&
+        _latestStatus.ObstacleDistanceCm.HasValue
+            ? $"{_latestStatus.ObstacleDistanceCm.Value:0.0} cm"
+            : _latestStatus?.ObstacleEchoDetected == false ? "No echo" : "UNAVAILABLE";
+
+    public string ObstacleStatus => _latestStatus?.ObstacleDetected switch
+    {
+        true => "DETECTED",
+        false => "CLEAR",
+        _ => "UNAVAILABLE"
+    };
+
+    // The installed TCRT5000 modules report black as HIGH (1) and white as LOW (0).
+    public string LeftLineStatus => _latestStatus?.LineLeft switch
+    {
+        true => "BLACK",
+        false => "WHITE",
+        _ => "UNAVAILABLE"
+    };
+
+    public string RightLineStatus => _latestStatus?.LineRight switch
+    {
+        true => "BLACK",
+        false => "WHITE",
+        _ => "UNAVAILABLE"
+    };
+
     public string ConnectionModeLabel => _latestStatus?.ConnectionMode switch
     {
         RobotConnectionMode.IoT => "IoT / Router Wi-Fi",
@@ -428,6 +455,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(RobotStatus));
                 OnPropertyChanged(nameof(ModeStatus));
                 OnPropertyChanged(nameof(PumpStatus));
+                OnPropertyChanged(nameof(ObstacleDistanceStatus));
+                OnPropertyChanged(nameof(ObstacleStatus));
+                OnPropertyChanged(nameof(LeftLineStatus));
+                OnPropertyChanged(nameof(RightLineStatus));
                 OnPropertyChanged(nameof(ConnectionModeLabel));
                 OnPropertyChanged(nameof(ConnectionDetails));
                 OnPropertyChanged(nameof(ConnectionRecoveryMessage));
