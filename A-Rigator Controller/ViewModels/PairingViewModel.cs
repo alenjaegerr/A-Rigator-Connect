@@ -15,7 +15,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private readonly IRobotProvisioningService _robotProvisioningService;
     private RobotProvisioningDevice? _selectedBleRobot;
     private string _bleStatusMessage = "Use Bluetooth to discover a nearby A-Rigator (BLE discovery prototype).";
-    private PairingStage _stage = PairingStage.WifiInstructions;
+    private PairingStage _stage = PairingStage.DiscoverRobot;
+    private string _robotAddress = string.Empty;
     private string _errorMessage = string.Empty;
     private string _resultMessage = string.Empty;
     private bool _isConnectionVerified;
@@ -33,6 +34,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         _robotCommunicationService = robotCommunicationService;
         _robotProvisioningService = robotProvisioningService;
         OpenWifiSettingsCommand = new Command(OpenWifiSettings);
+        StartDirectWifiSetupCommand = new Command(StartDirectWifiSetup);
+        ContinueToVerifyCommand = new Command(() => SetStage(PairingStage.VerifyConnection));
+        BackToWifiSetupCommand = new Command(() => SetStage(PairingStage.ConfigureWifi));
+        BackToPhoneNetworkCommand = new Command(() => SetStage(PairingStage.PhoneNetwork));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
@@ -187,9 +192,50 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsSuccessVisible => IsConnectionVerified;
 
-    public bool IsWifiInstructionsVisible => _stage == PairingStage.WifiInstructions && !IsBleConnected;
+    public bool IsDiscoverStage => _stage == PairingStage.DiscoverRobot;
+
+    public bool IsWifiSetupStage => _stage == PairingStage.ConfigureWifi;
+
+    public bool IsPhoneNetworkStage => _stage == PairingStage.PhoneNetwork;
+
+    public bool IsVerifyStage => _stage == PairingStage.VerifyConnection;
+
+    public bool IsWifiInstructionsVisible => _stage == PairingStage.DirectWifi;
 
     public bool IsResultVisible => _stage == PairingStage.Result;
+
+    public string RobotAddress
+    {
+        get => _robotAddress;
+        private set => SetField(ref _robotAddress, value);
+    }
+
+    public string SelectedNetworkName => SelectedWifiNetwork?.Ssid ?? "your Wi-Fi network";
+
+    public string SetupStepLabel => _stage switch
+    {
+        PairingStage.DiscoverRobot => "STEP 1 OF 4 · FIND YOUR ROBOT",
+        PairingStage.ConfigureWifi => "STEP 2 OF 4 · CONNECT TO WI-FI",
+        PairingStage.PhoneNetwork => "STEP 3 OF 4 · CONNECT YOUR PHONE",
+        PairingStage.VerifyConnection => "STEP 4 OF 4 · VERIFY CONNECTION",
+        PairingStage.Result => "SETUP COMPLETE",
+        _ => "DIRECT CONNECTION SETUP"
+    };
+
+    public double SetupProgress => _stage switch
+    {
+        PairingStage.DiscoverRobot => 0.25,
+        PairingStage.ConfigureWifi => 0.50,
+        PairingStage.PhoneNetwork => 0.75,
+        PairingStage.VerifyConnection => 0.90,
+        PairingStage.Result => 1.0,
+        _ => 0.25
+    };
+
+    public ICommand StartDirectWifiSetupCommand { get; }
+    public ICommand ContinueToVerifyCommand { get; }
+    public ICommand BackToWifiSetupCommand { get; }
+    public ICommand BackToPhoneNetworkCommand { get; }
 
     public void RefreshWifiState()
     {
@@ -209,7 +255,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ResultMessage = string.Empty;
         IsConnectionVerified = false;
         RefreshWifiState();
-        SetStage(PairingStage.WifiInstructions);
+        SetStage(PairingStage.DiscoverRobot);
     }
 
     private async Task ConfirmWifiConnectionAsync()
@@ -245,7 +291,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            ResultMessage = $"Could not verify the robot at {RobotNetworkOptions.BaseAddress}. Connect to Wi-Fi '{RobotAccessPointSsid}' in Android settings, then retry.";
+            ResultMessage = $"Could not reach A-Rigator. Connect this phone to the same Wi-Fi network as the robot ({RobotAddress if known}), then try again.";
         }
         finally
         {
@@ -297,6 +343,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
             IsBleConnected = true;
             BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
+            SetStage(PairingStage.ConfigureWifi);
             WifiScanStatusMessage = "Bluetooth is ready. Scan to see Wi-Fi networks detected by the robot.";
             HasScannedWifiNetworks = false;
             NearbyWifiNetworks.Clear();
@@ -384,9 +431,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 if (!string.IsNullOrWhiteSpace(result.DeviceAddress))
+                {
+                    RobotAddress = result.DeviceAddress;
                     _robotCommunicationService.SetRobotAddress(result.DeviceAddress);
+                }
                 WifiPassword = string.Empty;
                 BleStatusMessage = "A-Rigator joined the selected Wi-Fi network. Its direct hotspot remains enabled.";
+                SetStage(PairingStage.PhoneNetwork);
             }
         }
         catch (Exception ex)
@@ -415,6 +466,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private void StartOver()
     {
         StartNewPairingFlow();
+    }
+
+    private void StartDirectWifiSetup()
+    {
+        ErrorMessage = string.Empty;
+        ResultMessage = string.Empty;
+        SetStage(PairingStage.DirectWifi);
     }
 
     private void OpenRemoteWifiSetup()
@@ -447,7 +505,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
         _stage = stage;
         OnPropertyChanged(nameof(IsWifiInstructionsVisible));
+        OnPropertyChanged(nameof(IsDiscoverStage));
+        OnPropertyChanged(nameof(IsWifiSetupStage));
+        OnPropertyChanged(nameof(IsPhoneNetworkStage));
+        OnPropertyChanged(nameof(IsVerifyStage));
         OnPropertyChanged(nameof(IsResultVisible));
+        OnPropertyChanged(nameof(SetupStepLabel));
+        OnPropertyChanged(nameof(SetupProgress));
         OnPropertyChanged(nameof(IsErrorVisible));
         OnPropertyChanged(nameof(IsSuccessVisible));
     }
@@ -471,7 +535,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     private enum PairingStage
     {
-        WifiInstructions,
+        DiscoverRobot,
+        ConfigureWifi,
+        PhoneNetwork,
+        VerifyConnection,
+        DirectWifi,
         Result
     }
 }
