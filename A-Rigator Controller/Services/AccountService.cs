@@ -118,6 +118,10 @@ public sealed class AccountService : IAccountService
             Email = user.email;
             IsAuthenticated = true;
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
         catch
         {
             ClearAccountState();
