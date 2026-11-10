@@ -1,4 +1,4 @@
-﻿using A_Rigator_Controller.ViewModels;
+using A_Rigator_Controller.ViewModels;
 
 namespace A_Rigator_Controller
 {
@@ -14,12 +14,6 @@ namespace A_Rigator_Controller
         {
             base.OnAppearing();
             ((DashboardViewModel)BindingContext).StartMonitoring();
-        }
-
-        protected override void OnDisappearing()
-        {
-            ((DashboardViewModel)BindingContext).StopMonitoring();
-            base.OnDisappearing();
         }
     }
 }
