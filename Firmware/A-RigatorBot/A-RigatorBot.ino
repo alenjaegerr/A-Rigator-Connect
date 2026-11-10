@@ -591,6 +591,19 @@ void handleStatus() {
   json += ",\"wifiIp\":\"";
   json += WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
   json += "\",\"hostname\":\"arigator.local\"";
+
+  // Live sensor telemetry: reservoir sonar pins are reserved but not yet installed.
+  const float obstacleDistanceCm = getObstacleDistanceCM();
+  json += ",\"obstacleDistanceCm\":";
+  json += String(obstacleDistanceCm, 1);
+  json += ",\"obstacleEchoDetected\":";
+  json += obstacleDistanceCm < 998.0 ? "true" : "false";
+  json += ",\"obstacleDetected\":";
+  json += obstacleDistanceCm < OBSTACLE_STOP_CM ? "true" : "false";
+  json += ",\"lineLeft\":";
+  json += digitalRead(LINE_LEFT_PIN) == HIGH ? "true" : "false";
+  json += ",\"lineRight\":";
+  json += digitalRead(LINE_RIGHT_PIN) == HIGH ? "true" : "false";
   json += "}";
   server.send(200, "application/json", json);
 }
