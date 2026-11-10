@@ -369,6 +369,10 @@
                         <Label Text="{Binding ErrorMessage}"
                                FontSize="13"
                                TextColor="#A23A32" />
+                        <Label Text="{Binding ResultMessage}"
+                               IsVisible="{Binding IsErrorVisible}"
+                               FontSize="13"
+                               TextColor="#A23A32" />
                         <Button Text="OPEN WI-FI SETTINGS"
                                 Command="{Binding OpenWifiSettingsCommand}"
                                 MinimumHeightRequest="50"
