@@ -70,18 +70,20 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string BatteryStatus => "UNAVAILABLE";
 
-    public string ObstacleDistanceStatus => _latestStatus?.ObstacleEchoDetected == true &&
-        _latestStatus.ObstacleDistanceCm.HasValue
-            ? $"{_latestStatus.ObstacleDistanceCm.Value:0.0} cm"
+    public string ObstacleDistanceStatus => _latestStatus is
+        { ObstacleEchoDetected: true, ObstacleDistanceCm: float distance }
+            ? $"{distance:0.0} cm"
             : _latestStatus?.ObstacleEchoDetected == false ? "No echo" : "UNAVAILABLE";
 
-    public string ObstacleStatus => _latestStatus?.ObstacleEchoDetected switch
-    {
-        false => "NO ECHO",
-        true when _latestStatus.ObstacleDetected == true => "DETECTED",
-        true => "CLEAR",
-        _ => "UNAVAILABLE"
-    };
+    public string ObstacleStatus => _latestStatus is null
+        ? "UNAVAILABLE"
+        : _latestStatus.ObstacleEchoDetected switch
+        {
+            false => "NO ECHO",
+            true when _latestStatus.ObstacleDetected == true => "DETECTED",
+            true => "CLEAR",
+            _ => "UNAVAILABLE"
+        };
 
     // TCRT5000 digital output: black = HIGH (1), white = LOW (0).
     // Display physical GPIO numbers until left/right sensor placement is verified.
