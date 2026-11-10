@@ -7,6 +7,7 @@ public partial class RemoteWifiSetupPage : ContentPage
     public RemoteWifiSetupPage(RemoteWifiSetupViewModel viewModel)
     {
         InitializeComponent();
+        Shell.SetTabBarIsVisible(this, false);
         BindingContext = viewModel;
 
         viewModel.DashboardRequested += (_, _) =>
