@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.TelemetryPage"
+             x:DataType="viewmodels:DashboardViewModel"
+             Title="Telemetry"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="18">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Robot Telemetry" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                <Label Text="Live values reported by the robot firmware." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+            </VerticalStackLayout>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="LIVE STATUS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnected}" Color="#238653" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="14">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Robot state" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="{Binding RobotStatus}" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
+                            <Label Text="Operating mode" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="{Binding ModeStatus}" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Spacing="3">
+                            <Label Text="Pump" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="{Binding PumpStatus}" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="3">
+                            <Label Text="Drive" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="{Binding MotorStatus}" FontSize="19" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="SENSOR AVAILABILITY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Water level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding WaterStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Battery level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Label Text="These values remain unavailable until the firmware exposes the corresponding sensor measurements in its status API." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="DIAGNOSTICS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="App connection" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ConnectionStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Connection path" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ConnectionModeLabel}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Label Text="{Binding ConnectionDetails}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Button Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
