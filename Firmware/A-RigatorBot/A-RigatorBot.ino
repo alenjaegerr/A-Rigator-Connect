@@ -989,8 +989,6 @@ void setup() {
 
   if (apConfigStore.begin()) {
     apConfigStoreAvailable = true;
-    apPassword = apConfigStore.load();
-    Serial.println(">> AP password loaded from NVS.");
   } else {
     Serial.println(">> Could not open AP settings storage. AP startup is blocked for safety.");
   }
@@ -1004,8 +1002,14 @@ void setup() {
     Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
   }
 
-  startWifiApi();
+  // Initialize BLE before first-boot password generation so the ESP32 hardware
+  // RNG has an active radio entropy source.
   startBleDiscovery();
+  if (apConfigStoreAvailable) {
+    apPassword = apConfigStore.load();
+    Serial.println(">> AP password loaded from NVS or generated for this device.");
+  }
+  startWifiApi();
 
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(10000);
