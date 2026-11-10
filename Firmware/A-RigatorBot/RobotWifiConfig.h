@@ -70,3 +70,44 @@ class RobotWifiCredentialStore {
  private:
   Preferences preferences;
 };
+
+
+// Stores the local AP password independently from the router Wi-Fi profile.
+// The initial value preserves compatibility with existing A-Rigator setups.
+// Users can change it later through the encrypted BLE AP-settings characteristic.
+class RobotApConfigStore {
+ public:
+  static constexpr const char* DEFAULT_PASSWORD = "12345678";
+
+  bool begin() {
+    return preferences.begin("arigator-ap", false);
+  }
+
+  String load() {
+    String password = preferences.getString("password", DEFAULT_PASSWORD);
+    if (password.length() < 8 || password.length() > 63) {
+      password = DEFAULT_PASSWORD;
+      preferences.putString("password", password);
+    }
+    return password;
+  }
+
+  bool save(const String& password) {
+    if (password.length() < 8 || password.length() > 63) {
+      return false;
+    }
+
+    if (preferences.putString("password", password) == 0) {
+      return false;
+    }
+
+    return preferences.getString("password", "") == password;
+  }
+
+  void end() {
+    preferences.end();
+  }
+
+ private:
+  Preferences preferences;
+};
