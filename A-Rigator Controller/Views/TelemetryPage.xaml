@@ -67,6 +67,7 @@
                         <Label Grid.Column="1" Text="{Binding ConnectionModeLabel}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Label Text="{Binding ConnectionDetails}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <ActivityIndicator IsRunning="{Binding IsRefreshing}" Color="#238653" HorizontalOptions="Start" />
                     <Button Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
