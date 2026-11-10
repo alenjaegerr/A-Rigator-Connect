@@ -13,7 +13,6 @@
                 <Label Text="Live values reported by the robot firmware." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
             </VerticalStackLayout>
 
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
             <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
@@ -21,7 +20,9 @@
                     <Button Text="SEARCH FOR ROBOT" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="44" BackgroundColor="#176B45" TextColor="White" />
                     <Button Text="CONNECT THROUGH A-RIGATOR AP" Command="{Binding ConnectViaApCommand}" MinimumHeightRequest="42" BackgroundColor="{AppThemeBinding Light=#72510D, Dark=#8B6B2D}" TextColor="White" />
                 </VerticalStackLayout>
-            </Border> Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="8">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="LIVE STATUS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
