@@ -75,10 +75,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? $"{_latestStatus.ObstacleDistanceCm.Value:0.0} cm"
             : _latestStatus?.ObstacleEchoDetected == false ? "No echo" : "UNAVAILABLE";
 
-    public string ObstacleStatus => _latestStatus?.ObstacleDetected switch
+    public string ObstacleStatus => _latestStatus?.ObstacleEchoDetected switch
     {
-        true => "DETECTED",
-        false => "CLEAR",
+        false => "NO ECHO",
+        true when _latestStatus.ObstacleDetected == true => "DETECTED",
+        true => "CLEAR",
         _ => "UNAVAILABLE"
     };
 
