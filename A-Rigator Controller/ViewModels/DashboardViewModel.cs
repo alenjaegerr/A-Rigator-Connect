@@ -11,6 +11,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromMilliseconds(250);
     private readonly IRobotCommunicationService _communicationService;
     private readonly IUserProfileService _userProfileService;
+    private readonly IWifiSettingsService _wifiSettingsService;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
     private CancellationTokenSource? _monitoringCancellation;
     private Task? _monitoringTask;
@@ -23,10 +24,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
-        IUserProfileService userProfileService)
+        IUserProfileService userProfileService,
+        IWifiSettingsService wifiSettingsService)
     {
         _communicationService = communicationService;
         _userProfileService = userProfileService;
+        _wifiSettingsService = wifiSettingsService;
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
 
         ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanControl);
@@ -353,12 +356,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         try
         {
             _communicationService.SetRobotAddress("192.168.4.1");
-            Message = "Trying the direct A-Rigator hotspot. Make sure your phone is connected to the A-Rigator Wi-Fi network.";
-            await RetryConnectionAsync();
+            Message = "Connect your phone to the A-Rigator Wi-Fi network in system settings. Return here and tap Search for robot.";
+            await _wifiSettingsService.OpenNetworkSettingsAsync();
         }
         catch (Exception ex)
         {
-            Message = ex.Message;
+            Message = $"Could not open network settings: {ex.Message}";
         }
     }
 
