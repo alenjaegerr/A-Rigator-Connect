@@ -31,6 +31,7 @@ public partial class AppShell : Shell
         {
             Title = "Home",
             Route = "home-content",
+            Icon = "nav_home.svg",
             Content = !hasDisplayName ? welcomePage : pairingPage
         };
         homeTab.Items.Add(_homeContent);
@@ -40,6 +41,7 @@ public partial class AppShell : Shell
         {
             Title = "Control",
             Route = "control-content",
+            Icon = "nav_control.svg",
             Content = controlPage
         });
 
@@ -48,6 +50,7 @@ public partial class AppShell : Shell
         {
             Title = "Telemetry",
             Route = "telemetry-content",
+            Icon = "nav_telemetry.svg",
             Content = telemetryPage
         });
 
@@ -56,6 +59,7 @@ public partial class AppShell : Shell
         {
             Title = "Settings",
             Route = "settings-content",
+            Icon = "nav_settings.svg",
             Content = settingsPage
         });
 
