@@ -255,7 +255,7 @@
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
-                        <Label Text="For the app to control the robot over your router, connect this phone to the same Wi-Fi network. If your phone is already connected, you can continue."
+                        <Label Text="You can leave the phone on its normal network and try verification. If the router blocks local device traffic, switch to the direct A-Rigator hotspot below. The MQTT cloud path will later remove the same-network requirement."
                                FontSize="14"
                                TextColor="#35443B" />
                         <Button Text="CONTINUE"
