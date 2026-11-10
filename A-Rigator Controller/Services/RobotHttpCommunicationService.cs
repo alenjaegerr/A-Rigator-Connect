@@ -57,6 +57,11 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             SetConnectionState(ConnectionState.Disconnected);
             throw;
         }
+        catch (JsonException)
+        {
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
     }
 
     public void SetRobotAddress(string address)
@@ -203,6 +208,11 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             throw;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
+        catch (JsonException)
         {
             SetConnectionState(ConnectionState.Disconnected);
             throw;
