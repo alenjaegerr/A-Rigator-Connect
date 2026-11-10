@@ -202,6 +202,13 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
+                        <Button Text="SKIP ROUTER — USE DIRECT HOTSPOT"
+                                Command="{Binding StartDirectWifiSetupCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="46"
+                                CornerRadius="12"
+                                BackgroundColor="#EEF3EF"
+                                TextColor="#35443B" />
                         <Button Text="BACK"
                                 Command="{Binding StartOverCommand}"
                                 MinimumHeightRequest="44"
