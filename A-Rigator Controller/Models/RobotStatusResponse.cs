@@ -43,6 +43,12 @@ public sealed class RobotStatusResponse
     [JsonPropertyName("obstacleDetected")]
     public bool? ObstacleDetected { get; init; }
 
+    [JsonPropertyName("obstacleStopThresholdCm")]
+    public int? ObstacleStopThresholdCm { get; init; }
+
+    [JsonPropertyName("manualControlTimeoutMs")]
+    public uint? ManualControlTimeoutMs { get; init; }
+
     [JsonPropertyName("lineGpio14")]
     public bool? LineGpio14 { get; init; }
 
