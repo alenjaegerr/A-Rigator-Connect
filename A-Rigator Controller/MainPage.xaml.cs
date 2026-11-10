@@ -7,6 +7,7 @@ namespace A_Rigator_Controller
         public MainPage(DashboardViewModel viewModel)
         {
             InitializeComponent();
+            Shell.SetTabBarIsVisible(this, true);
             BindingContext = viewModel;
         }
 
