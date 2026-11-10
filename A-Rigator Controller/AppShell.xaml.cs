@@ -7,6 +7,7 @@ namespace A_Rigator_Controller;
 public partial class AppShell : Shell
 {
     private readonly ShellContent _homeContent;
+    private readonly MainPage _dashboardPage;
 
     public AppShell(
         MainPage dashboardPage,
@@ -19,6 +20,7 @@ public partial class AppShell : Shell
         IUserProfileService userProfileService)
     {
         InitializeComponent();
+        _dashboardPage = dashboardPage;
 
         // Keep one shared telemetry/heartbeat loop alive while users move between tabs.
         ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
@@ -84,35 +86,25 @@ public partial class AppShell : Shell
             await GoToAsync("//main/home");
         };
 
-        pairingPage.DashboardPreviewRequested += async (_, _) =>
-        {
-            ReplaceHomeContent(dashboardPage);
-            await GoToAsync("//main/home");
-        };
+        pairingPage.DashboardPreviewRequested += async (_, _) => await ShowDashboardAsync();
+        pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
+        pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
 
-        pairingPage.RemoteWifiSetupRequested += async (_, _) =>
-            await GoToAsync("remote-wifi");
-
-        pairingPage.NotNowRequested += async (_, _) =>
-        {
-            ReplaceHomeContent(dashboardPage);
-            await GoToAsync("//main/home");
-        };
-
-        remoteWifiSetupPage.DashboardRequested += async (_, _) =>
-        {
-            ReplaceHomeContent(dashboardPage);
-            await GoToAsync("//main/home");
-        };
-
-        remoteWifiSetupPage.NotNowRequested += async (_, _) =>
-        {
-            ReplaceHomeContent(dashboardPage);
-            await GoToAsync("//main/home");
-        };
+        remoteWifiSetupPage.DashboardRequested += async (_, _) => await ShowDashboardAsync();
+        remoteWifiSetupPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
 
         CurrentItem = tabBar;
     }
+
+    public async Task ShowDashboardAsync()
+    {
+        _dashboardPage.Opacity = 0;
+        ReplaceHomeContent(_dashboardPage);
+        await GoToAsync("//main/home");
+        await _dashboardPage.FadeTo(1, 350, Easing.CubicInOut);
+    }
+
+    public Task ShowRemoteAccessInfoAsync() => GoToAsync("remote-wifi");
 
     private void ReplaceHomeContent(Page page)
     {
