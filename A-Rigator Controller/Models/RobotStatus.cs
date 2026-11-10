@@ -24,6 +24,10 @@ public sealed class RobotStatus
 
     public bool? ObstacleDetected { get; init; }
 
+    public int? ObstacleStopThresholdCm { get; init; }
+
+    public uint? ManualControlTimeoutMs { get; init; }
+
     public bool? LineGpio14 { get; init; }
 
     public bool? LineGpio27 { get; init; }
