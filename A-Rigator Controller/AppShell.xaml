@@ -6,13 +6,8 @@
     Title="A-Rigator Connect"
     FlyoutBehavior="Disabled"
     Shell.NavBarIsVisible="False"
-    BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
-    <Shell.Resources>
-        <Style TargetType="TabBar">
-            <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light=White, Dark=#18221B}" />
-            <Setter Property="Shell.TabBarForegroundColor" Value="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-            <Setter Property="Shell.TabBarTitleColor" Value="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-            <Setter Property="Shell.TabBarUnselectedColor" Value="{AppThemeBinding Light=#718078, Dark=#83958A}" />
-        </Style>
-    </Shell.Resources>
-</Shell>
+    Shell.TabBarBackgroundColor="{AppThemeBinding Light=White, Dark=#18221B}"
+    Shell.TabBarForegroundColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}"
+    Shell.TabBarTitleColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}"
+    Shell.TabBarUnselectedColor="{AppThemeBinding Light=#718078, Dark=#83958A}"
+    BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}" />
