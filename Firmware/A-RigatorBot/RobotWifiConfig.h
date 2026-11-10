@@ -77,16 +77,16 @@ class RobotWifiCredentialStore {
 // Users can change it later through the encrypted BLE AP-settings characteristic.
 class RobotApConfigStore {
  public:
-  static constexpr const char* DEFAULT_PASSWORD = "12345678";
+  static const char* defaultPassword() { return "12345678"; }
 
   bool begin() {
     return preferences.begin("arigator-ap", false);
   }
 
   String load() {
-    String password = preferences.getString("password", DEFAULT_PASSWORD);
+    String password = preferences.getString("password", defaultPassword());
     if (password.length() < 8 || password.length() > 63) {
-      password = DEFAULT_PASSWORD;
+      password = defaultPassword();
       preferences.putString("password", password);
     }
     return password;
