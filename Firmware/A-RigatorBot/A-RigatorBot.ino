@@ -30,6 +30,8 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+bool wifiForgetDisconnectPending = false;
+unsigned long wifiForgetDisconnectAt = 0;
 bool mdnsStarted = false;
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
@@ -517,6 +519,55 @@ unsigned long lastManualControlRefresh = 0;
 bool manualControlLeaseActive = false;
 bool controlsEnabled = false;
 
+// Forget only the saved router profile. Preserve the A-Rigator AP password and
+// keep the local setup hotspot available so the app can provision another network.
+bool forgetSavedWifiNetwork(bool disconnectNow = true) {
+  setPump(false);
+  currentMode = MODE_MANUAL;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+
+  if (!wifiCredentialStore.clear()) {
+    savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
+    Serial.println(">> Failed to clear saved Wi-Fi credentials.");
+    return false;
+  }
+
+  savedWifiCredentials.ssid = "";
+  savedWifiCredentials.password = "";
+  savedWifiCredentialsAvailable = false;
+
+  if (mdnsStarted) {
+    MDNS.end();
+    mdnsStarted = false;
+  }
+
+  // Disconnect and erase the ESP32 station profile while leaving the AP
+  // interface running. The independent arigator-ap namespace is untouched.
+  WiFi.setAutoReconnect(false);
+  if (disconnectNow) {
+    WiFi.disconnect(false, true);
+  } else {
+    // Let the HTTP response reach the app before dropping the router link.
+    wifiForgetDisconnectPending = true;
+    wifiForgetDisconnectAt = millis() + 750;
+  }
+  Serial.println(">> Saved router Wi-Fi forgotten. A-Rigator setup AP remains available.");
+  return true;
+}
+
+void handleForgetWifi() {
+  const bool success = forgetSavedWifiNetwork(false);
+  if (success) {
+    server.send(200, "application/json",
+                "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
+  } else {
+    server.send(500, "application/json",
+                "{\"success\":false,\"message\":\"Could not clear saved router Wi-Fi\"}");
+  }
+}
+
 void handleStatus() {
   const char* state = "Idle";
   const char* mode = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
@@ -575,6 +626,7 @@ void startWifiApi() {
 
   controlsEnabled = true;
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/network/forget", HTTP_POST, handleForgetWifi);
   if (controlsEnabled) {
 	server.on("/api/control/forward", HTTP_POST, handleForward);
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
@@ -875,6 +927,7 @@ void printMenu() {
   Serial.println("  c : Steer Center (90 deg)");
   Serial.println("  p : Toggle Water Pump     |  n : Sweep Nozzle");
 	Serial.println("  r : Reset Motor Shield");
+	Serial.println("  q : Forget Saved Router Wi-Fi");
   Serial.println("  m : Toggle Autonomous Mode|  t : Read Sensors");
   Serial.println("==============================================\n");
 }
@@ -953,6 +1006,14 @@ void executeCommand(char cmd) {
 	  }
 	  break;
 
+	case 'q': case 'Q':
+	  if (forgetSavedWifiNetwork()) {
+	    Serial.println(">> [CMD] Router Wi-Fi reset complete. AP password preserved.");
+	  } else {
+	    Serial.println(">> [CMD] Router Wi-Fi reset failed.");
+	  }
+	  break;
+
 	case 't': case 'T':
 	  Serial.printf(">> [SENSORS] Sonar: %.1f cm | Left Line: %d | Right Line: %d | Pump: %s\n",
 					getObstacleDistanceCM(), digitalRead(LINE_LEFT_PIN), digitalRead(LINE_RIGHT_PIN), pumpState ? "ON" : "OFF");
@@ -1025,6 +1086,12 @@ void loop() {
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
+
+  if (wifiForgetDisconnectPending &&
+      (int32_t)(millis() - wifiForgetDisconnectAt) >= 0) {
+    wifiForgetDisconnectPending = false;
+    WiFi.disconnect(false, true);
+  }
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
