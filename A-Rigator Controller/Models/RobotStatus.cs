@@ -17,4 +17,14 @@ public sealed class RobotStatus
     public string? Hostname { get; init; }
 
     public RobotConnectionMode ConnectionMode { get; init; } = RobotConnectionMode.Unknown;
+
+    public float? ObstacleDistanceCm { get; init; }
+
+    public bool? ObstacleEchoDetected { get; init; }
+
+    public bool? ObstacleDetected { get; init; }
+
+    public bool? LineLeft { get; init; }
+
+    public bool? LineRight { get; init; }
 }
