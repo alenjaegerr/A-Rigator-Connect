@@ -210,7 +210,7 @@ void serviceBleApPasswordChange() {
 
   // Restart only the access point. The station connection and BLE service
   // remain active, allowing the app to reconnect using the new password.
-  WiFi.softAPdisconnect(true);
+  WiFi.softAPdisconnect(false);
   delay(250);
   WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET);
 
