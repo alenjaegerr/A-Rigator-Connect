@@ -7,6 +7,7 @@ public partial class TelemetryPage : ContentPage
     public TelemetryPage(DashboardViewModel viewModel)
     {
         InitializeComponent();
+        Shell.SetTabBarIsVisible(this, true);
         BindingContext = viewModel;
     }
 }
