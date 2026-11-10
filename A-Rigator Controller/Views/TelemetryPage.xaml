@@ -51,7 +51,23 @@
                         <Label Text="Battery level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                         <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     </Grid>
-                    <Label Text="These values remain unavailable until the firmware exposes the corresponding sensor measurements in its status API." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Front obstacle distance" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ObstacleDistanceStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Obstacle state" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ObstacleStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Left line sensor" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding LeftLineStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Right line sensor" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding RightLineStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Label Text="Reservoir level and battery remain unavailable because their sensor inputs are not yet installed or exposed by firmware." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
