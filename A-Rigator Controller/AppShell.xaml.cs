@@ -15,7 +15,6 @@ public partial class AppShell : Shell
         WelcomePage welcomePage,
         PairingPage pairingPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
-        AccountPage accountPage,
         SettingsPage settingsPage,
         IUserProfileService userProfileService)
     {
