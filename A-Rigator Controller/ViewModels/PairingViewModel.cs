@@ -106,7 +106,14 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public RobotWifiNetwork? SelectedWifiNetwork
     {
         get => _selectedWifiNetwork;
-        set { if (SetField(ref _selectedWifiNetwork, value)) OnPropertyChanged(nameof(CanSubmitWifiCredentials)); }
+        set
+        {
+            if (SetField(ref _selectedWifiNetwork, value))
+            {
+                OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+                OnPropertyChanged(nameof(SelectedNetworkName));
+            }
+        }
     }
 
     public string WifiPassword { get => _wifiPassword; set => SetField(ref _wifiPassword, value); }
@@ -253,6 +260,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
+        RobotAddress = string.Empty;
         IsConnectionVerified = false;
         RefreshWifiState();
         SetStage(PairingStage.DiscoverRobot);
