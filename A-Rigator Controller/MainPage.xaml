@@ -4,93 +4,82 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.MainPage"
              x:DataType="viewmodels:DashboardViewModel"
-             Title=""
-             Shell.NavBarIsVisible="False"
-             BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
+             Title="Home"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
     <ScrollView>
-        <VerticalStackLayout Padding="18" Spacing="16">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+        <VerticalStackLayout Padding="20" Spacing="18">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout Spacing="3">
-                    <Label Text="A-RIGATOR CONNECT" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
-                    <Label Text="{Binding Greeting}" FontSize="24" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Label Text="Smart irrigation control center" FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="A-RIGATOR CONNECT" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
+                    <Label Text="{Binding Greeting}" FontSize="27" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                    <Label Text="Your irrigation robot at a glance." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
-                <Border Grid.Column="1" Padding="10,7" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center" BackgroundColor="{AppThemeBinding Light=#E5F5E9, Dark=#35483A}">
-                    <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                </Border>
+                <Image Grid.Column="1" Source="projectlogo.svg" WidthRequest="58" HeightRequest="58" Aspect="AspectFit" VerticalOptions="Center" />
             </Grid>
 
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#2B4032}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
-                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="ROBOT STATUS" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
-                        <Label Text="{Binding RobotStatus}" FontSize="25" FontAttributes="Bold" TextColor="White" />
-                        <Label Text="{Binding ModeStatus}" FontSize="13" TextColor="#D4E7DA" />
-                    </VerticalStackLayout>
-                    <Image Grid.Column="1" Source="projectlogo.svg" WidthRequest="82" HeightRequest="82" Aspect="AspectFit" VerticalOptions="Center" />
-                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="42" BackgroundColor="#E1F1E5" TextColor="#173D2B" />
-                </Grid>
-            </Border>
-
-            <Border Padding="13" IsVisible="{Binding IsControlWarningVisible}" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 12">
-                <Label Text="{Binding ControlAccessMessage}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-            </Border>
-
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="PUMP" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                        <Label Text="{Binding PumpStatus}" FontSize="20" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Column="1" Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="DRIVE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                        <Label Text="{Binding MotorStatus}" FontSize="20" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    </VerticalStackLayout>
-                </Border>
-                <Border Grid.Row="1" Grid.ColumnSpan="2" Padding="14" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 15">
-                    <VerticalStackLayout Spacing="4">
-                        <Label Text="OPERATING MODE" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                        <Label Text="{Binding ModeStatus}" FontSize="16" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    </VerticalStackLayout>
-                </Border>
-            </Grid>
-
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="12">
-                    <VerticalStackLayout Spacing="3">
-                        <Label Text="AUTONOMOUS IRRIGATION" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                        <Label Text="Let A-Rigator follow its programmed route, detect obstacles, and irrigate automatically." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    </VerticalStackLayout>
-                    <Border Padding="12" BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}" StrokeThickness="0" StrokeShape="RoundRectangle 12">
-                        <VerticalStackLayout Spacing="5">
-                            <Label Text="{Binding ModeStatus}" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#23724C, Dark=#8ED6AC}" />
-                            <Label Text="{Binding Message}" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+            <Border Padding="17" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#23382B}" StrokeThickness="0" StrokeShape="RoundRectangle 22">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="ROBOT OVERVIEW" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnecting}" Color="#B8E2C5" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="{Binding RobotStatus}" FontSize="28" FontAttributes="Bold" TextColor="White" />
+                            <Label Text="{Binding ModeStatus}" FontSize="13" TextColor="#D4E7DA" />
                         </VerticalStackLayout>
-                    </Border>
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="START AUTONOMOUS" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
-                        <Button Grid.Column="1" Text="STOP AUTONOMOUS" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
+                        <Border Grid.Column="1" Padding="10,7" BackgroundColor="#355B43" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                            <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="White" />
+                        </Border>
                     </Grid>
+                    <Button Text="REFRESH STATUS" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="44" BackgroundColor="#E1F1E5" TextColor="#173D2B" />
                 </VerticalStackLayout>
             </Border>
 
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="12">
-                    <Label Text="MANUAL CONTROLS" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                        <Button Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
-                        <Button Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
-                        <Button Grid.Row="1" Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#52615A" TextColor="White" />
-                    </Grid>
-                    <Button Text="STOP ALL OUTPUTS" Command="{Binding StopCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
-                    <Button Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="44" BackgroundColor="#72510D" TextColor="White" />
+            <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ROBOT CONNECTION LOST" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="{Binding ConnectionRecoveryMessage}" FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Button Text="SEARCH FOR ROBOT" Command="{Binding RetryConnectionCommand}" IsEnabled="{Binding IsConnecting, Converter={StaticResource InverseBoolConverter}, FallbackValue=True}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                    <Button Text="CONNECT THROUGH A-RIGATOR AP" Command="{Binding ConnectViaApCommand}" MinimumHeightRequest="46" BackgroundColor="{AppThemeBinding Light=#72510D, Dark=#8B6B2D}" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
-            <Label Text="A-Rigator Connect • Local-first robot control" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" HorizontalTextAlignment="Center" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <Border Padding="15" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 16">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="PUMP" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        <Label Text="{Binding PumpStatus}" FontSize="23" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Grid.Column="1" Padding="15" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 16">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="DRIVE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        <Label Text="{Binding MotorStatus}" FontSize="23" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="ROBOT HEALTH" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Water level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding WaterStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Battery" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Label Text="Water and battery readings will appear when the firmware reports those measurements." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border IsVisible="{Binding IsControlWarningVisible}" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 14">
+                <Label Text="{Binding ControlAccessMessage}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+            </Border>
+
+            <Label Text="A-Rigator Connect · Local-first robot companion" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
