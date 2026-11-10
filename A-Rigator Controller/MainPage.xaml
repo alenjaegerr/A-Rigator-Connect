@@ -87,6 +87,6 @@
             <Label Text="A-Rigator Connect · Local-first robot companion" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
         </VerticalStackLayout>
       </ScrollView>
-      <views:ConnectionOverlay BindingContext="{Binding}" />
+      <views:ConnectionOverlay IsBusy="{Binding IsConnecting}" />
     </Grid>
 </ContentPage>
