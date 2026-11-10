@@ -75,6 +75,7 @@ void handleHeartbeat();
 void handleResetShield();
 void serviceBleWifiProvisioning();
 void serviceBleApPasswordChange();
+float getObstacleDistanceCM();
 
 // ============================================================================
 // BLE DISCOVERY + READ-ONLY WI-FI SCAN
