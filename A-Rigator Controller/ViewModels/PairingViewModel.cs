@@ -554,6 +554,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             SetStage(PairingStage.DiscoverRobot);
             return;
         }
+        _robotCommunicationService.SetRobotAddress("192.168.4.1");
         SetStage(PairingStage.DirectWifi);
     }
 
