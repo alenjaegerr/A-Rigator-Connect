@@ -6,8 +6,6 @@ namespace A_Rigator_Controller;
 public sealed class LoadingPage : ContentPage
 {
     private readonly Action _onComplete;
-    private readonly ProgressBar _progressBar;
-    private readonly Label _progressText;
     private readonly Label _statusText;
     private readonly Image _alligator;
     private readonly Grid _track;
@@ -47,27 +45,10 @@ public sealed class LoadingPage : ContentPage
         };
         _statusText = new Label
         {
-            Text = "Starting A-Rigator Connect",
+            Text = "Preparing A-Rigator Connect",
             FontSize = 13,
             TextColor = Color.FromArgb("#5D7063"),
             HorizontalTextAlignment = TextAlignment.Center
-        };
-        _progressText = new Label
-        {
-            Text = "0%",
-            FontSize = 12,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#176B3A"),
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        _progressBar = new ProgressBar
-        {
-            Progress = 0,
-            ProgressColor = Color.FromArgb("#29A653"),
-            BackgroundColor = Color.FromArgb("#DCE7DE"),
-            HeightRequest = 10,
-            VerticalOptions = LayoutOptions.Center,
-            HorizontalOptions = LayoutOptions.Fill
         };
         _alligator = new Image
         {
@@ -80,20 +61,19 @@ public sealed class LoadingPage : ContentPage
         };
         _track = new Grid
         {
-            HeightRequest = 52,
-            RowSpacing = 1,
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
-            RowDefinitions =
-            {
-                new RowDefinition { Height = new GridLength(36) },
-                new RowDefinition { Height = new GridLength(12) }
-            }
+            HeightRequest = 42,
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) }
         };
         _track.Add(_alligator);
-        Grid.SetRow(_alligator, 0);
-        _track.Add(_progressBar);
-        Grid.SetRow(_progressBar, 1);
 
+        var activity = new ActivityIndicator
+        {
+            IsRunning = true,
+            Color = Color.FromArgb("#29A653"),
+            HorizontalOptions = LayoutOptions.Center,
+            WidthRequest = 28,
+            HeightRequest = 28
+        };
         var footer = new Label
         {
             Text = "AUTONOMOUS • CONNECTED • READY",
@@ -114,9 +94,8 @@ public sealed class LoadingPage : ContentPage
                 brand, subtitle,
                 new BoxView { HeightRequest = 26, Opacity = 0 },
                 intro, _statusText,
-                new BoxView { HeightRequest = 4, Opacity = 0 },
-                _track, _progressText,
-                new BoxView { HeightRequest = 18, Opacity = 0 },
+                _track, activity,
+                new BoxView { HeightRequest = 12, Opacity = 0 },
                 footer
             }
         };
@@ -138,7 +117,6 @@ public sealed class LoadingPage : ContentPage
                 }
             }
         };
-        _track.SizeChanged += (_, _) => PositionAlligator(_progressBar.Progress);
     }
 
     protected override async void OnAppearing()
@@ -148,39 +126,20 @@ public sealed class LoadingPage : ContentPage
             return;
 
         _started = true;
-        await Task.Delay(180);
-        string[] stages =
-        {
-            "Waking up the control panel",
-            "Checking app components",
-            "Preparing your dashboard",
-            "Almost there"
-        };
+        await Task.Delay(150);
 
-        const int steps = 40;
-        for (var i = 1; i <= steps; i++)
+        // Brand animation only; no percentage is shown because startup is not a measurable progress task.
+        var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
+        for (var lap = 0; lap < 2; lap++)
         {
-            var progress = i / (double)steps;
-            _statusText.Text = stages[Math.Min(stages.Length - 1, (i - 1) / 10)];
-            _progressText.Text = $"{(int)Math.Round(progress * 100)}%";
-            var targetX = Math.Max(0, (_track.Width - _alligator.Width) * progress);
-            var bounceY = i % 2 == 0 ? -2 : 1;
-            var move = _alligator.TranslateTo(targetX, bounceY, 75, Easing.Linear);
-            var fill = _progressBar.ProgressTo(progress, 75, Easing.Linear);
-            await Task.WhenAll(move, fill);
+            _alligator.TranslationX = 0;
+            await _alligator.TranslateTo(travelDistance, 0, 520, Easing.CubicInOut);
+            await _alligator.TranslateTo(0, 0, 160, Easing.CubicInOut);
         }
 
         _statusText.Text = "Ready — welcome in!";
-        _progressText.Text = "100%";
-        await Task.Delay(250);
+        await Task.Delay(180);
         await Content.FadeTo(0, 220, Easing.CubicInOut);
         _onComplete();
-    }
-
-    private void PositionAlligator(double progress)
-    {
-        if (_track.Width <= 0)
-            return;
-        _alligator.TranslationX = Math.Max(0, (_track.Width - _alligator.Width) * progress);
     }
 }
