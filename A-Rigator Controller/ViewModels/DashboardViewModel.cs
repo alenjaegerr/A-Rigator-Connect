@@ -9,6 +9,7 @@ namespace A_Rigator_Controller.ViewModels;
 public sealed class DashboardViewModel : INotifyPropertyChanged
 {
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan StatusRefreshInterval = TimeSpan.FromSeconds(2);
     private readonly IRobotCommunicationService _communicationService;
     private readonly IUserProfileService _userProfileService;
     private readonly IWifiSettingsService _wifiSettingsService;
@@ -335,6 +336,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private async Task MonitorAsync(CancellationToken cancellationToken)
     {
         var statusCounter = 0;
+        var statusRefreshTicks = Math.Max(1, (int)(StatusRefreshInterval.TotalMilliseconds / HeartbeatInterval.TotalMilliseconds));
         using var timer = new PeriodicTimer(HeartbeatInterval);
 
         try
@@ -361,7 +363,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                     await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
                 }
 
-                if (++statusCounter >= 4)
+                if (++statusCounter >= statusRefreshTicks)
                 {
                     statusCounter = 0;
                     await RefreshStatusAsync(cancellationToken);
