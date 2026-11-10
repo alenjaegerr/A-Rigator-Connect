@@ -82,15 +82,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _ => "UNAVAILABLE"
     };
 
-    // The installed TCRT5000 modules report black as HIGH (1) and white as LOW (0).
-    public string LeftLineStatus => _latestStatus?.LineLeft switch
+    // TCRT5000 digital output: black = HIGH (1), white = LOW (0).
+    // Display physical GPIO numbers until left/right sensor placement is verified.
+    public string LineGpio14Status => _latestStatus?.LineGpio14 switch
     {
         true => "BLACK",
         false => "WHITE",
         _ => "UNAVAILABLE"
     };
 
-    public string RightLineStatus => _latestStatus?.LineRight switch
+    public string LineGpio27Status => _latestStatus?.LineGpio27 switch
     {
         true => "BLACK",
         false => "WHITE",
@@ -457,8 +458,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(PumpStatus));
                 OnPropertyChanged(nameof(ObstacleDistanceStatus));
                 OnPropertyChanged(nameof(ObstacleStatus));
-                OnPropertyChanged(nameof(LeftLineStatus));
-                OnPropertyChanged(nameof(RightLineStatus));
+                OnPropertyChanged(nameof(LineGpio14Status));
+                OnPropertyChanged(nameof(LineGpio27Status));
                 OnPropertyChanged(nameof(ConnectionModeLabel));
                 OnPropertyChanged(nameof(ConnectionDetails));
                 OnPropertyChanged(nameof(ConnectionRecoveryMessage));
