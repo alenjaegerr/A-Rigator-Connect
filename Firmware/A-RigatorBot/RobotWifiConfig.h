@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
-#include <esp_system.h>
+#include <esp_random.h>
 
 // Stores only A-Rigator's Wi-Fi credentials in its own NVS namespace.
 // Other robot settings (irrigation profiles, calibration, etc.) are untouched.
