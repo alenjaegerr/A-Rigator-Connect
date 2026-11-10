@@ -28,8 +28,10 @@ The current firmware `GET /api/status` response reports:
 - wifiConnected
 - wifiIp
 - hostname
+- obstacleDistanceCm, obstacleEchoDetected, obstacleDetected
+- lineGpio14 and lineGpio27 (HIGH = black, LOW = white)
 
-The app must not infer battery percentage, reservoir percentage, line-sensor readings, obstacle distance, motor current, or historical charts from this response. Those values remain unavailable until the firmware exposes them.
+The app must not infer battery percentage, reservoir percentage, motor current, or historical charts from this response. Water level remains unavailable because the reservoir sonar pins are reserved but not installed/calibrated. Line inputs are labelled by GPIO rather than physical left/right until sensor orientation is verified.
 
 ## Cloud and account boundary
 
@@ -73,6 +75,8 @@ Local BLE provisioning and local HTTP robot control must continue to work when n
 
 ### Telemetry and configuration
 - [ ] Verify robot state, operating mode, pump state and network diagnostics update.
+- [ ] Verify obstacle distance and echo/no-echo state update from the front sonar.
+- [ ] Verify line sensor GPIO14/GPIO27 values map HIGH to black and LOW to white.
 - [ ] Verify water and battery remain visibly unavailable until firmware provides them.
 - [ ] Confirm no demo values or fabricated historical graphs are displayed.
 - [ ] Add firmware/API tests before enabling sensor calibration or writable thresholds.
