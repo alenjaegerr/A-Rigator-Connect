@@ -72,8 +72,9 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
         if (uri.Host == "192.168.4.1")
         {
+            // Prefer the direct AP for this attempt, but retain the last known
+            // station IP so IoT discovery remains available as a fallback.
             _baseAddress = uri;
-            _fallbackBaseAddress = null;
             ActiveConnectionMode = RobotConnectionMode.AccessPoint;
             return;
         }
