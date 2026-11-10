@@ -291,7 +291,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            ResultMessage = $"Could not reach A-Rigator. Connect this phone to the same Wi-Fi network as the robot ({RobotAddress if known}), then try again.";
+            ResultMessage = $"Could not reach A-Rigator. Connect this phone to the same Wi-Fi network as the robot{(string.IsNullOrWhiteSpace(RobotAddress) ? string.Empty : $" at {RobotAddress}")}, then try again.";
         }
         finally
         {
