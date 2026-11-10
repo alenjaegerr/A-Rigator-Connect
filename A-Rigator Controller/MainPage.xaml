@@ -21,7 +21,10 @@
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="ROBOT OVERVIEW" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
-                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnecting}" Color="#B8E2C5" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="3">
+                            <ActivityIndicator IsRunning="{Binding IsConnecting}" Color="#B8E2C5" />
+                            <ActivityIndicator IsRunning="{Binding IsRefreshing}" Color="#B8E2C5" />
+                        </VerticalStackLayout>
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="3">
