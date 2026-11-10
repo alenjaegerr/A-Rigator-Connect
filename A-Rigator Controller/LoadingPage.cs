@@ -149,12 +149,12 @@ public sealed class LoadingPage : ContentPage
         if (_track.Width > _alligator.Width)
             return;
 
-        var layoutReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var layoutReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         EventHandler? sizeChanged = null;
         sizeChanged = (_, _) =>
         {
             if (_track.Width > _alligator.Width)
-                layoutReady.TrySetResult();
+                layoutReady.TrySetResult(true);
         };
 
         _track.SizeChanged += sizeChanged;
