@@ -94,6 +94,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool IsConnected => _communicationService.ConnectionState == ConnectionState.Connected;
 
+    public bool IsConnecting => _communicationService.ConnectionState is ConnectionState.Connecting or ConnectionState.Reconnecting;
+
     public bool CanControl => IsConnected && _latestStatus?.ControlsEnabled == true;
 
     public bool IsAutonomous => _latestStatus?.Mode == OperatingMode.Automatic;
@@ -368,6 +370,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
         OnPropertyChanged(nameof(IsConnected));
+        OnPropertyChanged(nameof(IsConnecting));
         OnPropertyChanged(nameof(CanControl));
         OnPropertyChanged(nameof(IsControlWarningVisible));
         OnPropertyChanged(nameof(ControlAccessMessage));
@@ -480,6 +483,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
             OnPropertyChanged(nameof(ConnectionRecoveryMessage));
             OnPropertyChanged(nameof(IsConnected));
+            OnPropertyChanged(nameof(IsConnecting));
             OnPropertyChanged(nameof(CanControl));
             OnPropertyChanged(nameof(IsControlWarningVisible));
             OnPropertyChanged(nameof(ControlAccessMessage));
