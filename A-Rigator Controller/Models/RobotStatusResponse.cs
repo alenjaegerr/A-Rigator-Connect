@@ -24,4 +24,13 @@ public sealed class RobotStatusResponse
 
     [JsonPropertyName("message")]
     public string? Message { get; init; }
+
+    [JsonPropertyName("wifiConnected")]
+    public bool? WifiConnected { get; init; }
+
+    [JsonPropertyName("wifiIp")]
+    public string? WifiIp { get; init; }
+
+    [JsonPropertyName("hostname")]
+    public string? Hostname { get; init; }
 }
