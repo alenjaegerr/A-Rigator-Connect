@@ -9,8 +9,20 @@ public partial class RemoteWifiSetupPage : ContentPage
         InitializeComponent();
         BindingContext = viewModel;
 
-        viewModel.DashboardRequested += (_, _) => DashboardRequested?.Invoke(this, EventArgs.Empty);
-        viewModel.NotNowRequested += (_, _) => NotNowRequested?.Invoke(this, EventArgs.Empty);
+        viewModel.DashboardRequested += (_, _) =>
+        {
+            if (DashboardRequested is not null)
+                DashboardRequested.Invoke(this, EventArgs.Empty);
+            else if (Shell.Current is AppShell shell)
+                _ = shell.ShowDashboardAsync();
+        };
+        viewModel.NotNowRequested += (_, _) =>
+        {
+            if (NotNowRequested is not null)
+                NotNowRequested.Invoke(this, EventArgs.Empty);
+            else if (Shell.Current is AppShell shell)
+                _ = shell.ShowDashboardAsync();
+        };
     }
 
     public event EventHandler? DashboardRequested;
