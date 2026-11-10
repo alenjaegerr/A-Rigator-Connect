@@ -8,7 +8,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
-    private Uri _baseAddress = new(RobotNetworkOptions.BaseAddress);
+    private Uri _baseAddress = new("http://arigator.local/");
     private Uri? _fallbackBaseAddress;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
 
@@ -65,45 +65,73 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             uri.Scheme != Uri.UriSchemeHttp || string.IsNullOrWhiteSpace(uri.Host))
             throw new ArgumentException("The robot returned an invalid network address.", nameof(address));
 
+        if (uri.Host == "192.168.4.1")
+        {
+            _baseAddress = uri;
+            _fallbackBaseAddress = null;
+            ActiveConnectionMode = RobotConnectionMode.AccessPoint;
+            return;
+        }
+
         _fallbackBaseAddress = uri;
         _baseAddress = new Uri("http://arigator.local/");
     }
 
     public ConnectionState ConnectionState => _connectionState;
 
+    public RobotConnectionMode ActiveConnectionMode { get; private set; } = RobotConnectionMode.Unknown;
+
     public event Action<ConnectionState>? ConnectionStateChanged;
 
     public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
-        var candidates = _fallbackBaseAddress is null
-            ? new[] { _baseAddress }
-            : new[] { _baseAddress, _fallbackBaseAddress! };
+        var candidates = new List<(Uri Address, RobotConnectionMode Mode)>
+        {
+            (_baseAddress, _baseAddress.Host == "192.168.4.1"
+                ? RobotConnectionMode.AccessPoint
+                : RobotConnectionMode.IoT)
+        };
+
+        if (_fallbackBaseAddress is not null &&
+            !_fallbackBaseAddress.Equals(_baseAddress))
+        {
+            candidates.Add((_fallbackBaseAddress, RobotConnectionMode.IoT));
+        }
+
+        var accessPointAddress = new Uri(RobotNetworkOptions.BaseAddress);
+        if (!candidates.Any(candidate => candidate.Address.Equals(accessPointAddress)))
+        {
+            candidates.Add((accessPointAddress, RobotConnectionMode.AccessPoint));
+        }
 
         foreach (var candidate in candidates)
         {
             try
             {
-                using var response = await _httpClient.GetAsync(new Uri(candidate, RobotNetworkOptions.StatusEndpoint), cancellationToken);
+                using var response = await _httpClient.GetAsync(
+                    new Uri(candidate.Address, RobotNetworkOptions.StatusEndpoint),
+                    cancellationToken);
                 if (!response.IsSuccessStatusCode) continue;
 
                 var status = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
                 if (status is { Success: true })
                 {
-                    _baseAddress = candidate;
+                    _baseAddress = candidate.Address;
+                    ActiveConnectionMode = candidate.Mode;
                     return true;
                 }
             }
             catch (HttpRequestException)
             {
-                // Try the BLE-provided station IP if mDNS is unavailable.
+                // Try the BLE-provided station IP, then the robot's setup AP.
             }
             catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
-                // A local mDNS lookup can time out on Android; continue to the IP fallback.
+                // mDNS can time out on Android; continue to the next candidate.
             }
             catch (JsonException)
             {
-                // Try the next known address.
+                // Continue to the next known address.
             }
         }
 
@@ -132,28 +160,48 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        using var response = await _httpClient.GetAsync(new Uri(_baseAddress, RobotNetworkOptions.StatusEndpoint), cancellationToken);
-        response.EnsureSuccessStatusCode();
-        var statusResponse = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
-        if (statusResponse is not { Success: true })
+        try
         {
-            return null;
+            using var response = await _httpClient.GetAsync(
+                new Uri(_baseAddress, RobotNetworkOptions.StatusEndpoint),
+                cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var statusResponse = await response.Content.ReadFromJsonAsync<RobotStatusResponse>(JsonOptions, cancellationToken);
+            if (statusResponse is not { Success: true })
+            {
+                return null;
+            }
+
+            var state = Enum.TryParse<RobotState>(statusResponse.State, true, out var parsedState)
+                ? parsedState
+                : RobotState.Idle;
+            var mode = Enum.TryParse<OperatingMode>(statusResponse.Mode, true, out var parsedMode)
+                ? parsedMode
+                : (OperatingMode?)null;
+
+            return new RobotStatus
+            {
+                State = state,
+                Mode = mode,
+                PumpIsOn = statusResponse.PumpIsOn ?? false,
+                ControlsEnabled = statusResponse.ControlsEnabled,
+                WifiConnected = statusResponse.WifiConnected,
+                WifiIp = statusResponse.WifiIp,
+                Hostname = statusResponse.Hostname,
+                ConnectionMode = ActiveConnectionMode
+            };
         }
-
-        var state = Enum.TryParse<RobotState>(statusResponse.State, true, out var parsedState)
-            ? parsedState
-            : RobotState.Idle;
-        var mode = Enum.TryParse<OperatingMode>(statusResponse.Mode, true, out var parsedMode)
-            ? parsedMode
-            : (OperatingMode?)null;
-
-        return new RobotStatus
+        catch (HttpRequestException)
         {
-            State = state,
-            Mode = mode,
-            PumpIsOn = statusResponse.PumpIsOn ?? false,
-            ControlsEnabled = statusResponse.ControlsEnabled
-        };
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
     }
 
     public void Dispose()
