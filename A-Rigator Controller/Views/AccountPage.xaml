@@ -28,6 +28,9 @@
                     <Label Text="{Binding AccountSummary}"
                            FontSize="15"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       IsVisible="{Binding IsBusy}"
+                                       Color="#176B45" />
 
                     <Button Text="SIGN IN WITH GOOGLE"
                             Command="{Binding SignInCommand}"
