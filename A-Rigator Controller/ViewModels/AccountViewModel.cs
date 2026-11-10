@@ -13,15 +13,16 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     private string _supabaseUrl = string.Empty;
     private string _supabaseAnonKey = string.Empty;
     private string _backendApiUrl = string.Empty;
-    private string _statusMessage = "Local mode is active. Remote mode and cloud sync remain locked until Google auth is complete.";
+    private string _statusMessage = "Local mode is active. Sign in with Google only if you need account-linked features.";
+    private bool _isBusy;
 
     public AccountViewModel(IAccountService accountService, ISupabaseConfigService supabaseConfigService, IBackendConfigService backendConfigService)
     {
         _accountService = accountService;
         _supabaseConfigService = supabaseConfigService;
         _backendConfigService = backendConfigService;
-        SignInCommand = new Command(async () => await SignInAsync());
-        SignOutCommand = new Command(async () => await SignOutAsync());
+        SignInCommand = new Command(async () => await SignInAsync(), () => !IsBusy);
+        SignOutCommand = new Command(async () => await SignOutAsync(), () => !IsBusy);
         SaveSupabaseConfigCommand = new Command(SaveSupabaseConfig);
         SaveBackendConfigCommand = new Command(SaveBackendConfig);
 
@@ -94,6 +95,19 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (_isBusy == value) return;
+            _isBusy = value;
+            OnPropertyChanged();
+            (SignInCommand as Command)?.ChangeCanExecute();
+            (SignOutCommand as Command)?.ChangeCanExecute();
+        }
+    }
+
     public bool IsAuthenticated => _accountService.IsAuthenticated;
 
     public bool IsRemoteModeAllowed => _accountService.IsRemoteModeAllowed;
@@ -116,6 +130,8 @@ public sealed class AccountViewModel : INotifyPropertyChanged
 
     private async Task SignInAsync()
     {
+        if (IsBusy) return;
+        IsBusy = true;
         try
         {
             await _accountService.SignInWithGoogleAsync();
@@ -130,19 +146,37 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         {
             StatusMessage = ex.Message;
         }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task SignOutAsync()
     {
-        await _accountService.SignOutAsync();
-        StatusMessage = "Signed out. Local mode remains available.";
-        OnPropertyChanged(nameof(IsAuthenticated));
-        OnPropertyChanged(nameof(IsRemoteModeAllowed));
-        OnPropertyChanged(nameof(AccountSummary));
+        if (IsBusy) return;
+        IsBusy = true;
+        try
+        {
+            await _accountService.SignOutAsync();
+            StatusMessage = "Signed out. Local mode remains available.";
+            OnPropertyChanged(nameof(IsAuthenticated));
+            OnPropertyChanged(nameof(IsRemoteModeAllowed));
+            OnPropertyChanged(nameof(AccountSummary));
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task InitializeAsync()
     {
+        IsBusy = true;
         try
         {
             await _accountService.InitializeSessionAsync();
@@ -157,7 +191,11 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         }
         catch
         {
-            StatusMessage = "Local mode is active. Remote mode and cloud sync remain locked until Google auth is complete.";
+            StatusMessage = "Could not restore the account session. Local robot control remains available.";
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
