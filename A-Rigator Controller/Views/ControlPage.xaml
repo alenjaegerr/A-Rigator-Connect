@@ -66,6 +66,6 @@
             <Label Text="{Binding Message}" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
         </VerticalStackLayout>
       </ScrollView>
-      <views:ConnectionOverlay BindingContext="{Binding}" />
+      <views:ConnectionOverlay IsBusy="{Binding IsConnecting}" />
     </Grid>
 </ContentPage>
