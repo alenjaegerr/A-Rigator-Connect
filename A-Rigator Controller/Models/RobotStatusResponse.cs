@@ -43,9 +43,9 @@ public sealed class RobotStatusResponse
     [JsonPropertyName("obstacleDetected")]
     public bool? ObstacleDetected { get; init; }
 
-    [JsonPropertyName("lineLeft")]
-    public bool? LineLeft { get; init; }
+    [JsonPropertyName("lineGpio14")]
+    public bool? LineGpio14 { get; init; }
 
-    [JsonPropertyName("lineRight")]
-    public bool? LineRight { get; init; }
+    [JsonPropertyName("lineGpio27")]
+    public bool? LineGpio27 { get; init; }
 }
