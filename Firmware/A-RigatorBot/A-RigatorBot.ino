@@ -517,6 +517,49 @@ unsigned long lastManualControlRefresh = 0;
 bool manualControlLeaseActive = false;
 bool controlsEnabled = false;
 
+// Forget only the saved router profile. Preserve the A-Rigator AP password and
+// keep the local setup hotspot available so the app can provision another network.
+bool forgetSavedWifiNetwork() {
+  setPump(false);
+  currentMode = MODE_MANUAL;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+
+  if (!wifiCredentialStore.clear()) {
+    savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
+    Serial.println(">> Failed to clear saved Wi-Fi credentials.");
+    return false;
+  }
+
+  savedWifiCredentials.ssid = "";
+  savedWifiCredentials.password = "";
+  savedWifiCredentialsAvailable = false;
+
+  if (mdnsStarted) {
+    MDNS.end();
+    mdnsStarted = false;
+  }
+
+  // Disconnect and erase the ESP32 station profile while leaving the AP
+  // interface running. The independent arigator-ap namespace is untouched.
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(false, true);
+  Serial.println(">> Saved router Wi-Fi forgotten. A-Rigator setup AP remains available.");
+  return true;
+}
+
+void handleForgetWifi() {
+  const bool success = forgetSavedWifiNetwork();
+  if (success) {
+    server.send(200, "application/json",
+                "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
+  } else {
+    server.send(500, "application/json",
+                "{\"success\":false,\"message\":\"Could not clear saved router Wi-Fi\"}");
+  }
+}
+
 void handleStatus() {
   const char* state = "Idle";
   const char* mode = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
@@ -575,6 +618,7 @@ void startWifiApi() {
 
   controlsEnabled = true;
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/network/forget", HTTP_POST, handleForgetWifi);
   if (controlsEnabled) {
 	server.on("/api/control/forward", HTTP_POST, handleForward);
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
@@ -875,6 +919,7 @@ void printMenu() {
   Serial.println("  c : Steer Center (90 deg)");
   Serial.println("  p : Toggle Water Pump     |  n : Sweep Nozzle");
 	Serial.println("  r : Reset Motor Shield");
+	Serial.println("  q : Forget Saved Router Wi-Fi");
   Serial.println("  m : Toggle Autonomous Mode|  t : Read Sensors");
   Serial.println("==============================================\n");
 }
@@ -950,6 +995,14 @@ void executeCommand(char cmd) {
 		setPump(false);
 		writeServo(STEER_SERVO_PIN, STEER_CENTER);
 		Serial.println(">> [MODE] MANUAL CONTROL ENGAGED");
+	  }
+	  break;
+
+	case 'q': case 'Q':
+	  if (forgetSavedWifiNetwork()) {
+	    Serial.println(">> [CMD] Router Wi-Fi reset complete. AP password preserved.");
+	  } else {
+	    Serial.println(">> [CMD] Router Wi-Fi reset failed.");
 	  }
 	  break;
 
