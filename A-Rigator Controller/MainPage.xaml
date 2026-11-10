@@ -2,11 +2,13 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             xmlns:views="clr-namespace:A_Rigator_Controller.Views"
              x:Class="A_Rigator_Controller.MainPage"
              x:DataType="viewmodels:DashboardViewModel"
              Title="Home"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
-    <ScrollView>
+    <Grid>
+      <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <VerticalStackLayout Spacing="3">
@@ -22,8 +24,6 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="ROBOT OVERVIEW" FontSize="11" FontAttributes="Bold" TextColor="#B8D7C3" />
                         <VerticalStackLayout Grid.Column="1" Spacing="3">
-                            <ActivityIndicator IsRunning="{Binding IsConnecting}" IsVisible="{Binding IsConnecting}" Color="#B8E2C5" />
-                            <ActivityIndicator IsRunning="{Binding IsRefreshing}" IsVisible="{Binding IsRefreshing}" Color="#B8E2C5" />
                         </VerticalStackLayout>
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
@@ -86,5 +86,7 @@
 
             <Label Text="A-Rigator Connect · Local-first robot companion" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
         </VerticalStackLayout>
-    </ScrollView>
+      </ScrollView>
+      <views:ConnectionOverlay BindingContext="{Binding}" />
+    </Grid>
 </ContentPage>
