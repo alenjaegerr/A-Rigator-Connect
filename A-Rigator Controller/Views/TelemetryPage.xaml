@@ -68,6 +68,14 @@
                         <Label Grid.Column="1" Text="{Binding ObstacleStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Obstacle stop threshold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ObstacleStopThresholdStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Manual-control safety timeout" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding ManualControlTimeoutStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
                         <Label Text="Line sensor input · GPIO14" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                         <Label Grid.Column="1" Text="{Binding LineGpio14Status}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
