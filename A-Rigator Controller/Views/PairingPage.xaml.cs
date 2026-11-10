@@ -7,6 +7,7 @@ public partial class PairingPage : ContentPage
     public PairingPage(PairingViewModel viewModel)
     {
         InitializeComponent();
+        Shell.SetTabBarIsVisible(this, false);
         BindingContext = viewModel;
         viewModel.DashboardPreviewRequested += (_, _) =>
         {
