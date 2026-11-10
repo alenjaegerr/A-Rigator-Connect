@@ -601,6 +601,10 @@ void handleStatus() {
   json += obstacleDistanceCm < 998.0 ? "true" : "false";
   json += ",\"obstacleDetected\":";
   json += obstacleDistanceCm < OBSTACLE_STOP_CM ? "true" : "false";
+  json += ",\"obstacleStopThresholdCm\":";
+  json += String(OBSTACLE_STOP_CM);
+  json += ",\"manualControlTimeoutMs\":";
+  json += String(MANUAL_CONTROL_TIMEOUT_MS);
   json += ",\"lineGpio14\":";
   json += digitalRead(14) == HIGH ? "true" : "false";
   json += ",\"lineGpio27\":";
