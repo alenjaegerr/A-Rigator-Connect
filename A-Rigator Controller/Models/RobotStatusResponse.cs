@@ -33,4 +33,19 @@ public sealed class RobotStatusResponse
 
     [JsonPropertyName("hostname")]
     public string? Hostname { get; init; }
+
+    [JsonPropertyName("obstacleDistanceCm")]
+    public float? ObstacleDistanceCm { get; init; }
+
+    [JsonPropertyName("obstacleEchoDetected")]
+    public bool? ObstacleEchoDetected { get; init; }
+
+    [JsonPropertyName("obstacleDetected")]
+    public bool? ObstacleDetected { get; init; }
+
+    [JsonPropertyName("lineLeft")]
+    public bool? LineLeft { get; init; }
+
+    [JsonPropertyName("lineRight")]
+    public bool? LineRight { get; init; }
 }
