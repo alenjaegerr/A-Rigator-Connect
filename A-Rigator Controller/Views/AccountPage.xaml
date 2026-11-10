@@ -108,10 +108,10 @@
                    FontSize="14"
                    TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
 
-            <Label Text="Remote mode and cloud sync remain locked until Google auth succeeds."
-                   FontSize="14"
+            <Label Text="Google authentication and local session storage are implemented. Remote robot relay, cloud telemetry storage, and OTA still require deployed backend services."
+                   FontSize="13"
                    FontAttributes="Bold"
-                   TextColor="#A23A32" />
+                   TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
