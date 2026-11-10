@@ -198,6 +198,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
                 ObstacleDistanceCm = statusResponse.ObstacleDistanceCm,
                 ObstacleEchoDetected = statusResponse.ObstacleEchoDetected,
                 ObstacleDetected = statusResponse.ObstacleDetected,
+                ObstacleStopThresholdCm = statusResponse.ObstacleStopThresholdCm,
+                ManualControlTimeoutMs = statusResponse.ManualControlTimeoutMs,
                 LineGpio14 = statusResponse.LineGpio14,
                 LineGpio27 = statusResponse.LineGpio27
             };
