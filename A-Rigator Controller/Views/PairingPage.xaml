@@ -285,7 +285,7 @@
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="Make sure your phone is connected to the same router network as A-Rigator, then verify communication."
+                        <Label Text="Test whether your phone can reach the robot over the router. Some networks block device-to-device traffic; if this test fails, use the robot's direct hotspot instead. Cloud control will be added in the MQTT phase."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Label Text="{Binding ErrorMessage}"
@@ -305,6 +305,13 @@
                                 CornerRadius="14"
                                 FontAttributes="Bold"
                                 BackgroundColor="#176B45"
+                                TextColor="White" />
+                        <Button Text="USE DIRECT A-RIGATOR HOTSPOT"
+                                Command="{Binding StartDirectWifiSetupCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="48"
+                                CornerRadius="12"
+                                BackgroundColor="#2879A8"
                                 TextColor="White" />
                         <Button Text="BACK"
                                 Command="{Binding BackToPhoneNetworkCommand}"
