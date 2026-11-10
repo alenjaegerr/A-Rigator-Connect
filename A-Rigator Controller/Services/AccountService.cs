@@ -2,6 +2,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Authentication;
 
 namespace A_Rigator_Controller.Services;
 
