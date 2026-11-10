@@ -1,11 +1,14 @@
-using System.ComponentModel;
-using A_Rigator_Controller.ViewModels;
-
 namespace A_Rigator_Controller.Views;
 
 public partial class ConnectionOverlay : ContentView
 {
-    private DashboardViewModel? _viewModel;
+    public static readonly BindableProperty IsBusyProperty = BindableProperty.Create(
+        nameof(IsBusy),
+        typeof(bool),
+        typeof(ConnectionOverlay),
+        false,
+        propertyChanged: OnIsBusyChanged);
+
     private int _animationVersion;
 
     public ConnectionOverlay()
@@ -13,28 +16,17 @@ public partial class ConnectionOverlay : ContentView
         InitializeComponent();
     }
 
-    protected override void OnBindingContextChanged()
+    public bool IsBusy
     {
-        if (_viewModel is not null)
-            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-
-        base.OnBindingContextChanged();
-
-        _viewModel = BindingContext as DashboardViewModel;
-        if (_viewModel is not null)
-        {
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
-            MainThread.BeginInvokeOnMainThread(() => _ = SetOverlayVisibleAsync(_viewModel.IsConnecting));
-        }
+        get => (bool)GetValue(IsBusyProperty);
+        set => SetValue(IsBusyProperty, value);
     }
 
-    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private static void OnIsBusyChanged(BindableObject bindable, object oldValue, object newValue)
     {
-        if (e.PropertyName != nameof(DashboardViewModel.IsConnecting) || _viewModel is null)
-            return;
-
-        var shouldShow = _viewModel.IsConnecting;
-        MainThread.BeginInvokeOnMainThread(() => _ = SetOverlayVisibleAsync(shouldShow));
+        var overlay = (ConnectionOverlay)bindable;
+        var visible = newValue is true;
+        MainThread.BeginInvokeOnMainThread(() => _ = overlay.SetOverlayVisibleAsync(visible));
     }
 
     private async Task SetOverlayVisibleAsync(bool visible)
