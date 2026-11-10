@@ -27,6 +27,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _hasScannedWifiNetworks;
     private RobotWifiNetwork? _selectedWifiNetwork;
     private string _wifiPassword = string.Empty;
+    private string _accessPointPassword = string.Empty;
+    private string _newAccessPointPassword = string.Empty;
+    private string _accessPointStatusMessage = "Pair with A-Rigator over Bluetooth to retrieve its private hotspot password.";
 
     public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
@@ -48,6 +51,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         DisconnectBleRobotCommand = new Command(async () => await DisconnectBleRobotAsync());
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
+        ChangeAccessPointPasswordCommand = new Command(async () => await ChangeAccessPointPasswordAsync());
         RefreshWifiState();
     }
 
@@ -117,6 +121,22 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     }
 
     public string WifiPassword { get => _wifiPassword; set => SetField(ref _wifiPassword, value); }
+    public string AccessPointPassword
+    {
+        get => _accessPointPassword;
+        private set => SetField(ref _accessPointPassword, value);
+    }
+    public string NewAccessPointPassword
+    {
+        get => _newAccessPointPassword;
+        set => SetField(ref _newAccessPointPassword, value);
+    }
+    public string AccessPointStatusMessage
+    {
+        get => _accessPointStatusMessage;
+        private set => SetField(ref _accessPointStatusMessage, value);
+    }
+    public ICommand ChangeAccessPointPasswordCommand { get; }
     public bool CanSubmitWifiCredentials => IsBleConnected && SelectedWifiNetwork is not null && !IsBusy;
 
     public RobotProvisioningDevice? SelectedBleRobot
@@ -261,6 +281,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         RobotAddress = string.Empty;
+        AccessPointPassword = string.Empty;
+        NewAccessPointPassword = string.Empty;
+        AccessPointStatusMessage = "Pair with A-Rigator over Bluetooth to retrieve its private hotspot password.";
         IsConnectionVerified = false;
         RefreshWifiState();
         SetStage(PairingStage.DiscoverRobot);
@@ -351,6 +374,15 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
             IsBleConnected = true;
             BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
+            try
+            {
+                AccessPointPassword = await _robotProvisioningService.GetAccessPointPasswordAsync();
+                AccessPointStatusMessage = "Hotspot password retrieved securely over the encrypted Bluetooth connection.";
+            }
+            catch (Exception ex)
+            {
+                AccessPointStatusMessage = $"Could not retrieve hotspot credentials: {ex.Message}";
+            }
             SetStage(PairingStage.ConfigureWifi);
             WifiScanStatusMessage = "Bluetooth is ready. Scan to see Wi-Fi networks detected by the robot.";
             HasScannedWifiNetworks = false;
@@ -451,6 +483,42 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             WifiScanStatusMessage = $"Could not provision Wi-Fi: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ChangeAccessPointPasswordAsync()
+    {
+        if (IsBusy || !IsBleConnected)
+        {
+            AccessPointStatusMessage = "Reconnect to A-Rigator over Bluetooth before changing its hotspot password.";
+            return;
+        }
+
+        if (Encoding.UTF8.GetByteCount(NewAccessPointPassword) is < 8 or > 63)
+        {
+            AccessPointStatusMessage = "Use a password between 8 and 63 UTF-8 bytes.";
+            return;
+        }
+
+        IsBusy = true;
+        AccessPointStatusMessage = "Updating the hotspot password and restarting its access point...";
+        try
+        {
+            var result = await _robotProvisioningService.SetAccessPointPasswordAsync(NewAccessPointPassword);
+            AccessPointStatusMessage = result.Message;
+            if (result.Success)
+            {
+                AccessPointPassword = NewAccessPointPassword;
+                NewAccessPointPassword = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            AccessPointStatusMessage = $"Could not update hotspot password: {ex.Message}";
         }
         finally
         {
