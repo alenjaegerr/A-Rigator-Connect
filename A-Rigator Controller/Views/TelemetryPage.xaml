@@ -17,7 +17,7 @@
                 <VerticalStackLayout Spacing="8">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="LIVE STATUS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
-                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnecting}" Color="#238653" />
+                        <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsConnecting}" IsVisible="{Binding IsConnecting}" Color="#238653" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="14">
                         <VerticalStackLayout Spacing="3">
@@ -83,7 +83,7 @@
                         <Label Grid.Column="1" Text="{Binding ConnectionModeLabel}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Label Text="{Binding ConnectionDetails}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <ActivityIndicator IsRunning="{Binding IsRefreshing}" Color="#238653" HorizontalOptions="Start" />
+                    <ActivityIndicator IsRunning="{Binding IsRefreshing}" IsVisible="{Binding IsRefreshing}" Color="#238653" HorizontalOptions="Start" />
                     <Button Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
