@@ -74,6 +74,8 @@ Local BLE provisioning and local HTTP robot control must continue to work when n
 - [ ] Verify autonomous start/stop.
 - [ ] Verify controls disable when disconnected or firmware disables controls.
 - [ ] Interrupt connectivity during a manual command and verify UI locks controls.
+- [ ] Background the app during manual drive/pump operation and verify it sends Stop when possible; otherwise the ESP32 lease timeout must stop outputs.
+- [ ] Confirm autonomous operation behavior is intentional when the app backgrounds.
 - [ ] Confirm the ESP32 manual-control lease stops outputs after communication loss.
 - [ ] Do not treat the app Stop button as a guaranteed emergency stop when the robot is unreachable.
 
