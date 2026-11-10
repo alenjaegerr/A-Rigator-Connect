@@ -30,6 +30,8 @@
                         <VerticalStackLayout Spacing="3">
                             <Label Text="{Binding RobotStatus}" FontSize="28" FontAttributes="Bold" TextColor="White" />
                             <Label Text="{Binding ModeStatus}" FontSize="13" TextColor="#D4E7DA" />
+                            <Label Text="{Binding ConnectionModeLabel}" FontSize="12" TextColor="#B8D7C3" />
+                            <Label Text="{Binding ConnectionDetails}" FontSize="11" TextColor="#B8D7C3" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Padding="10,7" BackgroundColor="#355B43" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
                             <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="White" />
