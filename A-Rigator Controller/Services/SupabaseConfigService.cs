@@ -9,7 +9,10 @@ public sealed class SupabaseConfigService : ISupabaseConfigService
 
     public string? AnonKey { get; private set; }
 
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(Url) && !string.IsNullOrWhiteSpace(AnonKey);
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(AnonKey) &&
+        Uri.TryCreate(Url, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp);
 
     public void LoadFromPreferences()
     {
@@ -19,7 +22,14 @@ public sealed class SupabaseConfigService : ISupabaseConfigService
 
     public void Save(string url, string anonKey)
     {
-        Url = url.Trim();
+        if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+            throw new ArgumentException("Enter a valid Supabase HTTP or HTTPS project URL.", nameof(url));
+
+        if (string.IsNullOrWhiteSpace(anonKey))
+            throw new ArgumentException("Enter the Supabase anon/public key.", nameof(anonKey));
+
+        Url = uri.ToString().TrimEnd('/');
         AnonKey = anonKey.Trim();
 
         Preferences.Default.Set(UrlKey, Url);
