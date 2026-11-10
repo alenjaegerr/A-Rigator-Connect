@@ -126,20 +126,39 @@ public sealed class LoadingPage : ContentPage
             return;
 
         _started = true;
-        await Task.Delay(150);
+        await Task.Delay(100);
+        await WaitForTrackLayoutAsync();
 
-        // Brand animation only; no percentage is shown because startup is not a measurable progress task.
+        // Animate only after the track has a real measured width.
         var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
-        for (var lap = 0; lap < 2; lap++)
+        if (travelDistance > 1)
         {
             _alligator.TranslationX = 0;
-            await _alligator.TranslateTo(travelDistance, 0, 520, Easing.CubicInOut);
-            await _alligator.TranslateTo(0, 0, 160, Easing.CubicInOut);
+            await _alligator.TranslateTo(travelDistance, 0, 650, Easing.CubicInOut);
+            await _alligator.TranslateTo(0, 0, 220, Easing.CubicInOut);
         }
 
         _statusText.Text = "Ready — welcome in!";
         await Task.Delay(180);
         await Content.FadeTo(0, 220, Easing.CubicInOut);
         _onComplete();
+    }
+
+    private async Task WaitForTrackLayoutAsync()
+    {
+        if (_track.Width > _alligator.Width)
+            return;
+
+        var layoutReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        EventHandler? sizeChanged = null;
+        sizeChanged = (_, _) =>
+        {
+            if (_track.Width > _alligator.Width)
+                layoutReady.TrySetResult();
+        };
+
+        _track.SizeChanged += sizeChanged;
+        await Task.WhenAny(layoutReady.Task, Task.Delay(1500));
+        _track.SizeChanged -= sizeChanged;
     }
 }
