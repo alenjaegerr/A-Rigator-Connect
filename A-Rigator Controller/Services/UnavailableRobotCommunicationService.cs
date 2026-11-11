@@ -39,6 +39,18 @@ public sealed class UnavailableRobotCommunicationService : IRobotCommunicationSe
         throw new InvalidOperationException("Robot communication is unavailable.");
     }
 
+    public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Robot communication is unavailable.");
+    }
+
+    public Task StopManualIrrigationAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new InvalidOperationException("Robot communication is unavailable.");
+    }
+
     public void SetRobotAddress(string address) { }
 
     public Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
