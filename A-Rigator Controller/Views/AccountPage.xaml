@@ -38,7 +38,7 @@
                     <Entry Text="{Binding DisplayName, Mode=TwoWay}" Placeholder="Your name"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Label Text="Email address" FontSize="12"
-                           Text="{Binding AccountSummary}"
+                           Text="{Binding EmailAddress}"
                            TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
                 </VerticalStackLayout>
             </Border>
@@ -52,7 +52,7 @@
                         <Border WidthRequest="52" HeightRequest="52" StrokeThickness="0"
                                 BackgroundColor="{AppThemeBinding Light=#E7EFE9, Dark=#2B3A30}"
                                 StrokeShape="RoundRectangle 14">
-                            <Image Source="arigator_robot.png" Aspect="AspectFit" Margin="7" />
+                            <Image Source="arigator_robot.svg" Aspect="AspectFit" Margin="7" />
                         </Border>
                         <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                             <Label Text="A-Rigator" FontSize="16" FontAttributes="Bold"
@@ -85,7 +85,7 @@
             <Button Text="SAVE ACCOUNT SETTINGS" Command="{Binding SaveAccountCommand}"
                     MinimumHeightRequest="52" BackgroundColor="#176B45" TextColor="White" />
             <Button Text="SIGN IN WITH GOOGLE" Command="{Binding SignInCommand}"
-                    IsVisible="{Binding IsAuthenticated, Converter={StaticResource InverseBoolConverter}}"
+                    IsVisible="{Binding IsGuest}"
                     MinimumHeightRequest="50" BackgroundColor="#2879A8" TextColor="White" />
             <Button Text="SIGN OUT" Command="{Binding SignOutCommand}"
                     IsVisible="{Binding IsAuthenticated}" MinimumHeightRequest="50"
