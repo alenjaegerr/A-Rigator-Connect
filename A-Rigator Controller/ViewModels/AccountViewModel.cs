@@ -45,6 +45,8 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     public bool HasAvatar => !string.IsNullOrWhiteSpace(AvatarPath) && File.Exists(AvatarPath);
     public bool IsBusy { get => _isBusy; private set { _isBusy = value; OnPropertyChanged(); (SignInCommand as Command)?.ChangeCanExecute(); (SignOutCommand as Command)?.ChangeCanExecute(); (DownloadProfilesCommand as Command)?.ChangeCanExecute(); } }
     public bool IsAuthenticated => _account.IsAuthenticated;
+    public bool IsGuest => !IsAuthenticated;
+    public string EmailAddress => _account.Email ?? "Not linked";
     public string AccountSummary => IsAuthenticated ? (_account.Email ?? "Signed in") : "Guest account — local features available";
     public string SyncStatus { get => _syncStatus; private set { _syncStatus = value; OnPropertyChanged(); } }
 
@@ -77,7 +79,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             SyncStatus = "Signed in successfully. Your account's irrigation profiles are ready to download.";
         }
         catch (Exception ex) { SyncStatus = $"Sign-in failed: {ex.Message}"; }
-        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(AccountSummary)); }
+        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(IsGuest)); OnPropertyChanged(nameof(AccountSummary)); OnPropertyChanged(nameof(EmailAddress)); }
     }
 
     private async Task SignOutAsync()
