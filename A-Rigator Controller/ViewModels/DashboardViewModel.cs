@@ -29,6 +29,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _isRefreshing;
     private bool _isCommandRunning;
     private bool _isTerrainModeActive;
+    private string _terrainBiasStatus = "NEUTRAL";
+    private bool _isTerrainModeActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -58,6 +60,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
         StartPathwayCommand = new Command(async () => await StartPathwayAsync(), () => CanStartAutonomous);
         StopPathwayCommand = new Command(async () => await StopPathwayAsync(), () => CanStopAutonomous);
+        StartTerrainCommand = new Command(async () => await StartTerrainAsync(), () => CanStartAutonomous);
+        StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopAutonomous && IsTerrainModeActive);
+        TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft, "LEFT"), () => CanSetTerrainBias);
+        TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight, "RIGHT"), () => CanSetTerrainBias);
+        TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter, "NEUTRAL"), () => CanSetTerrainBias);
         StartTerrainCommand = new Command(async () => await StartTerrainAsync(), () => CanStartAutonomous);
         TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft), () => CanAdjustTerrainBias);
         TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
@@ -429,6 +436,54 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         NotifyControlStateChanged();
     }
 
+    private async Task StartTerrainAsync()
+    {
+        if (!CanStartAutonomous)
+        {
+            Message = "Connect to A-Rigator before starting Terrain Mode.";
+            return;
+        }
+
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        Message = "Starting Terrain Mode: forward propulsion with continuous steering oscillation...";
+        NotifyControlStateChanged();
+        if (await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None))
+        {
+            IsTerrainModeActive = true;
+            TerrainBiasStatus = "NEUTRAL";
+            Message = "Terrain Mode active. Use LEFT or RIGHT to bias the steering pattern.";
+        }
+    }
+
+    private async Task StopTerrainAsync()
+    {
+        if (!CanStopAutonomous || !IsTerrainModeActive) return;
+        Message = "Stopping Terrain Mode...";
+        if (await SendCommandAsync(RobotControlCommand.TerrainStop, CancellationToken.None))
+        {
+            IsTerrainModeActive = false;
+            TerrainBiasStatus = "NEUTRAL";
+            Message = "Terrain Mode stopped. Propulsion and steering oscillation are disabled.";
+        }
+        await RefreshStatusAsync();
+    }
+
+    private async Task SetTerrainBiasAsync(RobotControlCommand command, string bias)
+    {
+        if (!CanSetTerrainBias)
+        {
+            Message = "Start Terrain Mode before changing its steering bias.";
+            return;
+        }
+
+        if (await SendCommandAsync(command, CancellationToken.None))
+        {
+            TerrainBiasStatus = bias;
+            Message = $"Terrain steering bias set to {bias}. The left-right oscillation continues.";
+        }
+    }
+
     private async Task SetMotorCommandAsync(RobotControlCommand command)
     {
         if (!CanManualControl)
@@ -732,7 +787,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken)
+    private async Task<bool> SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken)
     {
         if (!IsConnected)
         {
@@ -740,14 +795,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             {
                 Message = "Robot disconnected. The ESP32 timeout should stop manual outputs.";
             }
-            return;
+            return false;
         }
 
         if (_latestStatus?.ControlsEnabled == false &&
             command is not RobotControlCommand.Stop and not RobotControlCommand.PumpOff and not RobotControlCommand.Heartbeat)
         {
             Message = "Setup Wi-Fi is open. Motor and pump stay disabled until WPA2 is configured in the firmware.";
-            return;
+            return false;
         }
 
         try
@@ -768,9 +823,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                     IsCommandRunning = false;
                 _commandLock.Release();
             }
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            return false;
         }
         catch (Exception)
         {
@@ -778,6 +835,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             _activeMotorCommand = null;
             _pumpRequested = false;
             NotifyControlStateChanged();
+            return false;
         }
     }
 
@@ -852,6 +910,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (StopTerrainCommand as Command)?.ChangeCanExecute();
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
         (ConnectViaApCommand as Command)?.ChangeCanExecute();
+    }
+
+    private void NotifyTerrainStateChanged()
+    {
+        OnPropertyChanged(nameof(IsTerrainModeActive));
+        OnPropertyChanged(nameof(CanSetTerrainBias));
+        (StopTerrainCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasLeftCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasRightCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasCenterCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
