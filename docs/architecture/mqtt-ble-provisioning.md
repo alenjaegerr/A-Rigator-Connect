@@ -19,7 +19,7 @@ Write UTF-8 text to the MQTT configuration characteristic. Credentials use a chu
 |---|---|
 | `GET` | `CONFIGURED` or `NOT_CONFIGURED` |
 | `BEGIN:<hexLength>` | Starts a transfer; expected hex length must be even and 4–388 |
-| `D000:<hexChunk>` | Appends the next chunk; offset is a zero-padded 3-digit decimal byte offset into the hex stream |
+| `D000:<hexChunk>` | Appends the next chunk; offset is a zero-padded 3-digit decimal character offset into the hex stream |
 | `COMMIT` | Validates and saves credentials; returns `OK:SAVED` |
 | `CLEAR` | `OK:CLEARED` after removing saved credentials |
 
