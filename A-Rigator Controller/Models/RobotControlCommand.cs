@@ -8,6 +8,8 @@ public enum RobotControlCommand
     SteerRight,
     SteerCenter,
     NozzleSweep,
+    ManualIrrigationStart,
+    ManualIrrigationStop,
     Stop,
     PumpOn,
     PumpOff,
