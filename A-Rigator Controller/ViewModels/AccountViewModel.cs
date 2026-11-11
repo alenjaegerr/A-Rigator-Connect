@@ -42,7 +42,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         DownloadPublicProfileCommand = new Command<PublicIrrigationProfileItem>(
             async item => await DownloadPublicProfileAsync(item));
 
-        _supabaseUrl = _supabaseConfigService.Url ?? string.Empty;
+        _supabaseUrl = _supabaseConfigService.Url ?? "https://pcgbyowcqpgtkfbdfwfb.supabase.co";
         _supabaseAnonKey = _supabaseConfigService.AnonKey ?? string.Empty;
         _backendApiUrl = _backendConfigService.ApiBaseUrl ?? string.Empty;
 
