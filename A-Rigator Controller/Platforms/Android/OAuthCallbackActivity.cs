@@ -16,8 +16,7 @@ namespace A_Rigator_Controller;
         Intent.CategoryDefault,
         Intent.CategoryBrowsable
     },
-    DataScheme = "com.companyname.arigatorcontroller",
-    DataHost = "oauth2redirect")]
+    DataScheme = "com.companyname.arigatorcontroller")]
 public class OAuthCallbackActivity : WebAuthenticatorCallbackActivity
 {
 }
