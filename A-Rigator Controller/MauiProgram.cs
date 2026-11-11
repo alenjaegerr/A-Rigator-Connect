@@ -40,7 +40,6 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<IUserProfileService, UserProfileService>();
             builder.Services.AddSingleton<ISupabaseConfigService, SupabaseConfigService>();
             builder.Services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
-            builder.Services.AddSingleton<IIrrigationProfileCatalogService, IrrigationProfileCatalogService>();
             builder.Services.AddSingleton<IIrrigationProfileCloudService, IrrigationProfileCloudService>();
             builder.Services.AddSingleton<IBackendConfigService, BackendConfigService>();
             builder.Services.AddSingleton<ISecureSessionStorage, SecureSessionStorage>();
