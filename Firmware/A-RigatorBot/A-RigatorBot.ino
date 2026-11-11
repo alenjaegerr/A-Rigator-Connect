@@ -7,6 +7,7 @@
 #include <BLESecurity.h>
 #include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
+#include "RobotMqttConfig.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
@@ -44,6 +45,7 @@ static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-
 static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_AP_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_MQTT_CONFIG_CHARACTERISTIC_UUID = "7a1c0007-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
@@ -51,6 +53,9 @@ BLECharacteristic* bleWifiScanCharacteristic = nullptr;
 BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
 BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
 BLECharacteristic* bleApConfigCharacteristic = nullptr;
+BLECharacteristic* bleMqttConfigCharacteristic = nullptr;
+RobotMqttCredentialStore mqttCredentialStore;
+bool mqttCredentialStoreAvailable = false;
 String pendingApPassword;
 volatile bool bleApPasswordChangeRequested = false;
 String bleCredentialHexBuffer;
@@ -158,6 +163,53 @@ class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
     pendingApPassword = newPassword;
     bleApPasswordChangeRequested = true;
     characteristic->setValue("QUEUED");
+  }
+};
+
+class MqttConfigCommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const String command = characteristic->getValue();
+    if (command == "GET") {
+      characteristic->setValue(
+        mqttCredentialStoreAvailable && mqttCredentialStore.isConfigured()
+          ? "CONFIGURED" : "NOT_CONFIGURED");
+      return;
+    }
+    if (command == "CLEAR") {
+      if (!mqttCredentialStoreAvailable) {
+        characteristic->setValue("ERROR:STORAGE");
+        return;
+      }
+      characteristic->setValue(mqttCredentialStore.clear() ? "OK:CLEARED" : "ERROR:CLEAR");
+      return;
+    }
+    // Format: SET|<broker-username>|<broker-password>
+    if (!command.startsWith("SET|")) {
+      characteristic->setValue("ERROR:COMMAND");
+      return;
+    }
+    const int separator = command.indexOf('|', 4);
+    if (separator <= 4 || separator >= (int)command.length() - 1) {
+      characteristic->setValue("ERROR:FORMAT");
+      return;
+    }
+    const String username = command.substring(4, separator);
+    const String password = command.substring(separator + 1);
+    if (username.length() > 64 || password.length() > 128) {
+      characteristic->setValue("ERROR:LENGTH");
+      return;
+    }
+    if (!mqttCredentialStoreAvailable) {
+      characteristic->setValue("ERROR:STORAGE");
+      return;
+    }
+    if (mqttCredentialStore.save(username, password)) {
+      characteristic->setValue("OK:SAVED");
+      Serial.println(">> MQTT credentials received over BLE and saved in NVS.");
+    } else {
+      characteristic->setValue("ERROR:SAVE");
+      Serial.println(">> MQTT credential save failed.");
+    }
   }
 };
 
@@ -459,6 +511,14 @@ void startBleDiscovery() {
   bleApConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   bleApConfigCharacteristic->setCallbacks(new ApConfigCommandCallbacks());
   bleApConfigCharacteristic->setValue("READY");
+
+  bleMqttConfigCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_MQTT_CONFIG_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
+  );
+  bleMqttConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
+  bleMqttConfigCharacteristic->setCallbacks(new MqttConfigCommandCallbacks());
+  bleMqttConfigCharacteristic->setValue("NOT_CONFIGURED");
 
   BLESecurity* security = new BLESecurity();
   security->setAuthenticationMode(true, false, true);
@@ -1689,6 +1749,15 @@ void setup() {
 
   // Initialize BLE before first-boot password generation so the ESP32 hardware
   // RNG has an active radio entropy source.
+  if (mqttCredentialStore.begin()) {
+    mqttCredentialStoreAvailable = true;
+    Serial.println(mqttCredentialStore.isConfigured()
+      ? ">> MQTT credentials found in NVS."
+      : ">> MQTT credentials not configured. Use BLE setup.");
+  } else {
+    Serial.println(">> MQTT credential storage unavailable.");
+  }
+
   startBleDiscovery();
   if (apConfigStoreAvailable) {
     apPassword = apConfigStore.load();
