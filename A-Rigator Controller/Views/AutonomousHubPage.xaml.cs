@@ -15,4 +15,9 @@ public partial class AutonomousHubPage : ContentPage
     {
         await Shell.Current.GoToAsync("pathway");
     }
+
+    private async void OnTerrainModeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("terrain");
+    }
 }
