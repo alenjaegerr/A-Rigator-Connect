@@ -14,7 +14,6 @@ public partial class AppShell : Shell
         WelcomePage welcomePage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
-        PathwayModePage pathwayModePage,
         IUserProfileService userProfileService)
     {
         InitializeComponent();
