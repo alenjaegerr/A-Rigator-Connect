@@ -38,8 +38,7 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="TERRAIN MODE" FontSize="12" FontAttributes="Bold" TextColor="#2879A8" />
                     <Label Text="Twist-car movement" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                    <Label Text="Available: continuous forward propulsion with left-center-right-center steering oscillation. The operator can bias the pattern left or right without stopping the cycle." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="The steering cycle and directional-bias controls are available on the dedicated Terrain screen." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Continuous forward propulsion with a left-center-right-center steering cycle. Use the bias controls to favor left or right while the cycle continues." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Label Text="No obstacle avoidance is active in this experimental version. Test in a clear area under direct supervision." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Button Text="OPEN TERRAIN MODE" Clicked="OnTerrainModeClicked" MinimumHeightRequest="46" BackgroundColor="#2879A8" TextColor="White" />
                     <Border Padding="9,6" HorizontalOptions="Start" BackgroundColor="{AppThemeBinding Light=#E8F0F6, Dark=#203341}" StrokeThickness="0" StrokeShape="RoundRectangle 10">
@@ -51,7 +50,7 @@
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="CURRENT FIRMWARE CAPABILITY" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-                    <Label Text="Pathway Mode now uses the existing line-tracing controller with a connection heartbeat failsafe. Terrain Mode uses the dedicated twist-steering controller. It does not currently provide obstacle avoidance." FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="Pathway uses the two line sensors and selected irrigation profile. Terrain uses continuous forward propulsion and steering oscillation with operator bias. Terrain does not currently provide obstacle avoidance." FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ModeStatus}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Button Text="EMERGENCY STOP AUTONOMOUS" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
                 </VerticalStackLayout>
