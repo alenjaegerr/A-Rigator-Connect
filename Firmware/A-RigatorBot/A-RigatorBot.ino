@@ -804,7 +804,7 @@ void handleReverse() {
 
 void handleSteerLeft() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   writeServo(STEER_SERVO_PIN, STEER_LEFT);
@@ -813,7 +813,7 @@ void handleSteerLeft() {
 
 void handleSteerRight() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   writeServo(STEER_SERVO_PIN, STEER_RIGHT);
@@ -822,7 +822,7 @@ void handleSteerRight() {
 
 void handleSteerCenter() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
