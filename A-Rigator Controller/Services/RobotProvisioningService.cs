@@ -132,6 +132,34 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         }
     }
 
+    public async Task<string> GetConnectedRobotHardwareIdAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_connectedDevice is null)
+            throw new InvalidOperationException("Connect to A-Rigator over Bluetooth first.");
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
+            var characteristic = await service.GetCharacteristicAsync(
+                Guid.Parse("7a1c0008-8f2d-4b6a-9c31-4a5249474154"), cancellationToken);
+            if (characteristic is null)
+                throw new InvalidOperationException("This A-Rigator firmware does not expose its hardware ID. Update the ESP32 sketch and reconnect.");
+
+            var read = await characteristic.ReadAsync(cancellationToken);
+            var hardwareId = Encoding.UTF8.GetString(read.data).Trim('\\0', ' ', '\\r', '\\n').ToUpperInvariant();
+            if (hardwareId.Length != 12 || !hardwareId.All(Uri.IsHexDigit))
+                throw new InvalidOperationException("A-Rigator returned an invalid hardware ID.");
+
+            return hardwareId;
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
+    }
+
     public async Task<IReadOnlyList<RobotWifiNetwork>> ScanWifiNetworksAsync(
         CancellationToken cancellationToken = default)
     {
