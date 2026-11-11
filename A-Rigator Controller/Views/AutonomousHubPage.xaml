@@ -26,7 +26,7 @@
                     <Label Text="PATHWAY MODE" FontSize="12" FontAttributes="Bold" TextColor="#238653" />
                     <Label Text="Follow a designated pathway" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     <Label Text="Planned: autonomous line tracing using the left and right line sensors, with irrigation profiles available during operation." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="Dedicated pathway commands and operation telemetry will be connected in the Pathway implementation stage." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Open the dedicated Pathway screen to start and stop line-following and monitor the two line sensors." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Button Text="OPEN PATHWAY MODE" Clicked="OnPathwayModeClicked" MinimumHeightRequest="46" BackgroundColor="#176B45" TextColor="White" />
                     <Border Padding="9,6" HorizontalOptions="Start" BackgroundColor="{AppThemeBinding Light=#E8F3EC, Dark=#263B2D}" StrokeThickness="0" StrokeShape="RoundRectangle 10">
                         <Label Text="INTERFACE FOUNDATION" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
@@ -49,10 +49,10 @@
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="CURRENT FIRMWARE CAPABILITY" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-                    <Label Text="The current firmware exposes a general autonomous start/stop command. Dedicated Pathway and Terrain mode commands are not wired yet." FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="Pathway Mode now uses the existing line-tracing controller with a connection heartbeat failsafe. Terrain Mode still needs its dedicated twist-steering controller." FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ModeStatus}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="START CURRENT ROUTINE" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="48" FontSize="12" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Text="START AUTONOMOUS" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="48" FontSize="12" BackgroundColor="#176B45" TextColor="White" />
                         <Button Grid.Column="1" Text="STOP" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
                     </Grid>
                 </VerticalStackLayout>
