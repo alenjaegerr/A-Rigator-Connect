@@ -28,7 +28,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _hasEverConnected;
     private bool _isRefreshing;
     private bool _isCommandRunning;
-    private bool _isTerrainModeActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -67,7 +66,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft), () => CanAdjustTerrainBias);
         TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
-        StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanAdjustTerrainBias);
+        StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
         ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected && !IsConnecting);
     }
@@ -209,7 +208,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool CanStopAutonomous => CanControl && IsAutonomous;
 
-    public bool CanAdjustTerrainBias => CanControl && IsAutonomous && _isTerrainModeActive;
+    public bool IsTerrainModeActive => string.Equals(_latestStatus?.AutonomousMode, "TERRAIN", StringComparison.OrdinalIgnoreCase);
+
+    public bool CanAdjustTerrainBias => CanControl && IsAutonomous && IsTerrainModeActive;
+
+    public bool CanStopTerrain => CanControl && IsAutonomous && IsTerrainModeActive;
 
     public bool CanManualControl => CanControl && !IsAutonomous;
 
@@ -302,7 +305,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        _isTerrainModeActive = false;
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
 
@@ -384,7 +386,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
         await RefreshStatusAsync();
-        _isTerrainModeActive = IsAutonomous;
         NotifyControlStateChanged();
     }
 
@@ -403,7 +404,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     private async Task StopTerrainAsync()
     {
-        if (!CanAdjustTerrainBias) return;
+        if (!CanStopTerrain) return;
         Message = "Stopping Terrain Mode...";
         await SendCommandAsync(RobotControlCommand.TerrainStop, CancellationToken.None);
         _isTerrainModeActive = false;
@@ -795,8 +796,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ConnectionRecoveryMessage));
             OnPropertyChanged(nameof(IsConnected));
             OnPropertyChanged(nameof(IsConnecting));
-            if (state != ConnectionState.Connected) _isTerrainModeActive = false;
-            OnPropertyChanged(nameof(CanControl));
+                OnPropertyChanged(nameof(CanControl));
             OnPropertyChanged(nameof(IsControlWarningVisible));
             OnPropertyChanged(nameof(ControlAccessMessage));
             NotifyControlStateChanged();
@@ -809,7 +809,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsAutonomous));
         OnPropertyChanged(nameof(CanStartAutonomous));
         OnPropertyChanged(nameof(CanStopAutonomous));
+        OnPropertyChanged(nameof(IsTerrainModeActive));
         OnPropertyChanged(nameof(CanAdjustTerrainBias));
+        OnPropertyChanged(nameof(CanStopTerrain));
         OnPropertyChanged(nameof(CanManualControl));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
