@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Windows.Input;
 using A_Rigator_Controller.Services;
 using Microsoft.Maui.Media;
+using Microsoft.Maui.ApplicationModel.DataTransfer;
 using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller.ViewModels;
