@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.TerrainModePage"
+             x:DataType="viewmodels:DashboardViewModel"
+             Title="Terrain Mode"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="18">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Terrain Mode" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                <Label Text="Twist-car movement with operator-controlled steering bias." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+            </VerticalStackLayout>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="MOVEMENT SEQUENCE" FontSize="12" FontAttributes="Bold" TextColor="#2879A8" />
+                    <Label Text="Forward propulsion stays active while the steering servo cycles:" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,Auto,*,Auto,*,Auto,*" ColumnSpacing="4">
+                        <Label Text="LEFT" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="→" HorizontalTextAlignment="Center" />
+                        <Label Grid.Column="2" Text="CENTER" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="3" Text="→" HorizontalTextAlignment="Center" />
+                        <Label Grid.Column="4" Text="RIGHT" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="5" Text="→" HorizontalTextAlignment="Center" />
+                        <Label Grid.Column="6" Text="CENTER" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    </Grid>
+                    <Label Text="The current calibrated steering limits are used. Direction bias offsets the sweep by 10° while clamping to those limits." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="TERRAIN CONTROLS" FontSize="12" FontAttributes="Bold" TextColor="#2879A8" />
+                    <Button Text="START TWIST MOVEMENT" Command="{Binding StartTerrainCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                    <Label Text="STEERING BIAS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="BIAS LEFT" Command="{Binding TerrainBiasLeftCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
+                        <Button Grid.Column="1" Text="NEUTRAL" Command="{Binding TerrainBiasCenterCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
+                        <Button Grid.Column="2" Text="BIAS RIGHT" Command="{Binding TerrainBiasRightCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
+                    </Grid>
+                    <Button Text="STOP TERRAIN MODE" Command="{Binding StopTerrainCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
+                    <Label Text="{Binding ModeStatus}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Label Text="{Binding Message}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="EXPERIMENTAL · NO OBSTACLE AVOIDANCE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="Terrain Mode does not use obstacle detection or line tracing. Test with the wheels raised first, then at low speed on a clear, flat area. Keep the robot within reach and use STOP if movement is unexpected. The app heartbeat timeout is the backup stop mechanism, not a substitute for supervision." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
