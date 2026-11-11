@@ -4,6 +4,8 @@ public sealed class SupabaseConfigService : ISupabaseConfigService
 {
     private const string UrlKey = "supabase_url";
     private const string AnonKeyKey = "supabase_anon_key";
+    private const string ProjectUrl = "https://pcgbyowcqpgtkfbdfwfb.supabase.co";
+    private const string PublishableKey = "sb_publishable_v4S3sxD0RkOLHEyvnDlXUQ_3VvBd1EL";
 
     public SupabaseConfigService() => LoadFromPreferences();
 
@@ -18,8 +20,8 @@ public sealed class SupabaseConfigService : ISupabaseConfigService
 
     public void LoadFromPreferences()
     {
-        Url = Preferences.Default.Get<string?>(UrlKey, null);
-        AnonKey = Preferences.Default.Get<string?>(AnonKeyKey, null);
+        Url = Preferences.Default.Get<string?>(UrlKey, ProjectUrl);
+        AnonKey = Preferences.Default.Get<string?>(AnonKeyKey, PublishableKey);
     }
 
     public void Save(string url, string anonKey)
