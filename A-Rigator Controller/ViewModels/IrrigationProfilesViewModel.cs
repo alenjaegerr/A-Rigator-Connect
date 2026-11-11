@@ -1,0 +1,155 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Windows.Input;
+using A_Rigator_Controller.Models;
+using A_Rigator_Controller.Services;
+
+namespace A_Rigator_Controller.ViewModels;
+
+public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
+{
+    private readonly IrrigationProfileService _service;
+    private IrrigationProfile? _selectedProfile;
+    private string _name = string.Empty;
+    private string _leftDuration = "3";
+    private string _backDuration = "3";
+    private string _rightDuration = "3";
+    private string _repeatCount = "1";
+    private string _message = "Profiles are stored on this device.";
+    private bool _isEditing;
+
+    public IrrigationProfilesViewModel(IrrigationProfileService service)
+    {
+        _service = service;
+        Profiles = service.Profiles;
+        _selectedProfile = service.SelectedProfile;
+        LoadEditor(_selectedProfile);
+        NewProfileCommand = new Command(CreateNewProfile);
+        SaveCommand = new Command(SaveProfile);
+        DeleteCommand = new Command(DeleteProfile, () => Profiles.Count > 1 && SelectedProfile is not null);
+        DuplicateCommand = new Command(DuplicateProfile, () => SelectedProfile is not null);
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    public ObservableCollection<IrrigationProfile> Profiles { get; }
+    public ICommand NewProfileCommand { get; }
+    public ICommand SaveCommand { get; }
+    public ICommand DeleteCommand { get; }
+    public ICommand DuplicateCommand { get; }
+
+    public IrrigationProfile? SelectedProfile
+    {
+        get => _selectedProfile;
+        set
+        {
+            if (!SetField(ref _selectedProfile, value)) return;
+            if (value is not null)
+            {
+                _service.SelectProfile(value.Id);
+                LoadEditor(value);
+            }
+            RefreshCommands();
+        }
+    }
+
+    public string Name { get => _name; set => SetField(ref _name, value); }
+    public string LeftDuration { get => _leftDuration; set => SetField(ref _leftDuration, value); }
+    public string BackDuration { get => _backDuration; set => SetField(ref _backDuration, value); }
+    public string RightDuration { get => _rightDuration; set => SetField(ref _rightDuration, value); }
+    public string RepeatCount { get => _repeatCount; set => SetField(ref _repeatCount, value); }
+    public string Message { get => _message; private set => SetField(ref _message, value); }
+    public bool IsEditing { get => _isEditing; private set => SetField(ref _isEditing, value); }
+
+    private void CreateNewProfile()
+    {
+        SelectedProfile = null;
+        Name = "New profile";
+        LeftDuration = BackDuration = RightDuration = "3";
+        RepeatCount = "1";
+        IsEditing = true;
+        Message = "Configure the watering durations, then save the profile.";
+    }
+
+    private void SaveProfile()
+    {
+        if (!int.TryParse(LeftDuration, out var left) ||
+            !int.TryParse(BackDuration, out var back) ||
+            !int.TryParse(RightDuration, out var right) ||
+            !int.TryParse(RepeatCount, out var repeat))
+        {
+            Message = "Enter whole numbers for all durations and the repeat count.";
+            return;
+        }
+
+        var profile = new IrrigationProfile
+        {
+            Id = SelectedProfile?.Id ?? Guid.NewGuid().ToString("N"),
+            Name = Name,
+            LeftDurationSeconds = left,
+            BackDurationSeconds = back,
+            RightDurationSeconds = right,
+            RepeatCount = repeat
+        };
+
+        try
+        {
+            _service.SaveProfile(profile);
+            _service.SelectProfile(profile.Id);
+            SelectedProfile = profile;
+            IsEditing = false;
+            Message = $"'{profile.Name}' saved on this device and selected for both operating modes.";
+            RefreshCommands();
+        }
+        catch (Exception ex)
+        {
+            Message = ex.Message;
+        }
+    }
+
+    private void DeleteProfile()
+    {
+        if (SelectedProfile is null || Profiles.Count <= 1) return;
+        var id = SelectedProfile.Id;
+        _service.DeleteProfile(id);
+        SelectedProfile = _service.SelectedProfile;
+        Message = "Profile deleted. The remaining selected profile is active.";
+        RefreshCommands();
+    }
+
+    private void DuplicateProfile()
+    {
+        if (SelectedProfile is null) return;
+        var copy = SelectedProfile.Clone();
+        _service.SaveProfile(copy);
+        SelectedProfile = copy;
+        IsEditing = true;
+        Message = "Profile duplicated. Rename it and save your changes.";
+        RefreshCommands();
+    }
+
+    private void LoadEditor(IrrigationProfile? profile)
+    {
+        if (profile is null) return;
+        Name = profile.Name;
+        LeftDuration = profile.LeftDurationSeconds.ToString();
+        BackDuration = profile.BackDurationSeconds.ToString();
+        RightDuration = profile.RightDurationSeconds.ToString();
+        RepeatCount = profile.RepeatCount.ToString();
+        IsEditing = true;
+    }
+
+    private void RefreshCommands()
+    {
+        (DeleteCommand as Command)?.ChangeCanExecute();
+        (DuplicateCommand as Command)?.ChangeCanExecute();
+    }
+
+    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? name = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        return true;
+    }
+}
