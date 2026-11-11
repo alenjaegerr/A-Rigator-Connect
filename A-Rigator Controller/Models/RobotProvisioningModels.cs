@@ -3,7 +3,8 @@ namespace A_Rigator_Controller.Models;
 public sealed record RobotProvisioningDevice(
     string DeviceId,
     string Name,
-    int SignalStrength);
+    int SignalStrength,
+    string? HardwareId = null);
 
 public sealed record RobotWifiNetwork(
     string Ssid,
