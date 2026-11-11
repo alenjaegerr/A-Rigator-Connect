@@ -283,9 +283,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        Message = "Sending autonomous start command to A-Rigator...";
+        Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
 
+        if (!await ApplySelectedIrrigationProfileAsync())
+            return;
+
+        Message = "Sending autonomous start command to A-Rigator...";
         await SendCommandAsync(RobotControlCommand.AutonomousStart, CancellationToken.None);
         await RefreshStatusAsync();
 
@@ -324,10 +328,36 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        Message = "Starting Pathway Mode: line-following operation...";
+        Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
+        if (!await ApplySelectedIrrigationProfileAsync())
+            return;
+
+        Message = "Starting Pathway Mode: line-following operation...";
         await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None);
         await RefreshStatusAsync();
+    }
+
+    private async Task<bool> ApplySelectedIrrigationProfileAsync()
+    {
+        var profile = _irrigationProfileService.SelectedProfile;
+        if (profile is null)
+        {
+            Message = "Choose an irrigation profile before starting autonomous operation.";
+            return false;
+        }
+
+        try
+        {
+            await _communicationService.ApplyIrrigationProfileAsync(profile, CancellationToken.None);
+            Message = $"'{profile.Name}' synchronized with A-Rigator.";
+            return true;
+        }
+        catch (Exception)
+        {
+            Message = "Could not synchronize the selected irrigation profile. Autonomous operation was not started.";
+            return false;
+        }
     }
 
     private async Task StopPathwayAsync()
