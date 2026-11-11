@@ -18,7 +18,7 @@
                     <Label Text="ACTIVE IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
                     <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="The profile is selected and saved, but its timings are not yet executed by the current irrigation firmware." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="The selected profile is synchronized before Pathway starts. At each irrigation zone, the pump runs through Left → Back → Right using the saved durations and repeat count." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                 </VerticalStackLayout>
             </Border>
 
