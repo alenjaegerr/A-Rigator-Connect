@@ -31,11 +31,11 @@
 
                     <Label Text="1. CHOOSE NOZZLE SWEEP" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
-                        <Button Text="LEFT SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="LeftSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=LeftSweep}" TextColor="White" />
-                        <Button Grid.Column="1" Text="RIGHT SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="RightSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=RightSweep}" TextColor="White" />
-                        <Button Grid.Row="1" Text="BACK SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="BackSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=BackSweep}" TextColor="White" />
-                        <Button Grid.Row="1" Grid.Column="1" Text="BOTH SIDES" Command="{Binding SelectDirectionCommand}" CommandParameter="BothSides" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=BothSides}" TextColor="White" />
-                        <Button Grid.Row="2" Grid.ColumnSpan="2" Text="FULL SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="FullSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=FullSweep}" TextColor="White" />
+                        <Button Text="{Binding LeftModeLabel}" Command="{Binding SelectDirectionCommand}" CommandParameter="LeftSweep" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="{Binding RightModeLabel}" Command="{Binding SelectDirectionCommand}" CommandParameter="RightSweep" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Row="1" Text="{Binding BackModeLabel}" Command="{Binding SelectDirectionCommand}" CommandParameter="BackSweep" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="{Binding BothModeLabel}" Command="{Binding SelectDirectionCommand}" CommandParameter="BothSides" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding FullModeLabel}" Command="{Binding SelectDirectionCommand}" CommandParameter="FullSweep" BackgroundColor="#176B45" TextColor="White" />
                     </Grid>
 
                     <Label Text="2. SET SWEEP TIMER" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
