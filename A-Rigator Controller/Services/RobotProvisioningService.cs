@@ -4,6 +4,7 @@ using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
 using Microsoft.Maui.ApplicationModel;
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
@@ -55,21 +56,31 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             var device = args.Device;
             var advertisedName = device.Name?.Trim();
 
+            // Temporary diagnostics: capture the event before applying the name filter.
+            Debug.WriteLine(
+                $"[BLE DISCOVERY] Event received. Name='{advertisedName ?? "<null>"}', " +
+                $"Id='{device.Id}', RSSI={device.Rssi}");
+
             // Do not rely on an Android BLE service-UUID scan filter here.
             // ESP32 may place the 128-bit provisioning UUID in the scan response,
             // which some Android stacks do not match consistently.
             if (string.IsNullOrWhiteSpace(advertisedName) ||
                 !advertisedName.Contains("A-Rigator", StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.WriteLine("[BLE DISCOVERY] Rejected: device.Name is empty or does not contain 'A-Rigator'.");
                 return;
+            }
 
             var id = device.Id.ToString("D");
             _discoveredDevices[id] = device;
             found[id] = new RobotProvisioningDevice(id, advertisedName, device.Rssi);
+            Debug.WriteLine($"[BLE DISCOVERY] Accepted A-Rigator. Id='{id}', RSSI={device.Rssi}. Total matches={found.Count}.");
         }
 
         _adapter.DeviceDiscovered += OnDeviceDiscovered;
         try
         {
+            Debug.WriteLine("[BLE DISCOVERY] Starting unfiltered BLE scan. Timeout=12000 ms.");
             _adapter.ScanTimeout = 12000;
             // Scan without a platform service filter, then validate the device name
             // in the discovery callback. This avoids false negatives on scan-response
@@ -77,6 +88,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             await _adapter.StartScanningForDevicesAsync(
                 cancellationToken: cancellationToken);
 
+            Debug.WriteLine($"[BLE DISCOVERY] Scan completed. Matching A-Rigator devices={found.Count}.");
             SetState(RobotProvisioningState.Idle);
             return found.Values.OrderByDescending(device => device.SignalStrength).ToArray();
         }
