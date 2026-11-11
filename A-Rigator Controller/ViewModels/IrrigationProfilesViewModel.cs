@@ -67,6 +67,11 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     public string RepeatCount { get => _repeatCount; set { if (SetField(ref _repeatCount, value)) NotifySummary(); } }
     public string Message { get => _message; private set => SetField(ref _message, value); }
 
+    public string LeftModeLabel => DirectionMode == "LeftSweep" ? "✓ LEFT SWEEP" : "LEFT SWEEP";
+    public string RightModeLabel => DirectionMode == "RightSweep" ? "✓ RIGHT SWEEP" : "RIGHT SWEEP";
+    public string BackModeLabel => DirectionMode == "BackSweep" ? "✓ BACK SWEEP" : "BACK SWEEP";
+    public string BothModeLabel => DirectionMode == "BothSides" ? "✓ BOTH SIDES" : "BOTH SIDES";
+    public string FullModeLabel => DirectionMode == "FullSweep" ? "✓ FULL SWEEP" : "FULL SWEEP";
     public bool IsLeftSelected => DirectionMode is "LeftSweep" or "BothSides" or "FullSweep";
     public bool IsBackSelected => DirectionMode is "BackSweep" or "FullSweep";
     public bool IsRightSelected => DirectionMode is "RightSweep" or "BothSides" or "FullSweep";
@@ -160,6 +165,11 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
 
     private void NotifySummary()
     {
+        OnPropertyChanged(nameof(LeftModeLabel));
+        OnPropertyChanged(nameof(RightModeLabel));
+        OnPropertyChanged(nameof(BackModeLabel));
+        OnPropertyChanged(nameof(BothModeLabel));
+        OnPropertyChanged(nameof(FullModeLabel));
         OnPropertyChanged(nameof(IsLeftSelected));
         OnPropertyChanged(nameof(IsBackSelected));
         OnPropertyChanged(nameof(IsRightSelected));
