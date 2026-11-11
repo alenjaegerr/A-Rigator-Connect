@@ -1,10 +1,13 @@
+using A_Rigator_Controller.ViewModels;
+
 namespace A_Rigator_Controller.Views;
 
 public partial class SettingsPage : ContentPage
 {
-    public SettingsPage()
+    public SettingsPage(DashboardViewModel viewModel)
     {
         InitializeComponent();
+        BindingContext = viewModel;
         Shell.SetTabBarIsVisible(this, true);
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
     }
