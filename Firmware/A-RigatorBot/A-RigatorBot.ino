@@ -890,13 +890,13 @@ void handleNozzleSweep() {
 
 void handleSetIrrigationProfile() {
   if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
-    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous irrigation before changing the profile\\"}");
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous irrigation before changing the profile\"}");
     return;
   }
 
   if (!server.hasArg("left") || !server.hasArg("back") ||
       !server.hasArg("right") || !server.hasArg("repeat")) {
-    server.send(400, "application/json", "{\\"success\\":false,\\"message\\":\\"Missing irrigation profile values\\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Missing irrigation profile values\"}");
     return;
   }
 
@@ -907,7 +907,7 @@ void handleSetIrrigationProfile() {
 
   if (left < 1 || left > 60 || back < 1 || back > 60 ||
       right < 1 || right > 60 || repeat < 1 || repeat > 20) {
-    server.send(400, "application/json", "{\\"success\\":false,\\"message\\":\\"Profile values are outside the allowed range\\"}");
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Profile values are outside the allowed range\"}");
     return;
   }
 
@@ -1189,6 +1189,7 @@ void serviceIrrigationSequence() {
     if (irrigationSequencesCompleted >= irrigationRepeatCount) {
       irrigationSequenceActive = false;
       writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+      driveMotor(CMD_CW, FULL_POWER);
       Serial.println(">> [AUTO] Irrigation profile completed.");
       return;
     }
