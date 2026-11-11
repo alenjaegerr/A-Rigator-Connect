@@ -69,6 +69,9 @@ void handleReverse();
 void handleSteerLeft();
 void handleSteerRight();
 void handleSteerCenter();
+void handleNozzleSweep();
+void serviceNozzleSweep();
+void startNozzleSweep();
 void handleStop();
 void handleAutonomousStart();
 void handleAutonomousStop();
@@ -518,6 +521,10 @@ enum RobotMode {
 RobotMode currentMode = MODE_MANUAL;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
+bool nozzleSweepActive = false;
+int nozzleSweepAngle = NOZZLE_MIN_SWEEP;
+int nozzleSweepDirection = 1;
+unsigned long lastNozzleSweepStep = 0;
 unsigned long lastMotorRefresh = 0;
 unsigned long lastManualControlRefresh = 0;
 bool manualControlLeaseActive = false;
@@ -654,6 +661,7 @@ void startWifiApi() {
 	server.on("/api/control/steer/left", HTTP_POST, handleSteerLeft);
 	server.on("/api/control/steer/right", HTTP_POST, handleSteerRight);
 	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
+	server.on("/api/control/nozzle/sweep", HTTP_POST, handleNozzleSweep);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
@@ -829,7 +837,17 @@ void handleSteerCenter() {
   sendControlResponse("steer_center");
 }
 
+void handleNozzleSweep() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual nozzle sweep\\"}");
+    return;
+  }
+  startNozzleSweep();
+  sendControlResponse("nozzle_sweep_started");
+}
+
 void handleStop() {
+  nozzleSweepActive = false;
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -840,6 +858,7 @@ void handleStop() {
 }
 
 void handleAutonomousStart() {
+  nozzleSweepActive = false;
   // Cancel any manual-control lease and start the existing autonomous loop.
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -852,6 +871,7 @@ void handleAutonomousStart() {
 }
 
 void handleAutonomousStop() {
+  nozzleSweepActive = false;
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -923,6 +943,37 @@ void sweepNozzleOnce() {
 	delay(80);
   }
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+}
+
+void startNozzleSweep() {
+  // A manual nozzle sweep must not leave propulsion or irrigation running.
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  currentMode = MODE_MANUAL;
+  nozzleSweepAngle = NOZZLE_MIN_SWEEP;
+  nozzleSweepDirection = 1;
+  lastNozzleSweepStep = 0;
+  nozzleSweepActive = true;
+}
+
+void serviceNozzleSweep() {
+  if (!nozzleSweepActive || millis() - lastNozzleSweepStep < 80) return;
+
+  lastNozzleSweepStep = millis();
+  writeServo(NOZZLE_SERVO_PIN, nozzleSweepAngle);
+
+  if (nozzleSweepDirection > 0 && nozzleSweepAngle >= NOZZLE_MAX_SWEEP) {
+    nozzleSweepDirection = -1;
+  } else if (nozzleSweepDirection < 0 && nozzleSweepAngle <= NOZZLE_MIN_SWEEP) {
+    nozzleSweepActive = false;
+    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+    Serial.println(">> [MANUAL] Nozzle sweep complete.");
+    return;
+  }
+
+  nozzleSweepAngle += nozzleSweepDirection * 15;
 }
 
 // ============================================================================
@@ -1040,7 +1091,7 @@ void executeCommand(char cmd) {
 
 	case 'n': case 'N':
 	  Serial.println(">> [CMD] Sweeping Nozzle...");
-	  sweepNozzleOnce();
+	  startNozzleSweep();
 	  break;
 
 	case 'm': case 'M':
@@ -1162,6 +1213,7 @@ void loop() {
   stationWasConnected = stationConnected;
 
   enforceManualControlTimeout();
+  serviceNozzleSweep();
   refreshMotorShieldKeepAlive();
 
   if (Serial.available() > 0) {
