@@ -1104,6 +1104,10 @@ void handleManualTerrainStart() {
 }
 
 void handleManualTerrainStop() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Manual Terrain Mode cannot be stopped through manual controls while autonomous mode is active\"}");
+    return;
+  }
   manualTerrainModeActive = false;
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
   sendControlResponse("manual_terrain_stopped");
