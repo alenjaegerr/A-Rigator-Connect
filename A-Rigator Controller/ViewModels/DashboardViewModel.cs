@@ -302,6 +302,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
+        _isTerrainModeActive = false;
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
 
@@ -377,13 +378,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        _isTerrainModeActive = true;
+        _isTerrainModeActive = false;
         Message = "Starting Terrain Mode. A-Rigator will move forward while the steering servo oscillates.";
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
-        if (!IsConnected) { _isTerrainModeActive = false; NotifyControlStateChanged(); return; }
-        _isTerrainModeActive = true;
         await RefreshStatusAsync();
+        _isTerrainModeActive = IsAutonomous;
+        NotifyControlStateChanged();
     }
 
     private async Task SetTerrainBiasAsync(RobotControlCommand command)
