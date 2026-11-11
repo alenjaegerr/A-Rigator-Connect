@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Maui.Networking;
 using A_Rigator_Controller.Models;
 using A_Rigator_Controller.Services;
 
@@ -41,6 +42,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _irrigationProfileService = irrigationProfileService;
         _irrigationProfileService.SelectedProfileChanged += OnSelectedIrrigationProfileChanged;
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
+        Connectivity.ConnectivityChanged += OnConnectivityChanged;
 
         ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanManualControl);
         ReverseCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Reverse), () => CanManualControl);
@@ -167,6 +169,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             : _latestStatus.WifiConnected == true
                 ? $"Phone-to-robot link: IoT Wi-Fi · {_latestStatus.WifiIp ?? "IP not reported"}"
                 : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
+
+    public bool IsApModeMobileDataWarningVisible =>
+        _latestStatus?.ConnectionMode == RobotConnectionMode.AccessPoint &&
+        Connectivity.Current.ConnectionProfiles.Contains(ConnectionProfile.Cellular);
+
+    public string ApModeMobileDataWarning =>
+        "Mobile data is enabled. Some Android phones restrict or deprioritize internet/mobile-data traffic while connected to a Wi-Fi access point without internet. This can interrupt the direct A-Rigator AP session. Turn mobile data off if the robot connection becomes unstable. IoT mode uses your router or hotspot network and does not require this AP-only workaround.";
 
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
@@ -652,6 +661,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ConnectionStatus));
         OnPropertyChanged(nameof(ConnectionModeLabel));
         OnPropertyChanged(nameof(ConnectionDetails));
+        OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
+        OnPropertyChanged(nameof(ApModeMobileDataWarning));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
@@ -689,6 +700,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(ConnectionModeLabel));
                 OnPropertyChanged(nameof(ConnectionDetails));
                 OnPropertyChanged(nameof(ConnectionRecoveryMessage));
+            OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
+            OnPropertyChanged(nameof(ApModeMobileDataWarning));
                 OnPropertyChanged(nameof(IsAutonomous));
                 NotifyControlStateChanged();
             }
@@ -798,6 +811,15 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsControlWarningVisible));
             OnPropertyChanged(nameof(ControlAccessMessage));
             NotifyControlStateChanged();
+        });
+    }
+
+    private void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
+            OnPropertyChanged(nameof(ApModeMobileDataWarning));
         });
     }
 
