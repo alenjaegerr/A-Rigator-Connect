@@ -56,6 +56,7 @@ namespace A_Rigator_Controller
             builder.Services.AddTransient<ControlPage>();
             builder.Services.AddTransient<AutonomousHubPage>();
             builder.Services.AddTransient<PathwayModePage>();
+            builder.Services.AddTransient<TerrainModePage>();
             builder.Services.AddTransient<IrrigationProfilesPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
