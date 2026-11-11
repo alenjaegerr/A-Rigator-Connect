@@ -930,9 +930,10 @@ void handleSetIrrigationProfile() {
   const int right = server.arg("right").toInt();
   const int repeat = server.arg("repeat").toInt();
 
-  if (left < 1 || left > 60 || back < 1 || back > 60 ||
-      right < 1 || right > 60 || repeat < 1 || repeat > 20) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"Profile values are outside the allowed range\"}");
+  if (left < 0 || left > 60 || back < 0 || back > 60 ||
+      right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
+      (left == 0 && back == 0 && right == 0)) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Choose at least one direction; selected durations must be 1-60 seconds and unused directions must be 0\"}");
     return;
   }
 
@@ -1179,9 +1180,46 @@ void serviceNozzleSweep() {
 void beginIrrigationPhase() {
   setPump(false);
   irrigationSequenceSpraying = false;
+
+  // Skip every direction whose duration is zero. The app sends zero for
+  // directions that are not part of the selected sweep pattern.
+  const int durations[] = { irrigationLeftSeconds, irrigationBackSeconds, irrigationRightSeconds };
+  while (irrigationSequencePhase < 3 && durations[irrigationSequencePhase] == 0) {
+    irrigationSequencePhase++;
+  }
+
+  if (irrigationSequencePhase >= 3) {
+    irrigationSequencesCompleted++;
+    if (irrigationSequencesCompleted >= irrigationRepeatCount) {
+      irrigationSequenceActive = false;
+      writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+      driveMotor(CMD_CW, FULL_POWER);
+      Serial.println(">> [AUTO] Irrigation profile completed.");
+      return;
+    }
+    irrigationSequencePhase = 0;
+    while (irrigationSequencePhase < 3 && durations[irrigationSequencePhase] == 0) {
+      irrigationSequencePhase++;
+    }
+    if (irrigationSequencePhase >= 3) {
+      irrigationSequenceActive = false;
+      setPump(false);
+      driveMotor(CMD_BRAKE, 0.0);
+      Serial.println(">> [SAFETY] Irrigation profile contains no enabled direction.");
+      return;
+    }
+  }
+
+  // The nozzle is mounted at the rear. Preserve the currently calibrated
+  // 45-135 degree operating envelope and divide it into left, rear, and right
+  // arcs. Each phase sweeps back and forth inside its own sector.
+  const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, 75, 105 };
+  const int sweepMaximums[] = { 75, 105, NOZZLE_MAX_SWEEP };
+  nozzleSweepAngle = sweepMinimums[irrigationSequencePhase];
+  nozzleSweepDirection = 1;
+  lastNozzleSweepStep = millis();
   irrigationPhaseStartedAt = millis();
-  const int nozzlePositions[] = { NOZZLE_MIN_SWEEP, NOZZLE_CENTER, NOZZLE_MAX_SWEEP };
-  writeServo(NOZZLE_SERVO_PIN, nozzlePositions[irrigationSequencePhase]);
+  writeServo(NOZZLE_SERVO_PIN, nozzleSweepAngle);
 }
 
 void startIrrigationSequence() {
@@ -1212,8 +1250,27 @@ void serviceIrrigationSequence() {
       setPump(true);
       irrigationSequenceSpraying = true;
       irrigationPhaseStartedAt = now;
+      lastNozzleSweepStep = now;
     }
     return;
+  }
+
+  // Sweep the nozzle continuously within the active directional arc.
+  if (now - lastNozzleSweepStep >= 80) {
+    lastNozzleSweepStep = now;
+    const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, 75, 105 };
+    const int sweepMaximums[] = { 75, 105, NOZZLE_MAX_SWEEP };
+    const int low = sweepMinimums[irrigationSequencePhase];
+    const int high = sweepMaximums[irrigationSequencePhase];
+    nozzleSweepAngle += nozzleSweepDirection * 5;
+    if (nozzleSweepAngle >= high) {
+      nozzleSweepAngle = high;
+      nozzleSweepDirection = -1;
+    } else if (nozzleSweepAngle <= low) {
+      nozzleSweepAngle = low;
+      nozzleSweepDirection = 1;
+    }
+    writeServo(NOZZLE_SERVO_PIN, nozzleSweepAngle);
   }
 
   const int durations[] = { irrigationLeftSeconds, irrigationBackSeconds, irrigationRightSeconds };
@@ -1221,19 +1278,8 @@ void serviceIrrigationSequence() {
     return;
 
   setPump(false);
+  irrigationSequenceSpraying = false;
   irrigationSequencePhase++;
-  if (irrigationSequencePhase >= 3) {
-    irrigationSequencesCompleted++;
-    if (irrigationSequencesCompleted >= irrigationRepeatCount) {
-      irrigationSequenceActive = false;
-      writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
-      driveMotor(CMD_CW, FULL_POWER);
-      Serial.println(">> [AUTO] Irrigation profile completed.");
-      return;
-    }
-    irrigationSequencePhase = 0;
-  }
-
   beginIrrigationPhase();
 }
 
