@@ -20,5 +20,9 @@ public interface IRobotCommunicationService
 
     Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default);
 
+    Task StartManualIrrigationAsync(CancellationToken cancellationToken = default);
+
+    Task StopManualIrrigationAsync(CancellationToken cancellationToken = default);
+
     void SetRobotAddress(string address);
 }
