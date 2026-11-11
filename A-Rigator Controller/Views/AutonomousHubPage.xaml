@@ -18,6 +18,7 @@
                     <Label Text="ACTIVE IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
                     <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Button Text="MANAGE IRRIGATION PROFILES" Clicked="OnIrrigationProfilesClicked" MinimumHeightRequest="44" BackgroundColor="#52615A" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
