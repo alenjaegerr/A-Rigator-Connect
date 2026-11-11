@@ -1148,6 +1148,7 @@ void startNozzleSweep() {
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   nozzleSweepAngle = NOZZLE_MIN_SWEEP;
   nozzleSweepDirection = 1;
   lastNozzleSweepStep = 0;
@@ -1360,6 +1361,8 @@ void executeCommand(char cmd) {
 		Serial.println(">> [MODE] AUTONOMOUS ENGAGED");
 	  } else {
 		currentMode = MODE_MANUAL;
+        activeAutonomousMode = AUTO_NONE;
+        autonomousControlLeaseActive = false;
 		manualMotorDir = CMD_STOP;
 		driveMotor(CMD_BRAKE, 0.0);
 		setPump(false);
