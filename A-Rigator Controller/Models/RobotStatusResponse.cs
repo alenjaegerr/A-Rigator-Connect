@@ -13,6 +13,9 @@ public sealed class RobotStatusResponse
     [JsonPropertyName("mode")]
     public string? Mode { get; init; }
 
+    [JsonPropertyName("autonomousMode")]
+    public string? AutonomousMode { get; init; }
+
     [JsonPropertyName("pump")]
     public bool? PumpIsOn { get; init; }
 
