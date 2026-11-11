@@ -27,6 +27,7 @@
                         <Label Grid.Column="6" Text="CENTER" FontAttributes="Bold" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     </Grid>
                     <Label Text="The current calibrated steering limits are used. Direction bias offsets the sweep by 10° while clamping to those limits." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Terrain v1 is movement-only. It does not trigger irrigation zones; the saved profile is used by Pathway Mode." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
