@@ -239,6 +239,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         private set => SetField(ref _isManualTerrainModeActive, value);
     }
 
+    public string ManualTerrainStatus => IsManualTerrainModeActive ? "ACTIVE" : "OFF";
+
     public bool IsControlWarningVisible => !CanControl;
 
     public string ControlAccessMessage => !IsConnected
@@ -904,6 +906,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanStopTerrain));
         OnPropertyChanged(nameof(CanManualControl));
         OnPropertyChanged(nameof(IsManualTerrainModeActive));
+        OnPropertyChanged(nameof(ManualTerrainStatus));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
         OnPropertyChanged(nameof(IsControlWarningVisible));
