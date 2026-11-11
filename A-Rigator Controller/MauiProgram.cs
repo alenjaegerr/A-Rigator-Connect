@@ -52,7 +52,8 @@ namespace A_Rigator_Controller
 
             builder.Services.AddTransient<MainPage>();
             builder.Services.AddTransient<ControlPage>();
-            builder.Services.AddTransient<TelemetryPage>();
+            builder.Services.AddTransient<AutonomousHubPage>();
+            builder.Services.AddTransient<IrrigationProfilesPage>();
             builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
             builder.Services.AddTransient<RemoteWifiSetupPage>();
