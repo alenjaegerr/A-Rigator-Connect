@@ -89,6 +89,9 @@ void handleTerrainBiasRight();
 void handleTerrainBiasCenter();
 void handleTerrainStop();
 void runTerrainStep();
+void handleManualTerrainStart();
+void handleManualTerrainStop();
+void serviceManualTerrainMode();
 void enforceAutonomousControlTimeout();
 void handlePumpOn();
 void handlePumpOff();
@@ -545,6 +548,9 @@ unsigned long lastTerrainSteeringStep = 0;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
 bool nozzleSweepActive = false;
+bool manualTerrainModeActive = false;
+int manualTerrainSteeringAngle = STEER_LEFT;
+unsigned long lastManualTerrainSteeringStep = 0;
 int irrigationLeftSeconds = 3;
 int irrigationBackSeconds = 3;
 int irrigationRightSeconds = 3;
@@ -725,6 +731,8 @@ void startWifiApi() {
     server.on("/api/control/terrain/bias/right", HTTP_POST, handleTerrainBiasRight);
     server.on("/api/control/terrain/bias/center", HTTP_POST, handleTerrainBiasCenter);
     server.on("/api/control/terrain/stop", HTTP_POST, handleTerrainStop);
+    server.on("/api/control/manual-terrain/start", HTTP_POST, handleManualTerrainStart);
+    server.on("/api/control/manual-terrain/stop", HTTP_POST, handleManualTerrainStop);
 	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
 	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
 	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
@@ -888,6 +896,7 @@ void handleSteerLeft() {
     server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
+  manualTerrainModeActive = false;
   writeServo(STEER_SERVO_PIN, STEER_LEFT);
   sendControlResponse("steer_left");
 }
@@ -897,6 +906,7 @@ void handleSteerRight() {
     server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
+  manualTerrainModeActive = false;
   writeServo(STEER_SERVO_PIN, STEER_RIGHT);
   sendControlResponse("steer_right");
 }
@@ -906,6 +916,7 @@ void handleSteerCenter() {
     server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
+  manualTerrainModeActive = false;
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
   sendControlResponse("steer_center");
 }
@@ -980,6 +991,7 @@ void handleIrrigationStop() {
 }
 
 void handleStop() {
+  manualTerrainModeActive = false;
   autonomousControlLeaseActive = false;
   irrigationSequenceActive = false;
   irrigationSequenceSpraying = false;
@@ -996,6 +1008,7 @@ void handleStop() {
 }
 
 void handleAutonomousStart() {
+  manualTerrainModeActive = false;
   nozzleSweepActive = false;
   irrigationSequenceActive = false;
   irrigationSequenceSpraying = false;
@@ -1070,6 +1083,38 @@ void handleTerrainBiasCenter() { setTerrainBias(0, "terrain_bias_center"); }
 void handleTerrainStop() {
   handleAutonomousStop();
   Serial.println(">> [TERRAIN] Twist movement stopped.");
+}
+
+// Manual Terrain Mode is independent of autonomous terrain navigation.
+// It only oscillates the steering servo; propulsion remains user-controlled.
+void handleManualTerrainStart() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before enabling manual terrain steering\"}");
+    return;
+  }
+  manualTerrainModeActive = true;
+  manualTerrainSteeringAngle = STEER_LEFT;
+  lastManualTerrainSteeringStep = 0;
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  writeServo(STEER_SERVO_PIN, manualTerrainSteeringAngle);
+  sendControlResponse("manual_terrain_started");
+  Serial.println(">> [MANUAL TERRAIN] Steering oscillation started; propulsion remains manual.");
+}
+
+void handleManualTerrainStop() {
+  manualTerrainModeActive = false;
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  sendControlResponse("manual_terrain_stopped");
+  Serial.println(">> [MANUAL TERRAIN] Steering oscillation stopped and centered.");
+}
+
+void serviceManualTerrainMode() {
+  if (!manualTerrainModeActive || currentMode != MODE_MANUAL) return;
+  if (millis() - lastManualTerrainSteeringStep < TERRAIN_STEERING_INTERVAL_MS) return;
+  lastManualTerrainSteeringStep = millis();
+  manualTerrainSteeringAngle = manualTerrainSteeringAngle == STEER_LEFT ? STEER_RIGHT : STEER_LEFT;
+  writeServo(STEER_SERVO_PIN, manualTerrainSteeringAngle);
 }
 
 void runTerrainStep() {
@@ -1621,6 +1666,7 @@ void loop() {
   enforceManualControlTimeout();
   enforceAutonomousControlTimeout();
   serviceNozzleSweep();
+  serviceManualTerrainMode();
   if (irrigationSequenceActive && irrigationSequenceManual && currentMode == MODE_MANUAL)
     serviceIrrigationSequence();
   refreshMotorShieldKeepAlive();
