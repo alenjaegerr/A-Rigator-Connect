@@ -58,11 +58,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         StartPathwayCommand = new Command(async () => await StartPathwayAsync(), () => CanStartAutonomous);
         StopPathwayCommand = new Command(async () => await StopPathwayAsync(), () => CanStopAutonomous);
         StartTerrainCommand = new Command(async () => await StartTerrainAsync(), () => CanStartAutonomous);
-        StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopAutonomous && IsTerrainModeActive);
-        TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft, "LEFT"), () => CanSetTerrainBias);
-        TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight, "RIGHT"), () => CanSetTerrainBias);
-        TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter, "NEUTRAL"), () => CanSetTerrainBias);
-        StartTerrainCommand = new Command(async () => await StartTerrainAsync(), () => CanStartAutonomous);
         TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft), () => CanAdjustTerrainBias);
         TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
