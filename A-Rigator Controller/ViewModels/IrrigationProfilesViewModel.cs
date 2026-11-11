@@ -12,12 +12,10 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     private readonly IrrigationProfileService _service;
     private IrrigationProfile? _selectedProfile;
     private string _name = string.Empty;
-    private string _leftDuration = "3";
-    private string _backDuration = "3";
-    private string _rightDuration = "3";
+    private string _directionMode = "FullSweep";
+    private int _durationSeconds = 3;
     private string _repeatCount = "1";
     private string _message = "Profiles are stored on this device.";
-    private bool _isEditing;
 
     public IrrigationProfilesViewModel(IrrigationProfileService service)
     {
@@ -29,6 +27,9 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
         SaveCommand = new Command(SaveProfile);
         DeleteCommand = new Command(DeleteProfile, () => Profiles.Count > 1 && SelectedProfile is not null);
         DuplicateCommand = new Command(DuplicateProfile, () => SelectedProfile is not null);
+        SelectDirectionCommand = new Command<string>(SelectDirection);
+        IncreaseDurationCommand = new Command(() => DurationSeconds = Math.Min(60, DurationSeconds + 1));
+        DecreaseDurationCommand = new Command(() => DurationSeconds = Math.Max(1, DurationSeconds - 1));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -37,6 +38,9 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     public ICommand SaveCommand { get; }
     public ICommand DeleteCommand { get; }
     public ICommand DuplicateCommand { get; }
+    public ICommand SelectDirectionCommand { get; }
+    public ICommand IncreaseDurationCommand { get; }
+    public ICommand DecreaseDurationCommand { get; }
 
     public IrrigationProfile? SelectedProfile
     {
@@ -44,76 +48,93 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
         set
         {
             if (!SetField(ref _selectedProfile, value)) return;
-            if (value is not null)
-            {
-                _service.SelectProfile(value.Id);
-                LoadEditor(value);
-            }
+            if (value is not null) { _service.SelectProfile(value.Id); LoadEditor(value); }
             RefreshCommands();
         }
     }
 
     public string Name { get => _name; set => SetField(ref _name, value); }
-    public string LeftDuration { get => _leftDuration; set => SetField(ref _leftDuration, value); }
-    public string BackDuration { get => _backDuration; set => SetField(ref _backDuration, value); }
-    public string RightDuration { get => _rightDuration; set => SetField(ref _rightDuration, value); }
-    public string RepeatCount { get => _repeatCount; set => SetField(ref _repeatCount, value); }
+    public string DirectionMode
+    {
+        get => _directionMode;
+        set { if (SetField(ref _directionMode, value)) NotifySummary(); }
+    }
+    public int DurationSeconds
+    {
+        get => _durationSeconds;
+        set { if (SetField(ref _durationSeconds, Math.Clamp(value, 1, 60))) NotifySummary(); }
+    }
+    public string RepeatCount { get => _repeatCount; set { if (SetField(ref _repeatCount, value)) NotifySummary(); } }
     public string Message { get => _message; private set => SetField(ref _message, value); }
-    public bool IsEditing { get => _isEditing; private set => SetField(ref _isEditing, value); }
+
+    public bool IsLeftSelected => DirectionMode is "LeftSweep" or "BothSides" or "FullSweep";
+    public bool IsBackSelected => DirectionMode is "BackSweep" or "FullSweep";
+    public bool IsRightSelected => DirectionMode is "RightSweep" or "BothSides" or "FullSweep";
+    public int SelectedDirectionCount => (IsLeftSelected ? 1 : 0) + (IsBackSelected ? 1 : 0) + (IsRightSelected ? 1 : 0);
+    public int TotalSpraySeconds => DurationSeconds * SelectedDirectionCount * (int.TryParse(RepeatCount, out var n) ? Math.Clamp(n, 1, 20) : 1);
+    public string SequenceSummary => DirectionMode switch
+    {
+        "LeftSweep" => "Left sweep",
+        "RightSweep" => "Right sweep",
+        "BackSweep" => "Back sweep",
+        "BothSides" => "Left sweep → Right sweep",
+        _ => "Left sweep → Back sweep → Right sweep"
+    };
+    public string TotalTimeText => $"Estimated spray time: {TotalSpraySeconds} seconds (excluding direction changes)";
+    public string EnabledDirectionsText =>
+        $"{(IsLeftSelected ? $"Left {DurationSeconds}s" : "Left off")}  •  " +
+        $"{(IsBackSelected ? $"Back {DurationSeconds}s" : "Back off")}  •  " +
+        $"{(IsRightSelected ? $"Right {DurationSeconds}s" : "Right off")}";
+
+    private void SelectDirection(string? mode)
+    {
+        if (mode is not ("LeftSweep" or "RightSweep" or "BackSweep" or "BothSides" or "FullSweep")) return;
+        DirectionMode = mode;
+    }
 
     private void CreateNewProfile()
     {
         SelectedProfile = null;
         Name = "New profile";
-        LeftDuration = BackDuration = RightDuration = "3";
+        DirectionMode = "FullSweep";
+        DurationSeconds = 3;
         RepeatCount = "1";
-        IsEditing = true;
-        Message = "Configure the watering durations, then save the profile.";
+        Message = "Choose a sweep pattern and set its timer.";
     }
 
     private void SaveProfile()
     {
-        if (!int.TryParse(LeftDuration, out var left) ||
-            !int.TryParse(BackDuration, out var back) ||
-            !int.TryParse(RightDuration, out var right) ||
-            !int.TryParse(RepeatCount, out var repeat))
+        if (!int.TryParse(RepeatCount, out var repeat))
         {
-            Message = "Enter whole numbers for all durations and the repeat count.";
+            Message = "Enter a whole number for the number of passes.";
             return;
         }
-
         var profile = new IrrigationProfile
         {
             Id = SelectedProfile?.Id ?? Guid.NewGuid().ToString("N"),
             Name = Name,
-            LeftDurationSeconds = left,
-            BackDurationSeconds = back,
-            RightDurationSeconds = right,
+            DirectionMode = DirectionMode,
+            DurationSeconds = DurationSeconds,
             RepeatCount = repeat
         };
-
+        profile.ApplyDirectionMode();
         try
         {
             _service.SaveProfile(profile);
             _service.SelectProfile(profile.Id);
             SelectedProfile = profile;
-            IsEditing = false;
-            Message = $"'{profile.Name}' saved on this device and selected for both operating modes.";
+            Message = $"'{profile.Name}' saved. Unselected directions are set to 0 seconds.";
             RefreshCommands();
         }
-        catch (Exception ex)
-        {
-            Message = ex.Message;
-        }
+        catch (Exception ex) { Message = ex.Message; }
     }
 
     private void DeleteProfile()
     {
         if (SelectedProfile is null || Profiles.Count <= 1) return;
-        var id = SelectedProfile.Id;
-        _service.DeleteProfile(id);
+        _service.DeleteProfile(SelectedProfile.Id);
         SelectedProfile = _service.SelectedProfile;
-        Message = "Profile deleted. The remaining selected profile is active.";
+        Message = "Profile deleted.";
         RefreshCommands();
     }
 
@@ -123,7 +144,6 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
         var copy = SelectedProfile.Clone();
         _service.SaveProfile(copy);
         SelectedProfile = copy;
-        IsEditing = true;
         Message = "Profile duplicated. Rename it and save your changes.";
         RefreshCommands();
     }
@@ -132,11 +152,22 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     {
         if (profile is null) return;
         Name = profile.Name;
-        LeftDuration = profile.LeftDurationSeconds.ToString();
-        BackDuration = profile.BackDurationSeconds.ToString();
-        RightDuration = profile.RightDurationSeconds.ToString();
+        DirectionMode = profile.DirectionMode;
+        DurationSeconds = profile.DurationSeconds;
         RepeatCount = profile.RepeatCount.ToString();
-        IsEditing = true;
+        NotifySummary();
+    }
+
+    private void NotifySummary()
+    {
+        OnPropertyChanged(nameof(IsLeftSelected));
+        OnPropertyChanged(nameof(IsBackSelected));
+        OnPropertyChanged(nameof(IsRightSelected));
+        OnPropertyChanged(nameof(SelectedDirectionCount));
+        OnPropertyChanged(nameof(TotalSpraySeconds));
+        OnPropertyChanged(nameof(SequenceSummary));
+        OnPropertyChanged(nameof(TotalTimeText));
+        OnPropertyChanged(nameof(EnabledDirectionsText));
     }
 
     private void RefreshCommands()
@@ -149,7 +180,10 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     {
         if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        OnPropertyChanged(name);
         return true;
     }
+
+    private void OnPropertyChanged(string? name) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
