@@ -305,7 +305,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
 
-        if (!await ApplySelectedIrrigationProfileAsync())
+        if (!await TryApplySelectedIrrigationProfileAsync())
             return;
 
         Message = "Sending autonomous start command to A-Rigator...";
