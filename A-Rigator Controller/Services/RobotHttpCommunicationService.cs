@@ -221,6 +221,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             {
                 State = state,
                 Mode = mode,
+                AutonomousMode = statusResponse.AutonomousMode,
                 PumpIsOn = statusResponse.PumpIsOn ?? false,
                 ControlsEnabled = statusResponse.ControlsEnabled,
                 WifiConnected = statusResponse.WifiConnected,
