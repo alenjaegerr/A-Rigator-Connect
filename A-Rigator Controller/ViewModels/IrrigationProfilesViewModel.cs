@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Maui.ApplicationModel;
 using A_Rigator_Controller.Models;
 using A_Rigator_Controller.Services;
 
