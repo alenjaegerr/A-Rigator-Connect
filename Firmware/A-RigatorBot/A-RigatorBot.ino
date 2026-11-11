@@ -957,13 +957,12 @@ void handleTerrainStop() {
 }
 
 void runTerrainStep() {
-  driveMotor(CMD_CW, FULL_POWER);
   if (millis() - lastTerrainSteeringStep < TERRAIN_STEERING_INTERVAL_MS) return;
   lastTerrainSteeringStep = millis();
 
   const int baseAngle = TERRAIN_STEERING_PATTERN[terrainPatternIndex];
   const int biasedAngle = constrain(
-      baseAngle - (terrainBias * TERRAIN_BIAS_OFFSET_DEGREES),
+      baseAngle + (terrainBias * TERRAIN_BIAS_OFFSET_DEGREES),
       STEER_LEFT,
       STEER_RIGHT);
   writeServo(STEER_SERVO_PIN, biasedAngle);
