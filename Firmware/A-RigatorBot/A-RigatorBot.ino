@@ -954,6 +954,7 @@ void configureManualNozzleSweep(int minimumAngle, int maximumAngle) {
   nozzleSweepDirection = 1;
   lastNozzleSweepStep = 0;
   nozzleSweepActive = true;
+  refreshManualControlLease();
 }
 
 void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
@@ -1257,6 +1258,8 @@ void enforceManualControlTimeout() {
       irrigationSequenceManual = false;
       writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
     }
+    nozzleSweepActive = false;
+    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
 	manualTerrainModeActive = false;
     writeServo(STEER_SERVO_PIN, STEER_CENTER);
 	manualControlLeaseActive = false;
