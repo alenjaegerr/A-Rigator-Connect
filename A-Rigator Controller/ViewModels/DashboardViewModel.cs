@@ -28,6 +28,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _hasEverConnected;
     private bool _isRefreshing;
     private bool _isCommandRunning;
+    private bool _isTerrainModeActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -57,6 +58,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
         StartPathwayCommand = new Command(async () => await StartPathwayAsync(), () => CanStartAutonomous);
         StopPathwayCommand = new Command(async () => await StopPathwayAsync(), () => CanStopAutonomous);
+        StartTerrainCommand = new Command(async () => await StartTerrainAsync(), () => CanStartAutonomous);
+        TerrainBiasLeftCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasLeft), () => CanAdjustTerrainBias);
+        TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
+        TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
+        StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanAdjustTerrainBias);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
         ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected && !IsConnecting);
     }
@@ -198,6 +204,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool CanStopAutonomous => CanControl && IsAutonomous;
 
+    public bool CanAdjustTerrainBias => CanControl && IsAutonomous && _isTerrainModeActive;
+
     public bool CanManualControl => CanControl && !IsAutonomous;
 
     public bool IsControlWarningVisible => !CanControl;
@@ -239,6 +247,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public ICommand StartPathwayCommand { get; }
 
     public ICommand StopPathwayCommand { get; }
+
+    public ICommand StartTerrainCommand { get; }
+    public ICommand TerrainBiasLeftCommand { get; }
+    public ICommand TerrainBiasRightCommand { get; }
+    public ICommand TerrainBiasCenterCommand { get; }
+    public ICommand StopTerrainCommand { get; }
 
     public ICommand RetryConnectionCommand { get; }
 
@@ -366,6 +380,46 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         Message = "Stopping Pathway Mode...";
         await SendCommandAsync(RobotControlCommand.PathwayStop, CancellationToken.None);
         await RefreshStatusAsync();
+    }
+
+    private async Task StartTerrainAsync()
+    {
+        if (!CanStartAutonomous)
+        {
+            Message = "Connect to A-Rigator before starting Terrain Mode.";
+            return;
+        }
+
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        _isTerrainModeActive = true;
+        Message = "Starting Terrain Mode. A-Rigator will move forward while the steering servo oscillates.";
+        NotifyControlStateChanged();
+        await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
+        await RefreshStatusAsync();
+    }
+
+    private async Task SetTerrainBiasAsync(RobotControlCommand command)
+    {
+        if (!CanAdjustTerrainBias) return;
+        var direction = command switch
+        {
+            RobotControlCommand.TerrainBiasLeft => "left",
+            RobotControlCommand.TerrainBiasRight => "right",
+            _ => "neutral"
+        };
+        Message = $"Terrain steering bias set to {direction}. Twist movement continues.";
+        await SendCommandAsync(command, CancellationToken.None);
+    }
+
+    private async Task StopTerrainAsync()
+    {
+        if (!CanAdjustTerrainBias) return;
+        Message = "Stopping Terrain Mode...";
+        await SendCommandAsync(RobotControlCommand.TerrainStop, CancellationToken.None);
+        _isTerrainModeActive = false;
+        await RefreshStatusAsync();
+        NotifyControlStateChanged();
     }
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
@@ -737,6 +791,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsAutonomous));
         OnPropertyChanged(nameof(CanStartAutonomous));
         OnPropertyChanged(nameof(CanStopAutonomous));
+        OnPropertyChanged(nameof(CanAdjustTerrainBias));
         OnPropertyChanged(nameof(CanManualControl));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
@@ -757,6 +812,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (StopAutonomousCommand as Command)?.ChangeCanExecute();
         (StartPathwayCommand as Command)?.ChangeCanExecute();
         (StopPathwayCommand as Command)?.ChangeCanExecute();
+        (StartTerrainCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasLeftCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasRightCommand as Command)?.ChangeCanExecute();
+        (TerrainBiasCenterCommand as Command)?.ChangeCanExecute();
+        (StopTerrainCommand as Command)?.ChangeCanExecute();
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
         (ConnectViaApCommand as Command)?.ChangeCanExecute();
     }
