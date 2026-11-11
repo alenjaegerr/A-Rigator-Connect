@@ -31,7 +31,6 @@
                     <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
                     <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Label Text="The selected profile is configured on A-Rigator for its next Pathway irrigation zone. Manual pump controls remain direct on/off controls." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="This profile is saved for the robot and will be synchronized automatically before Pathway Mode starts. Manual pump controls remain direct on/off controls." FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
