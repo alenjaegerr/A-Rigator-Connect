@@ -38,8 +38,9 @@
                     <Entry Text="{Binding DisplayName, Mode=TwoWay}" Placeholder="Your name"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Label Text="Email address" FontSize="12"
-                           Text="{Binding EmailAddress}"
                            TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
+                    <Label Text="{Binding EmailAddress}" FontSize="14"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                 </VerticalStackLayout>
             </Border>
 
