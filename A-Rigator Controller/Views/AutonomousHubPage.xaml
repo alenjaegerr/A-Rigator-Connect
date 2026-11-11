@@ -39,7 +39,9 @@
                     <Label Text="TERRAIN MODE" FontSize="12" FontAttributes="Bold" TextColor="#2879A8" />
                     <Label Text="Twist-car movement" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     <Label Text="Planned: continuous forward propulsion with left-right steering-servo oscillation. The operator can bias movement left or right while the twist motion continues." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="This experimental mode will receive its own controller, safety handling and live telemetry. The upgraded front sonar is not required for the first version." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Continuous forward propulsion with a left-center-right-center steering cycle. Use the bias controls to favor left or right while the cycle continues." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="No obstacle avoidance is active in this experimental version. Test in a clear area under direct supervision." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Button Text="OPEN TERRAIN MODE" Clicked="OnTerrainModeClicked" MinimumHeightRequest="46" BackgroundColor="#2879A8" TextColor="White" />
                     <Border Padding="9,6" HorizontalOptions="Start" BackgroundColor="{AppThemeBinding Light=#E8F0F6, Dark=#203341}" StrokeThickness="0" StrokeShape="RoundRectangle 10">
                         <Label Text="EXPERIMENTAL · PLANNED" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#2879A8, Dark=#8CC7E8}" />
                     </Border>
