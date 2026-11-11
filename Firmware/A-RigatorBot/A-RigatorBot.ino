@@ -46,6 +46,7 @@ static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_AP_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_MQTT_CONFIG_CHARACTERISTIC_UUID = "7a1c0007-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_HARDWARE_ID_CHARACTERISTIC_UUID = "7a1c0008-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
@@ -54,6 +55,7 @@ BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
 BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
 BLECharacteristic* bleApConfigCharacteristic = nullptr;
 BLECharacteristic* bleMqttConfigCharacteristic = nullptr;
+BLECharacteristic* bleHardwareIdCharacteristic = nullptr;
 RobotMqttCredentialStore mqttCredentialStore;
 bool mqttCredentialStoreAvailable = false;
 String pendingApPassword;
@@ -571,6 +573,16 @@ void startBleDiscovery() {
     BLECharacteristic::PROPERTY_READ
   );
   bleDiscoveryCharacteristic->setValue("A-Rigator Wi-Fi provisioning available");
+
+  // Stable hardware identity; unlike the phone's BLE device ID, this survives
+  // reconnects and is derived from the ESP32 eFuse MAC address.
+  char hardwareId[13];
+  snprintf(hardwareId, sizeof(hardwareId), "%012llX", (unsigned long long)ESP.getEfuseMac());
+  bleHardwareIdCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_HARDWARE_ID_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ
+  );
+  bleHardwareIdCharacteristic->setValue(hardwareId);
 
   bleWifiScanCharacteristic = bleProvisioningService->createCharacteristic(
     BLE_WIFI_SCAN_CHARACTERISTIC_UUID,
