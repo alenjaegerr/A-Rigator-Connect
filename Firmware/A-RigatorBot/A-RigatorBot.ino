@@ -1411,7 +1411,7 @@ void executeSerialLine(String line) {
     return;
   }
   if (line == "STATUS") {
-    Serial.printf(">> [STATUS] Mode: %s | Pump: %s | Irrigation: %s | STA: %s | IP: %s\\n",
+    Serial.printf(">> [STATUS] Mode: %s | Pump: %s | Irrigation: %s | STA: %s | IP: %s\n",
       currentMode == MODE_AUTONOMOUS ? "AUTONOMOUS" : "MANUAL", pumpState ? "ON" : "OFF",
       irrigationSequenceActive ? "RUNNING" : "IDLE", WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED",
       WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str() : "none");
@@ -1435,7 +1435,7 @@ void executeSerialLine(String line) {
   irrigationRightSeconds = (pattern == "R" || pattern == "D" || pattern == "F") ? seconds : 0;
   irrigationRepeatCount = repeats;
   manualControlLeaseActive = false;
-  Serial.printf(">> [MANUAL] Pattern %s, %d sec per selected direction, %d pass(es).\\n", pattern.c_str(), seconds, repeats);
+  Serial.printf(">> [MANUAL] Pattern %s, %d sec per selected direction, %d pass(es).\n", pattern.c_str(), seconds, repeats);
   startIrrigationSequence(true);
 }
 void executeCommand(char cmd) {
