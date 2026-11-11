@@ -1451,6 +1451,7 @@ void executeSerialLine(String line) {
   line.trim();
   line.toUpperCase();
   if (line == "STOP") {
+    manualTerrainModeActive = false;
     irrigationSequenceActive = false;
     irrigationSequenceSpraying = false;
     irrigationSequenceManual = false;
@@ -1521,16 +1522,19 @@ void executeCommand(char cmd) {
 	  break;
 
 	case 'a': case 'A':
+      manualTerrainModeActive = false;
 	  Serial.println(">> [CMD] Steer: LEFT (45 deg)");
 	  writeServo(STEER_SERVO_PIN, STEER_LEFT);
 	  break;
 
 	case 'c': case 'C':
+      manualTerrainModeActive = false;
 	  Serial.println(">> [CMD] Steer: CENTER (90 deg)");
 	  writeServo(STEER_SERVO_PIN, STEER_CENTER);
 	  break;
 
 	case 'd': case 'D':
+      manualTerrainModeActive = false;
 	  Serial.println(">> [CMD] Steer: RIGHT (135 deg)");
 	  writeServo(STEER_SERVO_PIN, STEER_RIGHT);
 	  break;
@@ -1550,6 +1554,7 @@ void executeCommand(char cmd) {
 	  break;
 
 	case 'm': case 'M':
+      manualTerrainModeActive = false;
 	  if (currentMode == MODE_MANUAL) {
 		currentMode = MODE_AUTONOMOUS;
 		manualMotorDir = CMD_STOP;
