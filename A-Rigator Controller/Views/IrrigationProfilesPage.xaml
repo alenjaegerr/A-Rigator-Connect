@@ -10,7 +10,7 @@
         <VerticalStackLayout Padding="20" Spacing="18">
             <VerticalStackLayout Spacing="4">
                 <Label Text="Irrigation Profiles" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                <Label Text="Create reusable watering configurations for Manual and Autonomous operation." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                <Label Text="Choose how the rear-facing nozzle sweeps, then set how long each selected direction receives water." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
             </VerticalStackLayout>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
@@ -25,22 +25,36 @@
             </Border>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="12">
+                <VerticalStackLayout Spacing="14">
                     <Label Text="PROFILE SETTINGS" FontSize="12" FontAttributes="Bold" TextColor="#238653" />
-                    <Label Text="Profile name" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Entry Text="{Binding Name}" Placeholder="e.g. Garden beds" />
-                    <Label Text="Nozzle watering duration (seconds)" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
-                        <Label Text="Left direction" VerticalOptions="Center" />
-                        <Entry Grid.Column="1" Text="{Binding LeftDuration}" Keyboard="Numeric" WidthRequest="90" />
-                        <Label Grid.Row="1" Text="Back direction" VerticalOptions="Center" />
-                        <Entry Grid.Row="1" Grid.Column="1" Text="{Binding BackDuration}" Keyboard="Numeric" WidthRequest="90" />
-                        <Label Grid.Row="2" Text="Right direction" VerticalOptions="Center" />
-                        <Entry Grid.Row="2" Grid.Column="1" Text="{Binding RightDuration}" Keyboard="Numeric" WidthRequest="90" />
+                    <Entry Text="{Binding Name}" Placeholder="Profile name (e.g. Garden beds)" />
+
+                    <Label Text="1. CHOOSE NOZZLE SWEEP" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Button Text="LEFT SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="LeftSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=LeftSweep}" TextColor="White" />
+                        <Button Grid.Column="1" Text="RIGHT SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="RightSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=RightSweep}" TextColor="White" />
+                        <Button Grid.Row="1" Text="BACK SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="BackSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=BackSweep}" TextColor="White" />
+                        <Button Grid.Row="1" Grid.Column="1" Text="BOTH SIDES" Command="{Binding SelectDirectionCommand}" CommandParameter="BothSides" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=BothSides}" TextColor="White" />
+                        <Button Grid.Row="2" Grid.ColumnSpan="2" Text="FULL SWEEP" Command="{Binding SelectDirectionCommand}" CommandParameter="FullSweep" BackgroundColor="{Binding DirectionMode, Converter={StaticResource DirectionModeColorConverter}, ConverterParameter=FullSweep}" TextColor="White" />
                     </Grid>
-                    <Label Text="Full left → back → right passes" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+
+                    <Label Text="2. SET SWEEP TIMER" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Border Padding="12" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 16">
+                        <Grid ColumnDefinitions="*,Auto,Auto,Auto,*" VerticalOptions="Center">
+                            <Button Grid.Column="1" Text="−" Command="{Binding DecreaseDurationCommand}" FontSize="22" WidthRequest="48" BackgroundColor="#52615A" TextColor="White" />
+                            <Label Grid.Column="2" Text="{Binding DurationSeconds, StringFormat='{0} s'}" FontSize="28" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" Margin="16,0" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                            <Button Grid.Column="3" Text="+" Command="{Binding IncreaseDurationCommand}" FontSize="22" WidthRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                        </Grid>
+                    </Border>
+                    <Label Text="Timer applies to each selected direction. Range: 1–60 seconds." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+
+                    <Label Text="3. REVIEW WATERING SEQUENCE" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Label Text="{Binding SequenceSummary}" FontSize="16" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    <Label Text="{Binding EnabledDirectionsText}" FontSize="12" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="{Binding TotalTimeText}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+
+                    <Label Text="Number of passes (1–20)" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Entry Text="{Binding RepeatCount}" Keyboard="Numeric" Placeholder="1" />
-                    <Label Text="Each direction accepts 1–60 seconds. Repeat count accepts 1–20." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Button Text="SAVE PROFILE" Command="{Binding SaveCommand}" MinimumHeightRequest="50" BackgroundColor="#176B45" TextColor="White" />
                     <Button Text="DELETE PROFILE" Command="{Binding DeleteCommand}" BackgroundColor="#A23A32" TextColor="White" />
                 </VerticalStackLayout>
@@ -50,7 +64,7 @@
                 <Label Text="{Binding Message}" FontSize="13" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
             </Border>
             <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
-                <Label Text="Profiles are saved locally and can be selected from Manual or Pathway screens. Manual pump controls remain direct on/off; Pathway Mode synchronizes the selected timings and runs them at each marked irrigation zone." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                <Label Text="Each selected direction gets the timer value. Every unselected direction is sent to the robot as 0 seconds and is skipped. The nozzle sweeps within that direction's calibrated arc while water is running." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
             </Border>
         </VerticalStackLayout>
     </ScrollView>
