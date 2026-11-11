@@ -76,7 +76,7 @@ public sealed class LoadingPage : ContentPage
         };
         var footer = new Label
         {
-            Text = "AUTONOMOUS • CONNECTED • READY",
+            Text = "LOCAL-FIRST • BLUETOOTH • WI-FI",
             FontSize = 10,
             CharacterSpacing = 1.2,
             TextColor = Color.FromArgb("#7A8A7E"),
@@ -138,7 +138,7 @@ public sealed class LoadingPage : ContentPage
             await _alligator.TranslateTo(0, 0, 220, Easing.CubicInOut);
         }
 
-        _statusText.Text = "Ready — welcome in!";
+        _statusText.Text = "App ready — robot discovery is available.";
         await Task.Delay(180);
         await Content.FadeTo(0, 220, Easing.CubicInOut);
         _onComplete();
