@@ -77,6 +77,12 @@ void handleAutonomousStart();
 void handleAutonomousStop();
 void handlePathwayStart();
 void handlePathwayStop();
+void handleTerrainStart();
+void handleTerrainBiasLeft();
+void handleTerrainBiasRight();
+void handleTerrainBiasCenter();
+void handleTerrainStop();
+void runTerrainStep();
 void enforceAutonomousControlTimeout();
 void handlePumpOn();
 void handlePumpOff();
@@ -522,6 +528,14 @@ enum RobotMode {
 };
 
 RobotMode currentMode = MODE_MANUAL;
+enum AutonomousMode { AUTO_NONE, AUTO_GENERIC, AUTO_PATHWAY, AUTO_TERRAIN };
+AutonomousMode activeAutonomousMode = AUTO_NONE;
+int terrainBias = 0; // -1 = left, 0 = neutral, 1 = right
+const int TERRAIN_BIAS_OFFSET_DEGREES = 10;
+const unsigned long TERRAIN_STEERING_INTERVAL_MS = 650;
+const int TERRAIN_STEERING_PATTERN[4] = { STEER_LEFT, STEER_CENTER, STEER_RIGHT, STEER_CENTER };
+int terrainPatternIndex = 0;
+unsigned long lastTerrainSteeringStep = 0;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
 bool nozzleSweepActive = false;
@@ -673,6 +687,11 @@ void startWifiApi() {
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
 	server.on("/api/control/pathway/start", HTTP_POST, handlePathwayStart);
 	server.on("/api/control/pathway/stop", HTTP_POST, handlePathwayStop);
+    server.on("/api/control/terrain/start", HTTP_POST, handleTerrainStart);
+    server.on("/api/control/terrain/bias/left", HTTP_POST, handleTerrainBiasLeft);
+    server.on("/api/control/terrain/bias/right", HTTP_POST, handleTerrainBiasRight);
+    server.on("/api/control/terrain/bias/center", HTTP_POST, handleTerrainBiasCenter);
+    server.on("/api/control/terrain/stop", HTTP_POST, handleTerrainStop);
 	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
 	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
 	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
@@ -857,6 +876,7 @@ void handleNozzleSweep() {
 void handleStop() {
   nozzleSweepActive = false;
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
   driveMotor(CMD_BRAKE, 0.0);
@@ -878,6 +898,7 @@ void handleAutonomousStart() {
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   currentMode = MODE_AUTONOMOUS;
+  activeAutonomousMode = AUTO_GENERIC;
   sendControlResponse("autonomous_start");
   Serial.println(">> [MODE] AUTONOMOUS ENGAGED over Wi-Fi API");
 }
@@ -898,12 +919,55 @@ void handleAutonomousStop() {
 
 void handlePathwayStart() {
   handleAutonomousStart();
+  activeAutonomousMode = AUTO_PATHWAY;
   Serial.println(">> [PATHWAY] Line-following mode selected.");
 }
 
 void handlePathwayStop() {
   handleAutonomousStop();
   Serial.println(">> [PATHWAY] Line-following mode stopped.");
+}
+
+void handleTerrainStart() {
+  handleAutonomousStart();
+  activeAutonomousMode = AUTO_TERRAIN;
+  terrainBias = 0;
+  terrainPatternIndex = 0;
+  lastTerrainSteeringStep = 0;
+  driveMotor(CMD_CW, FULL_POWER);
+  Serial.println(">> [TERRAIN] Twist movement started.");
+}
+
+void setTerrainBias(int bias, const char* response) {
+  if (currentMode != MODE_AUTONOMOUS || activeAutonomousMode != AUTO_TERRAIN) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Terrain mode is not active\"}");
+    return;
+  }
+  terrainBias = constrain(bias, -1, 1);
+  sendControlResponse(response);
+}
+
+void handleTerrainBiasLeft() { setTerrainBias(-1, "terrain_bias_left"); }
+void handleTerrainBiasRight() { setTerrainBias(1, "terrain_bias_right"); }
+void handleTerrainBiasCenter() { setTerrainBias(0, "terrain_bias_center"); }
+
+void handleTerrainStop() {
+  handleAutonomousStop();
+  Serial.println(">> [TERRAIN] Twist movement stopped.");
+}
+
+void runTerrainStep() {
+  driveMotor(CMD_CW, FULL_POWER);
+  if (millis() - lastTerrainSteeringStep < TERRAIN_STEERING_INTERVAL_MS) return;
+  lastTerrainSteeringStep = millis();
+
+  const int baseAngle = TERRAIN_STEERING_PATTERN[terrainPatternIndex];
+  const int biasedAngle = constrain(
+      baseAngle - (terrainBias * TERRAIN_BIAS_OFFSET_DEGREES),
+      STEER_LEFT,
+      STEER_RIGHT);
+  writeServo(STEER_SERVO_PIN, biasedAngle);
+  terrainPatternIndex = (terrainPatternIndex + 1) % 4;
 }
 
 void handlePumpOn() {
@@ -1273,6 +1337,7 @@ void loop() {
 	  }
 	}
   } else if (currentMode == MODE_AUTONOMOUS) {
-	runAutonomousStep();
+    if (activeAutonomousMode == AUTO_TERRAIN) runTerrainStep();
+    else runAutonomousStep();
   }
 }
