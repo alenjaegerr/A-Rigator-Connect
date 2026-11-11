@@ -6,6 +6,8 @@ public sealed class RobotStatus
 
     public OperatingMode? Mode { get; init; }
 
+    public string? AutonomousMode { get; init; }
+
     public bool PumpIsOn { get; init; }
 
     public bool ControlsEnabled { get; init; }
