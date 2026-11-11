@@ -263,7 +263,8 @@
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
-                        <Border Padding="16"
+                        <Border IsVisible="{Binding IsDeveloperMqttProvisioningVisible}"
+                                Padding="16"
                                 BackgroundColor="#F4F8F5"
                                 Stroke="#D8E3DC"
                                 StrokeShape="RoundRectangle 16">
@@ -297,6 +298,21 @@
                                 <Label Text="{Binding MqttProvisioningStatusMessage}"
                                        FontSize="12"
                                        TextColor="#52615A" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border IsVisible="{Binding IsCustomerMqttSetupVisible}"
+                                Padding="14"
+                                BackgroundColor="#EAF5EE"
+                                Stroke="#C9E1D1"
+                                StrokeShape="RoundRectangle 14">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="CLOUD CONNECTION"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="#176B45" />
+                                <Label Text="Your robot's secure cloud connection will be configured automatically during setup. You won't need to enter technical broker credentials."
+                                       FontSize="13"
+                                       TextColor="#35443B" />
                             </VerticalStackLayout>
                         </Border>
                         <Label Text="You can leave the phone on its normal network and try verification. If the router blocks local device traffic, switch to the direct A-Rigator hotspot below. The MQTT cloud path will later remove the same-network requirement."
