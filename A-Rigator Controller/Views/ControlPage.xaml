@@ -57,6 +57,7 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="IRRIGATION PUMP" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Label Text="{Binding PumpStatus}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Button Text="SWEEP NOZZLE" Command="{Binding NozzleSweepCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <Button Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
                         <Button Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
