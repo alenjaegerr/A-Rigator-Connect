@@ -77,7 +77,6 @@ void serviceNozzleSweep();
 void serviceIrrigationSequence();
 void startIrrigationSequence(bool manual = false);
 void beginIrrigationPhase();
-void startNozzleSweep();
 void handleStop();
 void handleAutonomousStart();
 void handleAutonomousStop();
