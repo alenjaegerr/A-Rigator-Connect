@@ -58,14 +58,6 @@
             </Border>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="ACCOUNT &amp; CLOUD" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Label Text="Sign-in and service configuration" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
-                    <Label Text="Manage Google sign-in and Supabase configuration. Local robot pairing and control remain available independently of cloud account status." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Button Text="ACCOUNT MANAGEMENT" Clicked="OnAccountClicked" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
-                </VerticalStackLayout>
-            </Border>
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="SAFETY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="Test autonomous movement in a clear, supervised area. Keep hands away from moving parts and stop the robot if its behavior differs from expectations." FontSize="13" TextColor="{AppThemeBinding Light=#17231C, Dark=#E0E8E2}" />
