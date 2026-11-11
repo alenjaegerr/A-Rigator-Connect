@@ -16,6 +16,13 @@
                 <ActivityIndicator IsRunning="{Binding IsCommandRunning}" IsVisible="{Binding IsCommandRunning}" Color="#238653" HorizontalOptions="Start" />
             </VerticalStackLayout>
 
+            <Border IsVisible="{Binding IsApModeMobileDataWarningVisible}" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 14">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="MOBILE DATA IS ON · DIRECT AP MODE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                    <Label Text="{Binding ApModeMobileDataWarning}" FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
