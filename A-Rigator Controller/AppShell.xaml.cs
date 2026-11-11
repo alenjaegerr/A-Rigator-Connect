@@ -14,10 +14,12 @@ public partial class AppShell : Shell
         PairingPage pairingPage,
         SettingsPage settingsPage,
         AccountPage accountPage,
-        IUserProfileService userProfileService)
+        IUserProfileService userProfileService,
+        IrrigationProfileSyncCoordinator profileSyncCoordinator)
     {
         InitializeComponent();
         Navigated += OnShellNavigated;
+        _ = profileSyncCoordinator.StartAsync();
 
         // One shared dashboard view model owns the robot connection, telemetry
         // refresh and manual-control heartbeat across all operating destinations.
