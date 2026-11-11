@@ -347,6 +347,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         if (!await ApplySelectedIrrigationProfileAsync())
             return;
 
+        if (!await TryApplySelectedIrrigationProfileAsync())
+            return;
+
         Message = "Starting Pathway Mode: line-following operation...";
         await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None);
         await RefreshStatusAsync();
@@ -582,6 +585,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             if (!quiet)
                 Message = "A-Rigator connection restored.";
             await RefreshStatusAsync(cancellationToken);
+            if (!IsAutonomous)
+                await TryApplySelectedIrrigationProfileAsync();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -631,7 +636,30 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             OnPropertyChanged(nameof(SelectedIrrigationProfile));
             OnPropertyChanged(nameof(SelectedIrrigationProfileSummary));
+            if (IsConnected && !IsAutonomous)
+                _ = TryApplySelectedIrrigationProfileAsync();
+            else if (IsAutonomous)
+                Message = "Profile selection saved. It will be applied before the next autonomous run.";
         });
+    }
+
+    private async Task<bool> TryApplySelectedIrrigationProfileAsync()
+    {
+        var profile = _irrigationProfileService.SelectedProfile;
+        if (profile is null || !IsConnected || IsAutonomous)
+            return profile is not null;
+
+        try
+        {
+            await _communicationService.ApplyIrrigationProfileAsync(profile);
+            Message = $"'{profile.Name}' applied to A-Rigator for its next irrigation sequence.";
+            return true;
+        }
+        catch (Exception)
+        {
+            Message = "Profile saved on this device, but A-Rigator did not confirm it. Reconnect and try selecting the profile again.";
+            return false;
+        }
     }
 
     private void NotifyConnectionStateChanged()
