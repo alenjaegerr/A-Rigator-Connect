@@ -66,6 +66,14 @@
                         <Button Grid.Column="2" Text="RIGHT" Command="{Binding SteerRightCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
                     </Grid>
                     <Label Text="Uses the firmware's current calibrated steering limits: 45° left, 90° center and 135° right." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" Margin="0,4" />
+                    <Label Text="MANUAL TERRAIN MODE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="{Binding IsManualTerrainModeActive, StringFormat='Status: {0}'}" FontSize="13" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="ENABLE" Command="{Binding StartManualTerrainCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="50" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="DISABLE" Command="{Binding StopManualTerrainCommand}" IsEnabled="{Binding IsManualTerrainModeActive}" MinimumHeightRequest="50" BackgroundColor="#A23A32" TextColor="White" />
+                    </Grid>
+                    <Label Text="The steering servo alternates between calibrated left and right positions. Forward and reverse remain under manual control. Press LEFT, CENTER or RIGHT to interrupt terrain steering." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
