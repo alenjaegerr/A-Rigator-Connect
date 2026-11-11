@@ -39,6 +39,18 @@
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="STEERING" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Button Text="LEFT" Command="{Binding SteerLeftCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="CENTER" Command="{Binding SteerCenterCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#52615A" TextColor="White" />
+                        <Button Grid.Column="2" Text="RIGHT" Command="{Binding SteerRightCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                    </Grid>
+                    <Label Text="Uses the firmware's current calibrated steering limits: 45° left, 90° center and 135° right." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
                     <Label Text="IRRIGATION PUMP" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Label Text="{Binding PumpStatus}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
