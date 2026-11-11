@@ -568,6 +568,10 @@ bool controlsEnabled = false;
 // keep the local setup hotspot available so the app can provision another network.
 bool forgetSavedWifiNetwork(bool disconnectNow = true) {
   setPump(false);
+  autonomousControlLeaseActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
   currentMode = MODE_MANUAL;
   activeAutonomousMode = AUTO_NONE;
   manualMotorDir = CMD_STOP;
@@ -801,6 +805,11 @@ void initializeMotorShield() {
 }
 
 void resetMotorShield() {
+  autonomousControlLeaseActive = false;
+  activeAutonomousMode = AUTO_NONE;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -845,6 +854,13 @@ void sendControlResponse(const char* command) {
 }
 
 void setManualMotorDirection(uint8_t direction, const char* command) {
+  if (currentMode == MODE_AUTONOMOUS) {
+    autonomousControlLeaseActive = false;
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationZoneLatched = false;
+    setPump(false);
+  }
   currentMode = MODE_MANUAL;
   activeAutonomousMode = AUTO_NONE;
   manualMotorDir = direction;
@@ -928,6 +944,7 @@ void handleSetIrrigationProfile() {
 }
 
 void handleStop() {
+  autonomousControlLeaseActive = false;
   irrigationSequenceActive = false;
   irrigationSequenceSpraying = false;
   nozzleSweepActive = false;
@@ -1034,6 +1051,10 @@ void runTerrainStep() {
 
 void handlePumpOn() {
 	if (currentMode == MODE_AUTONOMOUS) {
+    autonomousControlLeaseActive = false;
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationZoneLatched = false;
 	manualMotorDir = CMD_STOP;
 	driveMotor(CMD_BRAKE, 0.0);
   }
@@ -1118,6 +1139,10 @@ void sweepNozzleOnce() {
 
 void startNozzleSweep() {
   // A manual nozzle sweep must not leave propulsion or irrigation running.
+  autonomousControlLeaseActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
   driveMotor(CMD_BRAKE, 0.0);
