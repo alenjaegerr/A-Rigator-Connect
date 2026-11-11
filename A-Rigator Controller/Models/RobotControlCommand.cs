@@ -16,5 +16,10 @@ public enum RobotControlCommand
     AutonomousStart,
     AutonomousStop,
     PathwayStart,
-    PathwayStop
+    PathwayStop,
+    TerrainStart,
+    TerrainBiasLeft,
+    TerrainBiasRight,
+    TerrainBiasCenter,
+    TerrainStop
 }
