@@ -20,6 +20,9 @@ public interface IRobotProvisioningService
         string deviceId,
         CancellationToken cancellationToken = default);
 
+    Task<string> GetConnectedRobotHardwareIdAsync(
+        CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<RobotWifiNetwork>> ScanWifiNetworksAsync(
         CancellationToken cancellationToken = default);
 
