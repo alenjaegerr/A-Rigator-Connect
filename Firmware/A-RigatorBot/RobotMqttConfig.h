@@ -41,7 +41,7 @@ class RobotMqttCredentialStore {
   bool save(const String& username, const String& password) {
     if (username.length() == 0 || username.length() > 64 ||
         password.length() == 0 || password.length() > 128 ||
-        false) {
+) {
       return false;
     }
 
