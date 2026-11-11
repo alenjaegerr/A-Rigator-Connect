@@ -10,4 +10,9 @@ public partial class AutonomousHubPage : ContentPage
         Shell.SetTabBarIsVisible(this, true);
         BindingContext = viewModel;
     }
+
+    private async void OnPathwayModeClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("pathway");
+    }
 }
