@@ -43,6 +43,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
     {
         await EnsureBluetoothPermissionAsync();
 
+        if (_adapter.IsScanning)
+            await _adapter.StopScanningForDevicesAsync();
+
         SetState(RobotProvisioningState.ScanningForRobots);
         _discoveredDevices.Clear();
         var found = new Dictionary<string, RobotProvisioningDevice>();
@@ -50,20 +53,28 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         void OnDeviceDiscovered(object? sender, DeviceEventArgs args)
         {
             var device = args.Device;
+            var advertisedName = device.Name?.Trim();
+
+            // Do not rely on an Android BLE service-UUID scan filter here.
+            // ESP32 may place the 128-bit provisioning UUID in the scan response,
+            // which some Android stacks do not match consistently.
+            if (string.IsNullOrWhiteSpace(advertisedName) ||
+                !advertisedName.Contains("A-Rigator", StringComparison.OrdinalIgnoreCase))
+                return;
+
             var id = device.Id.ToString("D");
             _discoveredDevices[id] = device;
-            found[id] = new RobotProvisioningDevice(
-                id,
-                string.IsNullOrWhiteSpace(device.Name) ? "A-Rigator" : device.Name,
-                device.Rssi);
+            found[id] = new RobotProvisioningDevice(id, advertisedName, device.Rssi);
         }
 
         _adapter.DeviceDiscovered += OnDeviceDiscovered;
         try
         {
-            _adapter.ScanTimeout = 10000;
+            _adapter.ScanTimeout = 12000;
+            // Scan without a platform service filter, then validate the device name
+            // in the discovery callback. This avoids false negatives on scan-response
+            // service UUIDs while still keeping unrelated BLE devices out of the UI.
             await _adapter.StartScanningForDevicesAsync(
-                new ScanFilterOptions { ServiceUuids = new[] { ProvisioningServiceUuid } },
                 cancellationToken: cancellationToken);
 
             SetState(RobotProvisioningState.Idle);
