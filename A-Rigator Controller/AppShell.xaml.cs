@@ -14,6 +14,7 @@ public partial class AppShell : Shell
         WelcomePage welcomePage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
+        PathwayModePage pathwayModePage,
         IUserProfileService userProfileService)
     {
         InitializeComponent();
@@ -107,6 +108,7 @@ public partial class AppShell : Shell
         Items.Add(setupTabBar);
 
         Routing.RegisterRoute("remote-wifi", typeof(RemoteWifiSetupPage));
+        Routing.RegisterRoute("pathway", typeof(PathwayModePage));
         Routing.RegisterRoute("account", typeof(AccountPage));
 
         welcomePage.DisplayNameSaved += async (_, _) =>
