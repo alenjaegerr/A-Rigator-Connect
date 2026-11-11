@@ -85,7 +85,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AccountSummary));
         OnPropertyChanged(nameof(EmailAddress));
         RefreshCommands();
-        if (IsAuthenticated) await _sync.SyncNowAsync();
+        if (IsAuthenticated) await _sync.SyncNowAsync(force: true);
     }
 
     private async Task SignInAsync()
@@ -103,7 +103,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsGuest));
             OnPropertyChanged(nameof(AccountSummary));
             OnPropertyChanged(nameof(EmailAddress));
-            await _sync.SyncNowAsync();
+            await _sync.SyncNowAsync(force: true);
         }
         catch (Exception ex) { SyncStatus = $"Sign-in failed: {ex.Message}"; }
         finally { IsBusy = false; }
@@ -178,7 +178,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     {
         if (IsBusy || !IsAuthenticated) return;
         IsBusy = true;
-        try { await _sync.SyncNowAsync(); }
+        try { await _sync.SyncNowAsync(force: true); }
         finally { IsBusy = false; }
     }
 
