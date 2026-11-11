@@ -40,7 +40,7 @@
                         <Button Grid.Column="1" Text="NEUTRAL" Command="{Binding TerrainBiasCenterCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
                         <Button Grid.Column="2" Text="BIAS RIGHT" Command="{Binding TerrainBiasRightCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
                     </Grid>
-                    <Button Text="STOP TERRAIN MODE" Command="{Binding StopTerrainCommand}" IsEnabled="{Binding CanAdjustTerrainBias}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
+                    <Button Text="STOP TERRAIN MODE" Command="{Binding StopTerrainCommand}" IsEnabled="{Binding CanStopTerrain}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
                     <Label Text="{Binding ModeStatus}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     <Label Text="{Binding Message}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
