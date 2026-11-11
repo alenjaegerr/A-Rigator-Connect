@@ -27,9 +27,10 @@
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="ACTIVE IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="SELECTED IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
                     <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="This profile is saved for the robot and will be synchronized automatically before Pathway Mode starts. Manual pump controls remain direct on/off controls." FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
