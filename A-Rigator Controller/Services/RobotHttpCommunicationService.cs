@@ -70,6 +70,21 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
         }
     }
 
+    public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        var query = $"left={profile.LeftDurationSeconds}&back={profile.BackDurationSeconds}&right={profile.RightDurationSeconds}&repeat={profile.RepeatCount}";
+        using var response = await _httpClient.PostAsync(
+            new Uri(_baseAddress, $"api/irrigation/profile?{query}"),
+            content: null,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<RobotCommandResponse>(JsonOptions, cancellationToken);
+        if (result is not { Success: true })
+            throw new InvalidOperationException("A-Rigator rejected the irrigation profile.");
+    }
+
     public void SetRobotAddress(string address)
     {
         if (!Uri.TryCreate($"http://{address}/", UriKind.Absolute, out var uri) ||
