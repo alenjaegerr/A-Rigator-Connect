@@ -25,11 +25,11 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="PATHWAY MODE" FontSize="12" FontAttributes="Bold" TextColor="#238653" />
                     <Label Text="Follow a designated pathway" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                    <Label Text="Planned: autonomous line tracing using the left and right line sensors, with irrigation profiles available during operation." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="Open the dedicated Pathway screen to start and stop line-following and monitor the two line sensors." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Available: line tracing using both line sensors, with the selected irrigation profile applied before the run." FontSize="13" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Open the dedicated Pathway screen to start and stop line-following and monitor the line sensors and obstacle distance." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Button Text="OPEN PATHWAY MODE" Clicked="OnPathwayModeClicked" MinimumHeightRequest="46" BackgroundColor="#176B45" TextColor="White" />
                     <Border Padding="9,6" HorizontalOptions="Start" BackgroundColor="{AppThemeBinding Light=#E8F3EC, Dark=#263B2D}" StrokeThickness="0" StrokeShape="RoundRectangle 10">
-                        <Label Text="INTERFACE FOUNDATION" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                        <Label Text="LINE-TRACING MODE" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Border>
                 </VerticalStackLayout>
             </Border>
