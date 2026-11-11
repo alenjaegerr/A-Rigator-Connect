@@ -97,7 +97,15 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string RobotStatus => _latestStatus?.State.ToString().ToUpperInvariant() ?? "UNAVAILABLE";
 
-    public string ModeStatus => _latestStatus?.Mode?.ToString().ToUpperInvariant() ?? "UNAVAILABLE";
+    public string ModeStatus => IsAutonomous
+        ? _latestStatus?.AutonomousMode switch
+        {
+            "TERRAIN" => "TERRAIN MODE",
+            "PATHWAY" => "PATHWAY MODE",
+            "GENERIC" => "AUTONOMOUS",
+            _ => "AUTONOMOUS"
+        }
+        : _latestStatus?.Mode?.ToString().ToUpperInvariant() ?? "UNAVAILABLE";
 
     public string PumpStatus => _latestStatus is null
         ? "UNAVAILABLE"
