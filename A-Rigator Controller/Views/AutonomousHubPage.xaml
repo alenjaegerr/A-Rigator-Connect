@@ -51,10 +51,7 @@
                     <Label Text="CURRENT FIRMWARE CAPABILITY" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="Pathway Mode now uses the existing line-tracing controller with a connection heartbeat failsafe. Terrain Mode still needs its dedicated twist-steering controller." FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ModeStatus}" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="START AUTONOMOUS" Command="{Binding StartAutonomousCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="48" FontSize="12" BackgroundColor="#176B45" TextColor="White" />
-                        <Button Grid.Column="1" Text="STOP" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
-                    </Grid>
+                    <Button Text="EMERGENCY STOP AUTONOMOUS" Command="{Binding StopAutonomousCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="48" BackgroundColor="#A23A32" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
