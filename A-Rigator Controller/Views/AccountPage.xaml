@@ -53,13 +53,22 @@
                         <Border WidthRequest="52" HeightRequest="52" StrokeThickness="0"
                                 BackgroundColor="{AppThemeBinding Light=#E7EFE9, Dark=#2B3A30}"
                                 StrokeShape="RoundRectangle 14">
-                            <Image Source="arigator_robot.svg" Aspect="AspectFit" Margin="7" />
+                            <Image Source="{Binding RobotAvatarPath}" Aspect="AspectFit" Margin="3">
+                                <Image.Triggers>
+                                    <DataTrigger TargetType="Image" Binding="{Binding HasRobotAvatar}" Value="False">
+                                        <Setter Property="Source" Value="arigator_robot.png" />
+                                    </DataTrigger>
+                                </Image.Triggers>
+                            </Image>
                         </Border>
                         <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                             <Label Text="A-Rigator" FontSize="16" FontAttributes="Bold"
                                    TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                             <Label Text="Robot nickname" FontSize="12"
                                    TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
+                            <Button Text="CHANGE ROBOT PHOTO" Command="{Binding PickRobotPhotoCommand}"
+                                    FontSize="11" Padding="12,8" HorizontalOptions="Start"
+                                    BackgroundColor="#2879A8" TextColor="White" />
                         </VerticalStackLayout>
                     </Grid>
                     <Entry Text="{Binding RobotName, Mode=TwoWay}" Placeholder="Name your robot"
@@ -72,11 +81,16 @@
                 <VerticalStackLayout Spacing="12">
                     <Label Text="IRRIGATION PROFILE SYNCHRONIZATION" FontSize="13" FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-                    <Label Text="Download your saved irrigation profiles from your account. They will be imported into Auto and remain available offline."
+                    <Label Text="Keep your local irrigation profiles backed up to your signed-in account. Profiles created while offline will sync automatically when you sign in or internet returns."
                            FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Button Text="DOWNLOAD PROFILE" Command="{Binding DownloadProfilesCommand}"
+                    <Button Text="SYNC IRRIGATION PROFILES" Command="{Binding SyncProfilesCommand}"
                             IsEnabled="{Binding IsAuthenticated}" MinimumHeightRequest="52"
                             BackgroundColor="#176B45" TextColor="White" />
+                    <Label Text="Sign in to enable cloud synchronization."
+                           IsVisible="{Binding IsGuest}" FontSize="12"
+                           TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
+                    <Button Text="DOWNLOAD LOCAL IRRIGATION PROFILES" Command="{Binding DownloadLocalProfilesCommand}"
+                            MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
                     <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#176B45" />
                     <Label Text="{Binding SyncStatus}" FontSize="13"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
