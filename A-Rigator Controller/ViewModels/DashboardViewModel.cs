@@ -55,6 +55,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
         StopAutonomousCommand = new Command(async () => await StopAutonomousAsync(), () => CanStopAutonomous);
+        StartPathwayCommand = new Command(async () => await StartPathwayAsync(), () => CanStartAutonomous);
+        StopPathwayCommand = new Command(async () => await StopPathwayAsync(), () => CanStopAutonomous);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
         ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected && !IsConnecting);
     }
@@ -234,6 +236,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand StopAutonomousCommand { get; }
 
+    public ICommand StartPathwayCommand { get; }
+
+    public ICommand StopPathwayCommand { get; }
+
     public ICommand RetryConnectionCommand { get; }
 
     public ICommand ConnectViaApCommand { get; }
@@ -306,6 +312,30 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             Message = "Autonomous irrigation stopped. Robot outputs are disabled.";
         }
+    }
+
+    private async Task StartPathwayAsync()
+    {
+        if (!CanStartAutonomous)
+        {
+            Message = "Connect to A-Rigator before starting Pathway Mode.";
+            return;
+        }
+
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        Message = "Starting Pathway Mode: line-following operation...";
+        NotifyControlStateChanged();
+        await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None);
+        await RefreshStatusAsync();
+    }
+
+    private async Task StopPathwayAsync()
+    {
+        if (!CanStopAutonomous) return;
+        Message = "Stopping Pathway Mode...";
+        await SendCommandAsync(RobotControlCommand.PathwayStop, CancellationToken.None);
+        await RefreshStatusAsync();
     }
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
@@ -421,7 +451,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
                 _reconnectTicks = 0;
                 var manualIntentActive = _activeMotorCommand is not null || _pumpRequested;
-                if (manualIntentActive && _latestStatus?.ControlsEnabled != false)
+                if ((IsAutonomous || manualIntentActive) && _latestStatus?.ControlsEnabled != false)
                 {
                     await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
                 }
@@ -695,6 +725,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (RefreshCommand as Command)?.ChangeCanExecute();
         (StartAutonomousCommand as Command)?.ChangeCanExecute();
         (StopAutonomousCommand as Command)?.ChangeCanExecute();
+        (StartPathwayCommand as Command)?.ChangeCanExecute();
+        (StopPathwayCommand as Command)?.ChangeCanExecute();
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
         (ConnectViaApCommand as Command)?.ChangeCanExecute();
     }
