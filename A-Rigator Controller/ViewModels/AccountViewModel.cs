@@ -61,7 +61,9 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         try { await _account.InitializeSessionAsync(); }
         catch { /* Keep local account settings available if session restoration fails. */ }
         OnPropertyChanged(nameof(IsAuthenticated));
+        OnPropertyChanged(nameof(IsGuest));
         OnPropertyChanged(nameof(AccountSummary));
+        OnPropertyChanged(nameof(EmailAddress));
         (DownloadProfilesCommand as Command)?.ChangeCanExecute();
         if (IsAuthenticated) SyncStatus = "Signed in. Download your saved irrigation profiles whenever you need them.";
     }
@@ -88,7 +90,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         IsBusy = true;
         try { await _account.SignOutAsync(); SyncStatus = "Signed out. Local profiles and robot controls remain available."; }
         catch (Exception ex) { SyncStatus = ex.Message; }
-        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(AccountSummary)); }
+        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(IsGuest)); OnPropertyChanged(nameof(AccountSummary)); OnPropertyChanged(nameof(EmailAddress)); }
     }
 
     private void SaveAccount()
