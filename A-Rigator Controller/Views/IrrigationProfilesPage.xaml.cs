@@ -10,4 +10,9 @@ public partial class IrrigationProfilesPage : ContentPage
         Shell.SetTabBarIsVisible(this, true);
         BindingContext = viewModel;
     }
+
+    private async void OnBackToAutonomousClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
 }
