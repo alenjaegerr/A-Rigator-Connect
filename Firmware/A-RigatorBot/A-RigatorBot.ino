@@ -943,11 +943,7 @@ void configureManualNozzleSweep(int minimumAngle, int maximumAngle) {
     irrigationSequenceSpraying = false;
     irrigationSequenceManual = false;
   }
-  autonomousControlLeaseActive = false;
-  manualMotorDir = CMD_STOP;
-  driveMotor(CMD_BRAKE, 0.0);
-  currentMode = MODE_MANUAL;
-  activeAutonomousMode = AUTO_NONE;
+  // Nozzle sweep is independent: preserve the operator's current drive and pump commands.
   nozzleSweepMinimumAngle = minimumAngle;
   nozzleSweepMaximumAngle = maximumAngle;
   nozzleSweepAngle = minimumAngle;
