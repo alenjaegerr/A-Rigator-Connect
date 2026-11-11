@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             x:Class="A_Rigator_Controller.Views.PathwayModePage"
+             x:DataType="viewmodels:DashboardViewModel"
+             Title="Pathway Mode"
+             BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="18">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Pathway Mode" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                <Label Text="Follow the marked route using A-Rigator's two line sensors." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+            </VerticalStackLayout>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="ACTIVE IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
+                    <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="The profile is selected and saved, but its timings are not yet executed by the current irrigation firmware." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="PATHWAY CONTROLS" FontSize="12" FontAttributes="Bold" TextColor="#238653" />
+                    <Label Text="{Binding ModeStatus}" FontSize="24" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="START PATHWAY" Command="{Binding StartPathwayCommand}" IsEnabled="{Binding CanStartAutonomous}" MinimumHeightRequest="54" BackgroundColor="#176B45" TextColor="White" />
+                        <Button Grid.Column="1" Text="STOP" Command="{Binding StopPathwayCommand}" IsEnabled="{Binding CanStopAutonomous}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
+                    </Grid>
+                    <Label Text="Stop immediately if the robot leaves the marked path or behaves unexpectedly." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="LIVE PATHWAY TELEMETRY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="9">
+                        <Label Text="GPIO 14 line sensor" />
+                        <Label Grid.Column="1" Text="{Binding LineGpio14Status}" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="GPIO 27 line sensor" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding LineGpio27Status}" FontAttributes="Bold" />
+                        <Label Grid.Row="2" Text="Obstacle distance" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding ObstacleDistanceStatus}" FontAttributes="Bold" />
+                        <Label Grid.Row="3" Text="Obstacle state" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding ObstacleStatus}" FontAttributes="Bold" />
+                    </Grid>
+                    <Button Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" BackgroundColor="#2879A8" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding Message}" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
