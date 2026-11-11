@@ -66,6 +66,9 @@ bool bleWifiScanRunning = false;
 String bleWifiScanJson = "{\"networks\":[]}";
 void handleForward();
 void handleReverse();
+void handleSteerLeft();
+void handleSteerRight();
+void handleSteerCenter();
 void handleStop();
 void handleAutonomousStart();
 void handleAutonomousStop();
@@ -648,6 +651,9 @@ void startWifiApi() {
   if (controlsEnabled) {
 	server.on("/api/control/forward", HTTP_POST, handleForward);
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
+	server.on("/api/control/steer/left", HTTP_POST, handleSteerLeft);
+	server.on("/api/control/steer/right", HTTP_POST, handleSteerRight);
+	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
@@ -796,12 +802,40 @@ void handleReverse() {
   setManualMotorDirection(CMD_CCW, "reverse");
 }
 
+void handleSteerLeft() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    return;
+  }
+  writeServo(STEER_SERVO_PIN, STEER_LEFT);
+  sendControlResponse("steer_left");
+}
+
+void handleSteerRight() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    return;
+  }
+  writeServo(STEER_SERVO_PIN, STEER_RIGHT);
+  sendControlResponse("steer_right");
+}
+
+void handleSteerCenter() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual steering\\"}");
+    return;
+  }
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  sendControlResponse("steer_center");
+}
+
 void handleStop() {
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
   sendControlResponse("stop");
 }
 
