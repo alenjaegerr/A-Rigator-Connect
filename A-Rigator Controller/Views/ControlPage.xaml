@@ -37,7 +37,7 @@
                     <Label Text="SELECTED IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
                     <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    <Label Text="The selected profile is configured on A-Rigator for its next Pathway irrigation zone. Manual pump controls remain direct on/off controls." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="The selected profile is used by Pathway irrigation and can also be run manually below. Manual pump controls remain available for direct testing." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
