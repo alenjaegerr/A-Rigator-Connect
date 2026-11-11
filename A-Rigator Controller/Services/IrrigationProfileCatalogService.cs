@@ -33,6 +33,10 @@ public sealed class IrrigationProfileCatalogService : IIrrigationProfileCatalogS
 
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
         request.Headers.TryAddWithoutValidation("apikey", _configService.AnonKey);
+        // Legacy anon JWT keys also need to be sent as the bearer token.
+        // New sb_publishable_ keys are API keys, not JWTs, so they must not be used as bearer tokens.
+        if (!_configService.AnonKey.StartsWith("sb_publishable_", StringComparison.Ordinal))
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _configService.AnonKey);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         using var response = await _httpClient.SendAsync(
