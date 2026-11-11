@@ -75,6 +75,9 @@ void startNozzleSweep();
 void handleStop();
 void handleAutonomousStart();
 void handleAutonomousStop();
+void handlePathwayStart();
+void handlePathwayStop();
+void enforceAutonomousControlTimeout();
 void handlePumpOn();
 void handlePumpOff();
 void handleHeartbeat();
@@ -525,6 +528,9 @@ bool nozzleSweepActive = false;
 int nozzleSweepAngle = NOZZLE_MIN_SWEEP;
 int nozzleSweepDirection = 1;
 unsigned long lastNozzleSweepStep = 0;
+unsigned long lastAutonomousHeartbeat = 0;
+bool autonomousControlLeaseActive = false;
+const unsigned long AUTONOMOUS_CONTROL_TIMEOUT_MS = 2500;
 unsigned long lastMotorRefresh = 0;
 unsigned long lastManualControlRefresh = 0;
 bool manualControlLeaseActive = false;
@@ -665,6 +671,8 @@ void startWifiApi() {
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
+	server.on("/api/control/pathway/start", HTTP_POST, handlePathwayStart);
+	server.on("/api/control/pathway/stop", HTTP_POST, handlePathwayStop);
 	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
 	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
 	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
@@ -860,6 +868,8 @@ void handleStop() {
 
 void handleAutonomousStart() {
   nozzleSweepActive = false;
+  autonomousControlLeaseActive = true;
+  lastAutonomousHeartbeat = millis();
   // Cancel any manual-control lease and start the existing autonomous loop.
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -873,6 +883,7 @@ void handleAutonomousStart() {
 }
 
 void handleAutonomousStop() {
+  autonomousControlLeaseActive = false;
   nozzleSweepActive = false;
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
@@ -883,6 +894,16 @@ void handleAutonomousStop() {
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   sendControlResponse("autonomous_stop");
   Serial.println(">> [MODE] AUTONOMOUS STOPPED over Wi-Fi API");
+}
+
+void handlePathwayStart() {
+  handleAutonomousStart();
+  Serial.println(">> [PATHWAY] Line-following mode selected.");
+}
+
+void handlePathwayStop() {
+  handleAutonomousStop();
+  Serial.println(">> [PATHWAY] Line-following mode stopped.");
 }
 
 void handlePumpOn() {
@@ -908,9 +929,25 @@ void handlePumpOff() {
 
 void handleHeartbeat() {
   if (currentMode == MODE_MANUAL) {
-	refreshManualControlLease();
+    refreshManualControlLease();
+  } else if (currentMode == MODE_AUTONOMOUS && autonomousControlLeaseActive) {
+    lastAutonomousHeartbeat = millis();
   }
   sendControlResponse("heartbeat");
+}
+
+void enforceAutonomousControlTimeout() {
+  if (autonomousControlLeaseActive && currentMode == MODE_AUTONOMOUS &&
+      millis() - lastAutonomousHeartbeat > AUTONOMOUS_CONTROL_TIMEOUT_MS) {
+    autonomousControlLeaseActive = false;
+    currentMode = MODE_MANUAL;
+    manualMotorDir = CMD_STOP;
+    driveMotor(CMD_BRAKE, 0.0);
+    setPump(false);
+    writeServo(STEER_SERVO_PIN, STEER_CENTER);
+    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+    Serial.println(">> Autonomous control lease expired; robot stopped safely.");
+  }
 }
 
 void enforceManualControlTimeout() {
@@ -1217,6 +1254,7 @@ void loop() {
   stationWasConnected = stationConnected;
 
   enforceManualControlTimeout();
+  enforceAutonomousControlTimeout();
   serviceNozzleSweep();
   refreshMotorShieldKeepAlive();
 
