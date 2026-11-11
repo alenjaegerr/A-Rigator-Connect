@@ -5,6 +5,8 @@ public sealed class SupabaseConfigService : ISupabaseConfigService
     private const string UrlKey = "supabase_url";
     private const string AnonKeyKey = "supabase_anon_key";
 
+    public SupabaseConfigService() => LoadFromPreferences();
+
     public string? Url { get; private set; }
 
     public string? AnonKey { get; private set; }
