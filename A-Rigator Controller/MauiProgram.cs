@@ -36,6 +36,7 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<IRobotProvisioningService, RobotProvisioningService>();
             builder.Services.AddSingleton<IWifiStatusService, WifiStatusService>();
             builder.Services.AddSingleton<IWifiSettingsService, WifiSettingsService>();
+            builder.Services.AddSingleton<IrrigationProfileService>();
             builder.Services.AddSingleton<IUserProfileService, UserProfileService>();
             builder.Services.AddSingleton<ISupabaseConfigService, SupabaseConfigService>();
             builder.Services.AddSingleton<IBackendConfigService, BackendConfigService>();
@@ -46,6 +47,7 @@ namespace A_Rigator_Controller
             // One shared dashboard state keeps Home, Control and Telemetry in sync.
             builder.Services.AddSingleton<DashboardViewModel>();
             builder.Services.AddTransient<PairingViewModel>();
+            builder.Services.AddTransient<IrrigationProfilesViewModel>();
             builder.Services.AddTransient<RemoteWifiSetupViewModel>();
             builder.Services.AddTransient<WelcomeViewModel>();
             builder.Services.AddTransient<AccountViewModel>();
