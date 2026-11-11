@@ -7,6 +7,8 @@
 #include <BLESecurity.h>
 #include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
+#include "RobotMqttConfig.h"
+#include "RobotMqttTransport.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
@@ -33,6 +35,12 @@ bool stationWasConnected = false;
 bool wifiForgetDisconnectPending = false;
 unsigned long wifiForgetDisconnectAt = 0;
 bool mdnsStarted = false;
+RobotMqttConfigStore mqttConfigStore;
+RobotMqttCredentials mqttCredentials;
+RobotMqttTransport mqttTransport;
+bool mqttConfigStoreAvailable = false;
+unsigned long lastMqttTelemetryAt = 0;
+static const unsigned long MQTT_TELEMETRY_INTERVAL_MS = 5000;
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
 // not provide MITM protection; production pairing needs physical presence or
@@ -1497,6 +1505,7 @@ void printMenu() {
   Serial.println("  p : Toggle Water Pump     |  r : Reset Motor Shield");
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
+  Serial.println("  MQTTSET <user> <pass> : Configure MQTT locally over USB (development only)");
   Serial.println("  L 5 : Left sweep, 5 sec   |  R 5 : Right sweep, 5 sec");
   Serial.println("  B 5 : Back sweep, 5 sec   |  D 5 : Both sides, 5 sec each");
   Serial.println("  F 5 2 : Full sweep, 5 sec each, repeat twice");
@@ -1505,6 +1514,20 @@ void printMenu() {
 }
 
 void executeSerialLine(String line) {
+  // Local USB-only development provisioning. Keep password case unchanged.
+  if (line.startsWith("MQTTSET ")) {
+    if (!mqttConfigStoreAvailable) { Serial.println(">> MQTT settings storage unavailable."); return; }
+    const int separator = line.indexOf(32, 8);
+    if (separator < 0) { Serial.println(">> Usage: MQTTSET <username> <password>"); return; }
+    const String username = line.substring(8, separator);
+    const String password = line.substring(separator + 1);
+    if (mqttConfigStore.save(username, password)) {
+      mqttConfigStore.load(mqttCredentials);
+      mqttTransport.begin(mqttConfigStore.robotId(), mqttCredentials);
+      Serial.printf(">> MQTT credentials saved for %s. Password not displayed.\n", mqttConfigStore.robotId().c_str());
+    } else { Serial.println(">> MQTT credential save failed."); }
+    return;
+  }
   line.trim();
   line.toUpperCase();
   if (line == "STOP") {
@@ -1696,6 +1719,18 @@ void setup() {
   }
   startWifiApi();
 
+  if (mqttConfigStore.begin()) {
+    mqttConfigStoreAvailable = true;
+    if (mqttConfigStore.load(mqttCredentials)) {
+      mqttTransport.begin(mqttConfigStore.robotId(), mqttCredentials);
+      Serial.printf(">> MQTT credentials loaded for device %s.\n", mqttConfigStore.robotId().c_str());
+    } else {
+      Serial.println(">> MQTT is not configured. Use USB serial: MQTTSET <username> <password>");
+    }
+  } else {
+    Serial.println(">> MQTT settings storage unavailable; MQTT remains disabled.");
+  }
+
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(10000);
   delay(100);
@@ -1707,6 +1742,19 @@ void setup() {
 
 void loop() {
   server.handleClient();
+  mqttTransport.loop();
+
+  if (mqttTransport.connected() && millis() - lastMqttTelemetryAt >= MQTT_TELEMETRY_INTERVAL_MS) {
+    lastMqttTelemetryAt = millis();
+    String telemetry = String("{\"robotId\":\"") + mqttTransport.robotId() +
+      "\",\"state\":\"" +
+      (currentMode == MODE_AUTONOMOUS ? "Automatic" : (pumpState ? "Watering" : "Idle")) +
+      "\",\"mode\":\"" +
+      (currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual") +
+      "\",\"pump\":" + (pumpState ? "true" : "false") +
+      ",\"wifiConnected\":true,\"uptimeMs\":" + String(millis()) + "}";
+    mqttTransport.publishTelemetry(telemetry);
+  }
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
