@@ -686,11 +686,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             OnPropertyChanged(nameof(SelectedIrrigationProfile));
             OnPropertyChanged(nameof(SelectedIrrigationProfileSummary));
-            (StartManualIrrigationCommand as Command)?.ChangeCanExecute();
-            if (IsConnected && !IsAutonomous)
-                _ = TryApplySelectedIrrigationProfileAsync();
-            else if (IsAutonomous)
-                Message = "Profile selection saved. It will be applied before the next autonomous run.";
+            Message = "Profile selection saved for the next autonomous irrigation run.";
         });
     }
 
