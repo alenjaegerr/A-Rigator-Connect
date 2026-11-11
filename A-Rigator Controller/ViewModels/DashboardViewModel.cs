@@ -349,6 +349,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
+        _isTerrainModeActive = false;
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
         if (!await TryApplySelectedIrrigationProfileAsync())
