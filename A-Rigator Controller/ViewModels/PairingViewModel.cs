@@ -172,6 +172,14 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool CanSubmitMqttCredentials => IsBleConnected && !IsBusy &&
         !string.IsNullOrWhiteSpace(MqttUsername) && !string.IsNullOrEmpty(MqttPassword);
+
+#if DEBUG
+    public bool IsDeveloperMqttProvisioningVisible => true;
+    public bool IsCustomerMqttSetupVisible => false;
+#else
+    public bool IsDeveloperMqttProvisioningVisible => false;
+    public bool IsCustomerMqttSetupVisible => true;
+#endif
     public bool CanSubmitWifiCredentials => IsBleConnected && SelectedWifiNetwork is not null && !IsBusy;
 
     public RobotProvisioningDevice? SelectedBleRobot
