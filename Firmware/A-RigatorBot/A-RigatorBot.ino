@@ -1093,6 +1093,7 @@ void handleManualTerrainStart() {
     return;
   }
   manualTerrainModeActive = true;
+  refreshManualControlLease();
   manualTerrainSteeringAngle = STEER_LEFT;
   lastManualTerrainSteeringStep = 0;
   currentMode = MODE_MANUAL;
@@ -1195,8 +1196,10 @@ void enforceManualControlTimeout() {
       irrigationSequenceManual = false;
       writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
     }
+	manualTerrainModeActive = false;
+    writeServo(STEER_SERVO_PIN, STEER_CENTER);
 	manualControlLeaseActive = false;
-	Serial.println(">> Manual control lease expired; motor stopped and pump disabled.");
+	Serial.println(">> Manual control lease expired; motor, pump, and manual terrain steering stopped.");
   }
 }
 
