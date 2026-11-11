@@ -4,6 +4,9 @@ public enum RobotControlCommand
 {
     Forward,
     Reverse,
+    SteerLeft,
+    SteerRight,
+    SteerCenter,
     Stop,
     PumpOn,
     PumpOff,
