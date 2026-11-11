@@ -1,66 +1,43 @@
-# Customer MQTT Provisioning
+# QR ownership and MQTT provisioning
 
-## Product requirement
+## Customer flow
+1. Customer signs in to A-Rigator Connect.
+2. Customer scans the QR label. It contains a robot code and a high-entropy, one-time claim code, never MQTT credentials.
+3. App posts `{ "action": "claim", "robotCode": "...", "claimCode": "..." }` with the signed-in Supabase access token.
+4. Edge Function hashes the claim code and calls the service-role-only `_claim_arigator_robot` RPC. Ownership is assigned atomically and the token is consumed.
+5. App posts `{ "action": "provision", "robotId": "..." }`. Function verifies ownership, provisions a unique EMQX username/password and scoped ACL rules, then returns credentials over HTTPS.
+6. App sends credentials to the robot over BLE. Do not log or persist the MQTT password in the app.
 
-A Play Store customer must never be asked to enter an EMQX username, EMQX password, broker hostname, port, or topic. Those are device infrastructure settings.
+## Supabase Edge Function secrets
+Configure in Dashboard → Edge Functions → Secrets:
+- `EMQX_API_BASE_URL`: HTTPS EMQX management API base URL (not the MQTT listener hostname unless EMQX documents it as the management API).
+- `EMQX_API_KEY`, `EMQX_API_SECRET`: EMQX API key pair with authentication and authorization management permissions.
+- `MQTT_BROKER_HOST`: broker TLS hostname.
+- `MQTT_BROKER_TLS_PORT`: normally `8883`.
+- `MQTT_CREDENTIAL_ENCRYPTION_KEY`: 32 random bytes as 64 hex characters. Keep a secure backup; rotation requires re-encrypting stored credentials.
+Supabase's built-in `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are used server-side. Never expose service-role, EMQX API, or encryption keys to the app, firmware, or Git.
 
-The customer signs in with the existing account flow, pairs a robot, and configures ordinary Wi-Fi. MQTT credentials are provisioned automatically.
+## API
+Endpoint: `POST https://pcgbyowcqpgtkfbdfwfb.supabase.co/functions/v1/robot-mqtt-provisioning`
+Headers: `Authorization: Bearer <Supabase user access token>`, `Content-Type: application/json`.
 
-## Current app change
+Claim:
+```json
+{ "action": "claim", "robotCode": "AR-...", "claimCode": "<one-time random secret>" }
+```
+Provision:
+```json
+{ "action": "provision", "robotId": "<UUID returned by claim>" }
+```
+Provision response includes host, port, TLS flag, username, password, and topic root. Treat it as a secret response.
 
-- The manual MQTT credential card is visible only in DEBUG builds.
-- Release builds show a customer-facing cloud-connection explanation instead.
-- The existing BLE credential characteristic and `SendMqttCredentialsAsync` implementation remain available for developer testing.
-- This is a UI boundary change, not a completed automatic provisioning implementation.
+## Manufacturing / QR registration
+For each unit, generate a claim code with at least 128 bits of cryptographic randomness. Print the raw code only in the QR label and store only SHA-256(code) in `private.robot_claim_tokens`. Create the corresponding `public.robots` row with unique `robot_code`, null `owner_id`, and a name. Set a finite expiry. QR payload should be versioned and carry `robotCode` and `claimCode`.
 
-## Required production flow
-
-1. The customer authenticates with the existing Supabase account service.
-2. The customer discovers and pairs a robot over BLE.
-3. The app obtains the robot's stable device identity and proves ownership/claim eligibility.
-4. The app requests provisioning from an authenticated backend using the user's Supabase access token.
-5. The backend verifies that the user may claim or manage this robot.
-6. The backend creates or retrieves a unique EMQX device identity, configures ACLs limited to that robot's topic namespace, and returns the device credentials only to the authorized provisioning session.
-7. The app forwards the credentials to the robot over the existing BLE MQTT configuration characteristic.
-8. The ESP32 stores the credentials and, once MQTT transport is implemented, connects to EMQX over TLS.
-9. The app reports a customer-friendly result such as "Cloud connection configured" or a clear retry/error state.
-
-## Backend security requirements
-
-- Never ship EMQX Management API credentials, a fleet-wide MQTT username/password, or broker administration secrets in the mobile app or firmware.
-- Never authorize a robot using its display name or a guessable Robot ID alone.
-- Require an authenticated account and an ownership/claim check. A printed QR code should contain a one-time claim secret or equivalent proof, not the broker password.
-- Generate a unique random credential per robot. Apply broker ACLs so a robot can subscribe only to its own command topic and publish only to its own acknowledgement, telemetry, and availability topics.
-- Keep the user's Supabase JWT and device credentials out of logs and analytics.
-- Return device credentials only over HTTPS to the authorized pairing session; keep them in app memory only long enough to provision over BLE.
-- Support credential revocation and rotation when a robot is unpaired, transferred, or reported compromised.
-- BLE Just Works encryption is not strong owner authentication. Production claiming must include physical-presence verification and an appropriate authenticated provisioning design.
-- Evaluate ESP32 Secure Boot and Flash Encryption. NVS storage alone is not tamper-resistant.
-
-## API contract to implement
-
-Suggested authenticated endpoint:
-
-`POST /v1/robots/{robotId}/mqtt-provisioning`
-
-Request:
-- Supabase bearer access token
-- Robot claim proof (one-time claim token or equivalent)
-
-Response (HTTPS only, pairing session only):
-- MQTT host and TLS port (or use app-bundled non-secret broker endpoint configuration)
-- Unique device username and password
-- Robot ID and credential version
-
-The backend must be idempotent for a provisioning retry and must not create unlimited credentials on repeated requests. A later credential rotation endpoint should revoke the previous credential after the new one is confirmed on-device.
-
-The exact endpoint and response schema must be aligned with the deployed backend before app implementation. The current `IBackendConfigService` stores only a base URL; no automatic MQTT provisioning endpoint is implemented yet.
-
-## Remaining implementation work
-
-1. Confirm the production backend host and deploy the authenticated provisioning endpoint.
-2. Add an app provisioning client that uses the existing Supabase session and backend base URL.
-3. Add a stable robot ID and one-time ownership claim mechanism to firmware/manufacturing records.
-4. Replace the DEBUG-only manual credential form with the automatic request-and-BLE flow.
-5. Implement and test ESP32 MQTT TLS connection, ACL behavior, reconnect, telemetry, acknowledgements, and local safety leases.
-6. Run end-to-end tests for first claim, retry, already-claimed robot, revoked ownership, credential rotation, and offline recovery.
+## Current implementation boundaries
+- Edge Function deployed with JWT verification enabled; claim RPC is service-role-only.
+- Claim token and credential tables deny access to anon/authenticated; MQTT password is AES-GCM encrypted at rest.
+- EMQX management API URL/keys and encryption key still need configuration in Supabase.
+- EMQX deployment must have password-based built-in authentication and built-in database authorization enabled.
+- Mobile QR scanner/claim screen and automatic BLE handoff are not yet connected to this endpoint.
+- ESP32 MQTT transport is not implemented; local HTTP control remains the fallback.
