@@ -635,7 +635,6 @@ void handleStatus() {
     default: json += "NONE"; break;
   }
   json += "\",\"pump\":";
-  json += "\",\"pump\":";
   json += pumpState ? "true" : "false";
 	json += ",\"controlsEnabled\":";
   json += controlsEnabled ? "true" : "false";
