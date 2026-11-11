@@ -70,7 +70,11 @@ void handleSteerLeft();
 void handleSteerRight();
 void handleSteerCenter();
 void handleNozzleSweep();
+void handleSetIrrigationProfile();
 void serviceNozzleSweep();
+void serviceIrrigationSequence();
+void startIrrigationSequence();
+void beginIrrigationPhase();
 void startNozzleSweep();
 void handleStop();
 void handleAutonomousStart();
@@ -539,6 +543,16 @@ unsigned long lastTerrainSteeringStep = 0;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
 bool nozzleSweepActive = false;
+int irrigationLeftSeconds = 3;
+int irrigationBackSeconds = 3;
+int irrigationRightSeconds = 3;
+int irrigationRepeatCount = 1;
+bool irrigationSequenceActive = false;
+bool irrigationSequenceSpraying = false;
+bool irrigationZoneLatched = false;
+uint8_t irrigationSequencePhase = 0;
+int irrigationSequencesCompleted = 0;
+unsigned long irrigationPhaseStartedAt = 0;
 int nozzleSweepAngle = NOZZLE_MIN_SWEEP;
 int nozzleSweepDirection = 1;
 unsigned long lastNozzleSweepStep = 0;
@@ -682,6 +696,7 @@ void startWifiApi() {
 	server.on("/api/control/steer/right", HTTP_POST, handleSteerRight);
 	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
 	server.on("/api/control/nozzle/sweep", HTTP_POST, handleNozzleSweep);
+    server.on("/api/irrigation/profile", HTTP_POST, handleSetIrrigationProfile);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
@@ -873,7 +888,39 @@ void handleNozzleSweep() {
   sendControlResponse("nozzle_sweep_started");
 }
 
+void handleSetIrrigationProfile() {
+  if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
+    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous irrigation before changing the profile\\"}");
+    return;
+  }
+
+  if (!server.hasArg("left") || !server.hasArg("back") ||
+      !server.hasArg("right") || !server.hasArg("repeat")) {
+    server.send(400, "application/json", "{\\"success\\":false,\\"message\\":\\"Missing irrigation profile values\\"}");
+    return;
+  }
+
+  const int left = server.arg("left").toInt();
+  const int back = server.arg("back").toInt();
+  const int right = server.arg("right").toInt();
+  const int repeat = server.arg("repeat").toInt();
+
+  if (left < 1 || left > 60 || back < 1 || back > 60 ||
+      right < 1 || right > 60 || repeat < 1 || repeat > 20) {
+    server.send(400, "application/json", "{\\"success\\":false,\\"message\\":\\"Profile values are outside the allowed range\\"}");
+    return;
+  }
+
+  irrigationLeftSeconds = left;
+  irrigationBackSeconds = back;
+  irrigationRightSeconds = right;
+  irrigationRepeatCount = repeat;
+  sendControlResponse("irrigation_profile_applied");
+}
+
 void handleStop() {
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
   nozzleSweepActive = false;
   currentMode = MODE_MANUAL;
   activeAutonomousMode = AUTO_NONE;
@@ -888,6 +935,9 @@ void handleStop() {
 
 void handleAutonomousStart() {
   nozzleSweepActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
   autonomousControlLeaseActive = true;
   lastAutonomousHeartbeat = millis();
   // Cancel any manual-control lease and start the existing autonomous loop.
@@ -906,6 +956,9 @@ void handleAutonomousStart() {
 void handleAutonomousStop() {
   autonomousControlLeaseActive = false;
   nozzleSweepActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
   currentMode = MODE_MANUAL;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
@@ -1003,6 +1056,9 @@ void enforceAutonomousControlTimeout() {
   if (autonomousControlLeaseActive && currentMode == MODE_AUTONOMOUS &&
       millis() - lastAutonomousHeartbeat > AUTONOMOUS_CONTROL_TIMEOUT_MS) {
     autonomousControlLeaseActive = false;
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationZoneLatched = false;
     currentMode = MODE_MANUAL;
     manualMotorDir = CMD_STOP;
     driveMotor(CMD_BRAKE, 0.0);
@@ -1082,18 +1138,77 @@ void serviceNozzleSweep() {
 // ============================================================================
 // 6. AUTONOMOUS CONTROLLER
 // ============================================================================
-void executeIrrigationZone() {
-  Serial.println("\n>> [AUTO] Irrigation Zone Reached! Spraying...");
-  driveMotor(CMD_BRAKE, 0.0);
-  delay(500);
-
-  setPump(true);
-  sweepNozzleOnce();
+void beginIrrigationPhase() {
   setPump(false);
-  delay(500);
+  irrigationSequenceSpraying = false;
+  irrigationPhaseStartedAt = millis();
+  const int nozzlePositions[] = { NOZZLE_MIN_SWEEP, NOZZLE_CENTER, NOZZLE_MAX_SWEEP };
+  writeServo(NOZZLE_SERVO_PIN, nozzlePositions[irrigationSequencePhase]);
+}
+
+void startIrrigationSequence() {
+  Serial.println("\n>> [AUTO] Irrigation zone reached. Running selected profile...");
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  irrigationSequenceActive = true;
+  irrigationSequencePhase = 0;
+  irrigationSequencesCompleted = 0;
+  beginIrrigationPhase();
+}
+
+void serviceIrrigationSequence() {
+  if (!irrigationSequenceActive) return;
+
+  if (getObstacleDistanceCM() < OBSTACLE_STOP_CM) {
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    setPump(false);
+    driveMotor(CMD_BRAKE, 0.0);
+    Serial.println(">> [SAFETY] Obstacle detected during irrigation. Sequence aborted.");
+    return;
+  }
+
+  const unsigned long now = millis();
+  if (!irrigationSequenceSpraying) {
+    if (now - irrigationPhaseStartedAt >= 300) {
+      setPump(true);
+      irrigationSequenceSpraying = true;
+      irrigationPhaseStartedAt = now;
+    }
+    return;
+  }
+
+  const int durations[] = { irrigationLeftSeconds, irrigationBackSeconds, irrigationRightSeconds };
+  if (now - irrigationPhaseStartedAt < (unsigned long)durations[irrigationSequencePhase] * 1000UL)
+    return;
+
+  setPump(false);
+  irrigationSequencePhase++;
+  if (irrigationSequencePhase >= 3) {
+    irrigationSequencesCompleted++;
+    if (irrigationSequencesCompleted >= irrigationRepeatCount) {
+      irrigationSequenceActive = false;
+      writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+      Serial.println(">> [AUTO] Irrigation profile completed.");
+      return;
+    }
+    irrigationSequencePhase = 0;
+  }
+
+  beginIrrigationPhase();
+}
+
+void executeIrrigationZone() {
+  if (!irrigationSequenceActive)
+    startIrrigationSequence();
 }
 
 void runAutonomousStep() {
+  if (irrigationSequenceActive) {
+    serviceIrrigationSequence();
+    return;
+  }
+
   if (getObstacleDistanceCM() < OBSTACLE_STOP_CM) {
 	driveMotor(CMD_BRAKE, 0.0);
 	setPump(false);
@@ -1102,6 +1217,9 @@ void runAutonomousStep() {
 
   int leftLine = digitalRead(LINE_LEFT_PIN);
   int rightLine = digitalRead(LINE_RIGHT_PIN);
+
+  if (!(leftLine == HIGH && rightLine == HIGH))
+    irrigationZoneLatched = false;
 
   if (leftLine == LOW && rightLine == LOW) {
 	writeServo(STEER_SERVO_PIN, STEER_CENTER);
@@ -1113,10 +1231,10 @@ void runAutonomousStep() {
 	writeServo(STEER_SERVO_PIN, STEER_RIGHT);
 	driveMotor(CMD_CW, FULL_POWER);
   } else if (leftLine == HIGH && rightLine == HIGH) {
-	executeIrrigationZone();
-	writeServo(STEER_SERVO_PIN, STEER_CENTER);
-	driveMotor(CMD_CW, FULL_POWER);
-	delay(600);
+    if (!irrigationZoneLatched) {
+      irrigationZoneLatched = true;
+      executeIrrigationZone();
+    }
   }
 }
 
