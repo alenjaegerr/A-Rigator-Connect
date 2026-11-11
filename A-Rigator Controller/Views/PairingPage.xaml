@@ -263,6 +263,42 @@
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
+                        <Border Padding="16"
+                                BackgroundColor="#F4F8F5"
+                                Stroke="#D8E3DC"
+                                StrokeShape="RoundRectangle 16">
+                            <VerticalStackLayout Spacing="10">
+                                <Label Text="MQTT CLOUD CONNECTION"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       CharacterSpacing="0.7"
+                                       TextColor="#176B45" />
+                                <Label Text="Save the EMQX credentials assigned to this robot. This only stores them on the ESP32; broker connection testing will be available after MQTT transport is added to the firmware."
+                                       FontSize="13"
+                                       TextColor="#52615A" />
+                                <Entry Text="{Binding MqttUsername}"
+                                       Placeholder="EMQX username"
+                                       ClearButtonVisibility="WhileEditing"
+                                       BackgroundColor="White"
+                                       TextColor="#17231C" />
+                                <Entry Text="{Binding MqttPassword}"
+                                       Placeholder="EMQX password"
+                                       IsPassword="True"
+                                       ClearButtonVisibility="WhileEditing"
+                                       BackgroundColor="White"
+                                       TextColor="#17231C" />
+                                <Button Text="SAVE MQTT CREDENTIALS"
+                                        Command="{Binding SaveMqttCredentialsCommand}"
+                                        IsEnabled="{Binding CanSubmitMqttCredentials}"
+                                        MinimumHeightRequest="48"
+                                        CornerRadius="12"
+                                        BackgroundColor="#2879A8"
+                                        TextColor="White" />
+                                <Label Text="{Binding MqttProvisioningStatusMessage}"
+                                       FontSize="12"
+                                       TextColor="#52615A" />
+                            </VerticalStackLayout>
+                        </Border>
                         <Label Text="You can leave the phone on its normal network and try verification. If the router blocks local device traffic, switch to the direct A-Rigator hotspot below. The MQTT cloud path will later remove the same-network requirement."
                                FontSize="14"
                                TextColor="#35443B" />
