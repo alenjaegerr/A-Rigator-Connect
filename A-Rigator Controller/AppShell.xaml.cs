@@ -9,7 +9,8 @@ public partial class AppShell : Shell
     public AppShell(
         MainPage dashboardPage,
         ControlPage controlPage,
-        TelemetryPage telemetryPage,
+        AutonomousHubPage autonomousHubPage,
+        IrrigationProfilesPage irrigationProfilesPage,
         WelcomePage welcomePage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
@@ -18,16 +19,15 @@ public partial class AppShell : Shell
         InitializeComponent();
         Navigated += OnShellNavigated;
 
-        // Keep one shared telemetry/heartbeat loop alive while users move between tabs.
+        // One shared dashboard view model owns the robot connection, telemetry
+        // refresh and manual-control heartbeat across all operating destinations.
         ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         if (hasDisplayName)
             pairingPage.StartNewPairingFlow();
 
-        // The main tab bar always owns the dashboard. Setup pages live in a
-        // separate Shell item so replacing a setup page can never leave stale
-        // content cached inside the active Home tab.
+        // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
 
         var homeTab = new Tab { Title = "Home", Route = "home" };
@@ -39,41 +39,49 @@ public partial class AppShell : Shell
             Content = dashboardPage
         });
 
-        var controlTab = new Tab { Title = "Control", Route = "control" };
-        controlTab.Items.Add(new ShellContent
+        var manualTab = new Tab { Title = "Manual", Route = "manual" };
+        manualTab.Items.Add(new ShellContent
         {
-            Title = "Control",
-            Route = "control-content",
+            Title = "Manual",
+            Route = "manual-content",
             Icon = ImageSource.FromFile("nav_control.svg"),
             Content = controlPage
         });
 
-        var telemetryTab = new Tab { Title = "Telemetry", Route = "telemetry" };
-        telemetryTab.Items.Add(new ShellContent
+        var autonomousTab = new Tab { Title = "Auto", Route = "autonomous" };
+        autonomousTab.Items.Add(new ShellContent
         {
-            Title = "Telemetry",
-            Route = "telemetry-content",
-            Icon = ImageSource.FromFile("nav_telemetry.svg"),
-            Content = telemetryPage
+            Title = "Autonomous",
+            Route = "autonomous-content",
+            Icon = ImageSource.FromFile("nav_auto.svg"),
+            Content = autonomousHubPage
         });
 
-        var settingsTab = new Tab { Title = "Settings", Route = "settings-tab" };
-        settingsTab.Items.Add(new ShellContent
+        var profilesTab = new Tab { Title = "Profiles", Route = "profiles" };
+        profilesTab.Items.Add(new ShellContent
         {
-            Title = "Settings",
-            Route = "settings-content",
+            Title = "Profiles",
+            Route = "profiles-content",
+            Icon = ImageSource.FromFile("nav_profiles.svg"),
+            Content = irrigationProfilesPage
+        });
+
+        var systemTab = new Tab { Title = "System", Route = "system" };
+        systemTab.Items.Add(new ShellContent
+        {
+            Title = "System",
+            Route = "system-content",
             Icon = ImageSource.FromFile("nav_settings.svg"),
             Content = settingsPage
         });
 
         mainTabBar.Items.Add(homeTab);
-        mainTabBar.Items.Add(controlTab);
-        mainTabBar.Items.Add(telemetryTab);
-        mainTabBar.Items.Add(settingsTab);
+        mainTabBar.Items.Add(manualTab);
+        mainTabBar.Items.Add(autonomousTab);
+        mainTabBar.Items.Add(profilesTab);
+        mainTabBar.Items.Add(systemTab);
 
-        // Keep onboarding outside the main tab bar. PairingPage and WelcomePage
-        // already hide the tab bar, while their own Shell item stays independent
-        // from the persistent dashboard content.
+        // Keep onboarding isolated from the persistent five-tab application shell.
         var setupTabBar = new TabBar { Route = "setup" };
 
         var welcomeTab = new Tab { Title = "Welcome", Route = "welcome" };
@@ -111,7 +119,6 @@ public partial class AppShell : Shell
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
 
-        // Start in onboarding without ever assigning it to the Home tab.
         CurrentItem = setupTabBar;
         setupTabBar.CurrentItem = hasDisplayName ? pairingTab : welcomeTab;
     }
