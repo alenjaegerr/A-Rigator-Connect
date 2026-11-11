@@ -27,6 +27,14 @@
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
                 <VerticalStackLayout Spacing="8">
+                    <Label Text="ACTIVE IRRIGATION PROFILE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Picker Title="Select a saved profile" ItemsSource="{Binding IrrigationProfiles}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedIrrigationProfile}" />
+                    <Label Text="{Binding SelectedIrrigationProfileSummary}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="8">
                     <Label Text="MANUAL DRIVE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <Button Text="FORWARD" Command="{Binding ForwardCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="58" BackgroundColor="#176B45" TextColor="White" />
