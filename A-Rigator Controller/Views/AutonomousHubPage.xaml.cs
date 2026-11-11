@@ -20,4 +20,9 @@ public partial class AutonomousHubPage : ContentPage
     {
         await Shell.Current.GoToAsync("terrain");
     }
+
+    private async void OnIrrigationProfilesClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("irrigation-profiles");
+    }
 }
