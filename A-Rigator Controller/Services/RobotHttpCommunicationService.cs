@@ -46,6 +46,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             RobotControlCommand.TerrainBiasRight => "api/control/terrain/bias/right",
             RobotControlCommand.TerrainBiasCenter => "api/control/terrain/bias/center",
             RobotControlCommand.TerrainStop => "api/control/terrain/stop",
+            RobotControlCommand.ManualTerrainStart => "api/control/manual-terrain/start",
+            RobotControlCommand.ManualTerrainStop => "api/control/manual-terrain/stop",
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported robot command.")
         };
 
