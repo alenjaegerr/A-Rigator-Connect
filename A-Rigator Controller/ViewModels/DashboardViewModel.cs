@@ -345,7 +345,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
 
         Message = "Sending autonomous start command to A-Rigator...";
-        await SendCommandAsync(RobotControlCommand.AutonomousStart, CancellationToken.None);
+        if (await SendCommandAsync(RobotControlCommand.AutonomousStart, CancellationToken.None))
+            IsManualTerrainModeActive = false;
         await RefreshStatusAsync();
 
         if (IsAutonomous)
@@ -389,7 +390,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
 
         Message = "Starting Pathway Mode: line-following operation...";
-        await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None);
+        if (await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None))
+            IsManualTerrainModeActive = false;
         await RefreshStatusAsync();
     }
 
@@ -413,7 +415,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _pumpRequested = false;
         Message = "Starting Terrain Mode. A-Rigator will move forward while the steering servo oscillates.";
         NotifyControlStateChanged();
-        await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
+        if (await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None))
+            IsManualTerrainModeActive = false;
         await RefreshStatusAsync();
         NotifyControlStateChanged();
     }
@@ -556,7 +559,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _pumpRequested = false;
         Message = "Stop requested. The ESP32 also stops outputs if its manual-control lease expires.";
         NotifyControlStateChanged();
-        await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None);
+        if (await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None))
+            IsManualTerrainModeActive = false;
+        NotifyControlStateChanged();
     }
 
     private async Task ResetShieldAsync()
