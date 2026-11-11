@@ -30,6 +30,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _isRefreshing;
     private bool _isCommandRunning;
     private bool _isManualTerrainModeActive;
+    private bool _isNozzleSweepActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -322,7 +323,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _monitoringCancellation = null;
         var shouldStopManualOutputs = !IsAutonomous &&
-            (_activeMotorCommand is not null || _pumpRequested);
+            (_activeMotorCommand is not null || _pumpRequested ||
+             _isManualTerrainModeActive || _isNozzleSweepActive);
         cancellation.Cancel();
         _activeMotorCommand = null;
         _pumpRequested = false;
@@ -509,14 +511,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
 
         Message = $"{sweepName} started. It will continue until you stop it.";
-        await SendCommandAsync(command, CancellationToken.None);
+        if (await SendCommandAsync(command, CancellationToken.None))
+        {
+            _isNozzleSweepActive = true;
+            NotifyControlStateChanged();
+        }
     }
 
     private async Task StopNozzleSweepAsync()
     {
         if (!CanManualControl) return;
         Message = "Stopping nozzle sweep and centering the nozzle...";
-        await SendCommandAsync(RobotControlCommand.NozzleSweepStop, CancellationToken.None);
+        if (await SendCommandAsync(RobotControlCommand.NozzleSweepStop, CancellationToken.None))
+        {
+            _isNozzleSweepActive = false;
+            NotifyControlStateChanged();
+        }
     }
 
     private async Task SetPumpAsync(bool enable)
@@ -540,7 +550,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         Message = "Stop requested. The ESP32 also stops outputs if its manual-control lease expires.";
         NotifyControlStateChanged();
         if (await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None))
+        {
             IsManualTerrainModeActive = false;
+            _isNozzleSweepActive = false;
+        }
         NotifyControlStateChanged();
     }
 
@@ -587,7 +600,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 }
 
                 _reconnectTicks = 0;
-                var manualIntentActive = _activeMotorCommand is not null || _pumpRequested;
+                var manualIntentActive = _activeMotorCommand is not null || _pumpRequested ||
+                    IsManualTerrainModeActive || _isNozzleSweepActive;
                 if ((IsAutonomous || manualIntentActive) && _latestStatus?.ControlsEnabled != false)
                 {
                     await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
@@ -607,6 +621,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             _activeMotorCommand = null;
             _pumpRequested = false;
+            _isNozzleSweepActive = false;
+            IsManualTerrainModeActive = false;
             Message = "Connection lost. The ESP32 manual-control timeout should stop manual outputs.";
             NotifyControlStateChanged();
         }
