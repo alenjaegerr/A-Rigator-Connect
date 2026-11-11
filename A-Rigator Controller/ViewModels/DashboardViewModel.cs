@@ -324,6 +324,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         NotifyControlStateChanged();
 
         await SendCommandAsync(RobotControlCommand.AutonomousStop, CancellationToken.None);
+        _isTerrainModeActive = false;
         await RefreshStatusAsync();
 
         if (!IsAutonomous)
@@ -382,6 +383,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         if (!CanStopAutonomous) return;
         Message = "Stopping Pathway Mode...";
         await SendCommandAsync(RobotControlCommand.PathwayStop, CancellationToken.None);
+        _isTerrainModeActive = false;
         await RefreshStatusAsync();
     }
 
@@ -399,6 +401,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         Message = "Starting Terrain Mode. A-Rigator will move forward while the steering servo oscillates.";
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
+        if (!IsConnected) { _isTerrainModeActive = false; NotifyControlStateChanged(); return; }
+        _isTerrainModeActive = true;
         await RefreshStatusAsync();
     }
 
@@ -806,6 +810,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ConnectionRecoveryMessage));
             OnPropertyChanged(nameof(IsConnected));
             OnPropertyChanged(nameof(IsConnecting));
+            if (state != ConnectionState.Connected) _isTerrainModeActive = false;
             OnPropertyChanged(nameof(CanControl));
             OnPropertyChanged(nameof(IsControlWarningVisible));
             OnPropertyChanged(nameof(ControlAccessMessage));
