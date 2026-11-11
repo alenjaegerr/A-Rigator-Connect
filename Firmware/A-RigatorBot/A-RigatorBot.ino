@@ -75,6 +75,7 @@ void handleBackNozzleSweep();
 void handleRightNozzleSweep();
 void handleFullNozzleSweep();
 void handleNozzleSweepStop();
+void configureManualNozzleSweep(int minimumAngle, int maximumAngle);
 void handleSetIrrigationProfile();
 void handleIrrigationStart();
 void handleIrrigationStop();
@@ -936,11 +937,7 @@ void handleNozzleSweep() {
   handleFullNozzleSweep();
 }
 
-void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
-  if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
-    return;
-  }
+void configureManualNozzleSweep(int minimumAngle, int maximumAngle) {
   if (irrigationSequenceActive) {
     irrigationSequenceActive = false;
     irrigationSequenceSpraying = false;
@@ -957,6 +954,14 @@ void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* acti
   nozzleSweepDirection = 1;
   lastNozzleSweepStep = 0;
   nozzleSweepActive = true;
+}
+
+void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
+    return;
+  }
+  configureManualNozzleSweep(minimumAngle, maximumAngle);
   sendControlResponse(action);
 }
 
@@ -1603,7 +1608,8 @@ void executeCommand(char cmd) {
 
 	case 'n': case 'N':
 	  Serial.println(">> [CMD] Sweeping Nozzle...");
-	  startNozzleSweep();
+      if (currentMode != MODE_AUTONOMOUS)
+        configureManualNozzleSweep(NOZZLE_MIN_SWEEP, NOZZLE_MAX_SWEEP);
 	  break;
 
 	case 'm': case 'M':
