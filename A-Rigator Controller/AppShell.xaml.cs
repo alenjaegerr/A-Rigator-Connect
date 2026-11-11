@@ -108,6 +108,7 @@ public partial class AppShell : Shell
 
         Routing.RegisterRoute("remote-wifi", typeof(RemoteWifiSetupPage));
         Routing.RegisterRoute("pathway", typeof(PathwayModePage));
+        Routing.RegisterRoute("terrain", typeof(TerrainModePage));
         Routing.RegisterRoute("account", typeof(AccountPage));
 
         welcomePage.DisplayNameSaved += async (_, _) =>
