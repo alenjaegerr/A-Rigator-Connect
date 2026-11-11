@@ -46,6 +46,23 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="LIVE TELEMETRY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Text="Obstacle distance (read-only)" FontSize="12" />
+                        <Label Grid.Column="1" Text="{Binding ObstacleDistanceStatus}" FontSize="12" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="Line sensor GPIO 14" FontSize="12" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding LineGpio14Status}" FontSize="12" FontAttributes="Bold" />
+                        <Label Grid.Row="2" Text="Line sensor GPIO 27" FontSize="12" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding LineGpio27Status}" FontSize="12" FontAttributes="Bold" />
+                        <Label Grid.Row="3" Text="Irrigation pump" FontSize="12" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding PumpStatus}" FontSize="12" FontAttributes="Bold" />
+                    </Grid>
+                    <Button Text="REFRESH TELEMETRY" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" BackgroundColor="#2879A8" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="6">
                     <Label Text="EXPERIMENTAL · NO OBSTACLE AVOIDANCE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
