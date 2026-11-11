@@ -866,6 +866,7 @@ void handleAutonomousStart() {
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   currentMode = MODE_AUTONOMOUS;
   sendControlResponse("autonomous_start");
   Serial.println(">> [MODE] AUTONOMOUS ENGAGED over Wi-Fi API");
@@ -879,6 +880,7 @@ void handleAutonomousStop() {
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   sendControlResponse("autonomous_stop");
   Serial.println(">> [MODE] AUTONOMOUS STOPPED over Wi-Fi API");
 }
@@ -1106,6 +1108,7 @@ void executeCommand(char cmd) {
 		driveMotor(CMD_BRAKE, 0.0);
 		setPump(false);
 		writeServo(STEER_SERVO_PIN, STEER_CENTER);
+        writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
 		Serial.println(">> [MODE] MANUAL CONTROL ENGAGED");
 	  }
 	  break;
