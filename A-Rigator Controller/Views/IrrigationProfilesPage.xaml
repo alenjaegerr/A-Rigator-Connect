@@ -50,7 +50,7 @@
                 <Label Text="{Binding Message}" FontSize="13" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
             </Border>
             <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF3DA, Dark=#342B1B}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#80652F}" StrokeShape="RoundRectangle 14">
-                <Label Text="Profiles are saved locally and shared by Manual and Autonomous operation. Before Pathway Mode starts, the selected profile is synchronized to the robot and used for each marked irrigation zone." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                <Label Text="Profiles are saved locally and can be selected from Manual or Pathway screens. Manual pump controls remain direct on/off; Pathway Mode synchronizes the selected timings and runs them at each marked irrigation zone." FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
             </Border>
         </VerticalStackLayout>
     </ScrollView>
