@@ -33,6 +33,10 @@
                         <Button Grid.Column="1" Text="REVERSE" Command="{Binding ReverseCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="58" BackgroundColor="#176B45" TextColor="White" />
                     </Grid>
                     <Button Text="STOP ALL OUTPUTS" Command="{Binding StopCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="54" BackgroundColor="#A23A32" TextColor="White" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="RESET MOTOR SHIELD" Command="{Binding ResetShieldCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="44" FontSize="11" BackgroundColor="#52615A" TextColor="White" />
+                        <Button Grid.Column="1" Text="REFRESH STATUS" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="44" FontSize="11" BackgroundColor="#2879A8" TextColor="White" />
+                    </Grid>
                     <Label Text="Manual drive is disabled while the robot is disconnected or autonomous mode is active." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
@@ -56,6 +60,22 @@
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <Button Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
                         <Button Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="LIVE ROBOT FEEDBACK" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Text="Obstacle distance" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Column="1" Text="{Binding ObstacleDistanceStatus}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Row="1" Text="Obstacle state" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding ObstacleStatus}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Row="2" Text="Line sensor · GPIO 14" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding LineGpio14Status}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Row="3" Text="Line sensor · GPIO 27" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding LineGpio27Status}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                     </Grid>
                 </VerticalStackLayout>
             </Border>
