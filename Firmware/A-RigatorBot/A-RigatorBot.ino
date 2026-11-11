@@ -627,6 +627,14 @@ void handleStatus() {
   json += state;
   json += "\",\"mode\":\"";
   json += mode;
+  json += "\",\"autonomousMode\":\"";
+  switch (activeAutonomousMode) {
+    case AUTO_PATHWAY: json += "PATHWAY"; break;
+    case AUTO_TERRAIN: json += "TERRAIN"; break;
+    case AUTO_GENERIC: json += "GENERIC"; break;
+    default: json += "NONE"; break;
+  }
+  json += "\",\"pump\":";
   json += "\",\"pump\":";
   json += pumpState ? "true" : "false";
 	json += ",\"controlsEnabled\":";
