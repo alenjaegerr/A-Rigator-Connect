@@ -30,6 +30,8 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
             RobotControlCommand.SteerRight => "api/control/steer/right",
             RobotControlCommand.SteerCenter => "api/control/steer/center",
             RobotControlCommand.NozzleSweep => "api/control/nozzle/sweep",
+            RobotControlCommand.ManualIrrigationStart => "api/irrigation/start",
+            RobotControlCommand.ManualIrrigationStop => "api/irrigation/stop",
             RobotControlCommand.Stop => "api/control/stop",
             RobotControlCommand.PumpOn => "api/control/pump/on",
             RobotControlCommand.PumpOff => "api/control/pump/off",
@@ -89,6 +91,21 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
         var result = await response.Content.ReadFromJsonAsync<RobotCommandResponse>(JsonOptions, cancellationToken);
         if (result is not { Success: true })
             throw new InvalidOperationException("A-Rigator rejected the irrigation profile.");
+    }
+
+    public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendIrrigationActionAsync("api/irrigation/start", cancellationToken);
+
+    public Task StopManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendIrrigationActionAsync("api/irrigation/stop", cancellationToken);
+
+    private async Task SendIrrigationActionAsync(string endpoint, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PostAsync(new Uri(_baseAddress, endpoint), content: null, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<RobotCommandResponse>(JsonOptions, cancellationToken);
+        if (result is not { Success: true })
+            throw new InvalidOperationException("A-Rigator rejected the irrigation command.");
     }
 
     public void SetRobotAddress(string address)
