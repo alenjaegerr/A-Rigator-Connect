@@ -10,6 +10,7 @@ namespace A_Rigator_Controller.ViewModels;
 public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
 {
     private readonly IrrigationProfileService _service;
+    private readonly IrrigationProfileSyncCoordinator _sync;
     private IrrigationProfile? _selectedProfile;
     private string _name = string.Empty;
     private string _directionMode = "FullSweep";
@@ -17,9 +18,11 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
     private string _repeatCount = "1";
     private string _message = "Profiles are stored on this device.";
 
-    public IrrigationProfilesViewModel(IrrigationProfileService service)
+    public IrrigationProfilesViewModel(IrrigationProfileService service, IrrigationProfileSyncCoordinator sync)
     {
         _service = service;
+        _sync = sync;
+        _sync.StatusChanged += OnSyncStatusChanged;
         Profiles = service.Profiles;
         _selectedProfile = service.SelectedProfile;
         LoadEditor(_selectedProfile);
@@ -128,7 +131,7 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
             _service.SaveProfile(profile);
             _service.SelectProfile(profile.Id);
             SelectedProfile = profile;
-            Message = $"'{profile.Name}' saved. Unselected directions are set to 0 seconds.";
+            Message = $"'{profile.Name}' saved locally. Unselected directions are set to 0 seconds. Cloud sync runs automatically when signed in and online.";
             RefreshCommands();
         }
         catch (Exception ex) { Message = ex.Message; }
@@ -161,6 +164,11 @@ public sealed class IrrigationProfilesViewModel : INotifyPropertyChanged
         DurationSeconds = profile.DurationSeconds;
         RepeatCount = profile.RepeatCount.ToString();
         NotifySummary();
+    }
+
+    private void OnSyncStatusChanged(object? sender, string status)
+    {
+        MainThread.BeginInvokeOnMainThread(() => Message = status);
     }
 
     private void NotifySummary()
