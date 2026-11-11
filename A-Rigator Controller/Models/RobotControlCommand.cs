@@ -23,5 +23,7 @@ public enum RobotControlCommand
     TerrainBiasLeft,
     TerrainBiasRight,
     TerrainBiasCenter,
-    TerrainStop
+    TerrainStop,
+    ManualTerrainStart,
+    ManualTerrainStop
 }
