@@ -147,13 +147,21 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public string MqttUsername
     {
         get => _mqttUsername;
-        set => SetField(ref _mqttUsername, value);
+        set
+        {
+            if (SetField(ref _mqttUsername, value))
+                OnPropertyChanged(nameof(CanSubmitMqttCredentials));
+        }
     }
 
     public string MqttPassword
     {
         get => _mqttPassword;
-        set => SetField(ref _mqttPassword, value);
+        set
+        {
+            if (SetField(ref _mqttPassword, value))
+                OnPropertyChanged(nameof(CanSubmitMqttCredentials));
+        }
     }
 
     public string MqttProvisioningStatusMessage
