@@ -78,6 +78,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
     public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(profile);
+        profile.ApplyDirectionMode();
         var query = $"left={profile.LeftDurationSeconds}&back={profile.BackDurationSeconds}&right={profile.RightDurationSeconds}&repeat={profile.RepeatCount}";
         using var response = await _httpClient.PostAsync(
             new Uri(_baseAddress, $"api/irrigation/profile?{query}"),
