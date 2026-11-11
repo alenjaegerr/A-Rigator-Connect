@@ -13,6 +13,7 @@
 - Added AP recovery guidance that opens Android's Internet connectivity panel, sets the AP endpoint as preferred, and asks the user to reconnect to the A-Rigator SSID.
 - Extended the app's status model to consume the firmware's existing wifiConnected, wifiIp, and hostname fields.
 - Added a centered, translucent connection overlay with fade transitions for active connection attempts; routine status polling remains in the background without a persistent spinner.
+- Updated BLE robot discovery to scan without an Android service-UUID filter and validate the advertised A-Rigator name instead, avoiding scan-response UUID filter false negatives on some Android BLE stacks.
 - Slowed background status polling to every two seconds while retaining the 250 ms heartbeat cadence needed during active manual commands.
 - Hid the bottom tab bar during welcome, pairing, and remote-access setup; added fade transitions for Shell navigation and pairing-step changes.
 - Fixed startup loading animation timing so the alligator waits for its track to receive a measured layout width before animating.
@@ -83,6 +84,7 @@ Before exposing any of these settings as operational controls, confirm that the 
 - [ ] Verify the flyout/sandwich menu is absent.
 - [ ] Verify dark mode persists after app restart.
 - [ ] Verify welcome, pairing, remote Wi-Fi setup, and account routes still open.
+- [ ] Verify BLE discovery finds the ESP32 by its advertised A-Rigator name on the target Android phone.
 - [ ] Verify bottom tabs are hidden on welcome, pairing, and remote-access setup pages.
 - [ ] Verify Shell tab changes and pairing-step changes use a brief fade transition.
 - [ ] Verify connection attempts show a centered dark translucent overlay that fades in/out above the page.
