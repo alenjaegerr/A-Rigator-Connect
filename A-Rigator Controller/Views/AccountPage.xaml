@@ -24,20 +24,17 @@
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
                     <Label Text="{Binding AccountSummary}"
                            FontSize="15"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <ActivityIndicator IsRunning="{Binding IsBusy}"
                                        IsVisible="{Binding IsBusy}"
                                        Color="#176B45" />
-
                     <Button Text="SIGN IN WITH GOOGLE"
                             Command="{Binding SignInCommand}"
                             MinimumHeightRequest="52"
                             BackgroundColor="#176B45"
                             TextColor="White" />
-
                     <Button Text="SIGN OUT"
                             Command="{Binding SignOutCommand}"
                             MinimumHeightRequest="52"
@@ -55,29 +52,100 @@
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
-                    <Label Text="URL"
+                    <Label Text="Project URL"
                            FontSize="14"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Entry Text="{Binding SupabaseUrl, Mode=TwoWay}"
                            Placeholder="https://xyz.supabase.co"
                            PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
-                    <Label Text="Anon key"
+                    <Label Text="Public anon key"
                            FontSize="14"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Entry Text="{Binding SupabaseAnonKey, Mode=TwoWay}"
-                           Placeholder="Paste your anon key"
+                           Placeholder="Paste your Supabase public anon key"
                            PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
                            IsPassword="True"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
                     <Button Text="SAVE SUPABASE CONFIG"
                             Command="{Binding SaveSupabaseConfigCommand}"
                             MinimumHeightRequest="52"
                             BackgroundColor="#2879A8"
                             TextColor="White" />
+                    <Label Text="The public profile catalog does not require Google sign-in. Never use a service_role key in the app."
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
+                    Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                        <Label Text="Public irrigation profiles"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"
+                               TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                        <Button Grid.Column="1"
+                                Text="REFRESH"
+                                Command="{Binding RefreshPublicProfilesCommand}"
+                                IsEnabled="{Binding IsSupabaseConfigured}"
+                                Padding="14,8"
+                                FontSize="12"
+                                BackgroundColor="#2879A8"
+                                TextColor="White" />
+                    </Grid>
+
+                    <ActivityIndicator IsRunning="{Binding IsCatalogBusy}"
+                                       IsVisible="{Binding IsCatalogBusy}"
+                                       Color="#176B45" />
+                    <Label Text="{Binding CatalogMessage}"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding PublicProfiles}"
+                                         Spacing="10">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="viewmodels:PublicIrrigationProfileItem">
+                                <Border Padding="14"
+                                        BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#18221B}"
+                                        Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}"
+                                        StrokeShape="RoundRectangle 12">
+                                    <Grid ColumnDefinitions="*,Auto"
+                                          RowDefinitions="Auto,Auto,Auto"
+                                          ColumnSpacing="10"
+                                          RowSpacing="5">
+                                        <Label Text="{Binding Name}"
+                                               FontSize="16"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                                        <Label Grid.Row="1"
+                                               Text="{Binding DirectionMode}"
+                                               FontSize="13"
+                                               TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                                        <Label Grid.Row="2"
+                                               Text="{Binding Details}"
+                                               FontSize="12"
+                                               TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                                        <Button Grid.Column="1"
+                                                Grid.RowSpan="3"
+                                                Text="{Binding DownloadButtonText}"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DownloadPublicProfileCommand}"
+                                                CommandParameter="{Binding .}"
+                                                IsEnabled="{Binding CanDownload}"
+                                                VerticalOptions="Center"
+                                                Padding="12,8"
+                                                FontSize="11"
+                                                BackgroundColor="#176B45"
+                                                TextColor="White" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
 
@@ -90,7 +158,6 @@
                            FontSize="18"
                            FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
                     <Label Text="API base URL"
                            FontSize="14"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
@@ -98,7 +165,6 @@
                            Placeholder="https://api.yourdomain.com"
                            PlaceholderColor="{AppThemeBinding Light=#52615A, Dark=#8D9F93}"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
                     <Button Text="SAVE BACKEND CONFIG"
                             Command="{Binding SaveBackendConfigCommand}"
                             MinimumHeightRequest="52"
@@ -110,7 +176,6 @@
             <Label Text="{Binding StatusMessage}"
                    FontSize="14"
                    TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
-
             <Label Text="Google authentication and local session storage are implemented. Remote robot relay, cloud telemetry storage, and OTA still require deployed backend services."
                    FontSize="13"
                    FontAttributes="Bold"
