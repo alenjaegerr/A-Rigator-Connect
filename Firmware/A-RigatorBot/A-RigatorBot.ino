@@ -71,9 +71,11 @@ void handleSteerRight();
 void handleSteerCenter();
 void handleNozzleSweep();
 void handleSetIrrigationProfile();
+void handleIrrigationStart();
+void handleIrrigationStop();
 void serviceNozzleSweep();
 void serviceIrrigationSequence();
-void startIrrigationSequence();
+void startIrrigationSequence(bool manual = false);
 void beginIrrigationPhase();
 void startNozzleSweep();
 void handleStop();
@@ -548,6 +550,8 @@ int irrigationBackSeconds = 3;
 int irrigationRightSeconds = 3;
 int irrigationRepeatCount = 1;
 bool irrigationSequenceActive = false;
+bool irrigationSequenceManual = false;
+String serialCommandBuffer;
 bool irrigationSequenceSpraying = false;
 bool irrigationZoneLatched = false;
 uint8_t irrigationSequencePhase = 0;
@@ -709,6 +713,8 @@ void startWifiApi() {
 	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
 	server.on("/api/control/nozzle/sweep", HTTP_POST, handleNozzleSweep);
     server.on("/api/irrigation/profile", HTTP_POST, handleSetIrrigationProfile);
+    server.on("/api/irrigation/start", HTTP_POST, handleIrrigationStart);
+    server.on("/api/irrigation/stop", HTTP_POST, handleIrrigationStop);
 	server.on("/api/control/stop", HTTP_POST, handleStop);
 	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
 	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
@@ -942,6 +948,35 @@ void handleSetIrrigationProfile() {
   irrigationRightSeconds = right;
   irrigationRepeatCount = repeat;
   sendControlResponse("irrigation_profile_applied");
+}
+
+void handleIrrigationStart() {
+  if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Manual irrigation requires idle Manual mode\"}");
+    return;
+  }
+  if (irrigationLeftSeconds == 0 && irrigationBackSeconds == 0 && irrigationRightSeconds == 0) {
+    server.send(400, "application/json", "{\"success\":false,\"message\":\"Apply a valid irrigation profile first\"}");
+    return;
+  }
+  nozzleSweepActive = false;
+  manualMotorDir = CMD_STOP;
+  driveMotor(CMD_BRAKE, 0.0);
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  refreshManualControlLease();
+  startIrrigationSequence(true);
+  sendControlResponse("manual_irrigation_started");
+}
+
+void handleIrrigationStop() {
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationSequenceManual = false;
+  setPump(false);
+  manualControlLeaseActive = false;
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+  sendControlResponse("manual_irrigation_stopped");
 }
 
 void handleStop() {
@@ -1193,8 +1228,16 @@ void beginIrrigationPhase() {
     if (irrigationSequencesCompleted >= irrigationRepeatCount) {
       irrigationSequenceActive = false;
       writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
-      driveMotor(CMD_CW, FULL_POWER);
-      Serial.println(">> [AUTO] Irrigation profile completed.");
+      if (irrigationSequenceManual) {
+        driveMotor(CMD_BRAKE, 0.0);
+        manualMotorDir = CMD_STOP;
+        manualControlLeaseActive = false;
+        Serial.println(">> [MANUAL] Irrigation sweep completed; robot remains stopped.");
+      } else {
+        driveMotor(CMD_CW, FULL_POWER);
+        Serial.println(">> [AUTO] Irrigation profile completed.");
+      }
+      irrigationSequenceManual = false;
       return;
     }
     irrigationSequencePhase = 0;
@@ -1222,8 +1265,9 @@ void beginIrrigationPhase() {
   writeServo(NOZZLE_SERVO_PIN, nozzleSweepAngle);
 }
 
-void startIrrigationSequence() {
-  Serial.println("\n>> [AUTO] Irrigation zone reached. Running selected profile...");
+void startIrrigationSequence(bool manual) {
+  irrigationSequenceManual = manual;
+  Serial.println(manual ? "\n>> [MANUAL] Running selected irrigation sweep..." : "\n>> [AUTO] Irrigation zone reached. Running selected profile...");
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
   irrigationSequenceActive = true;
@@ -1334,13 +1378,59 @@ void printMenu() {
   Serial.println("  s : Stop (Coast)          |  b : Hard Brake");
   Serial.println("  a : Steer Left (45 deg)   |  d : Steer Right (135 deg)");
   Serial.println("  c : Steer Center (90 deg)");
-  Serial.println("  p : Toggle Water Pump     |  n : Sweep Nozzle");
-	Serial.println("  r : Reset Motor Shield");
-	Serial.println("  q : Forget Saved Router Wi-Fi");
-  Serial.println("  m : Toggle Autonomous Mode|  t : Read Sensors");
+  Serial.println("  p : Toggle Water Pump     |  r : Reset Motor Shield");
+  Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
+  Serial.println("  t : Read Sensors          |  STATUS : Print system status");
+  Serial.println("  L 5 : Left sweep, 5 sec   |  R 5 : Right sweep, 5 sec");
+  Serial.println("  B 5 : Back sweep, 5 sec   |  D 5 : Both sides, 5 sec each");
+  Serial.println("  F 5 2 : Full sweep, 5 sec each, repeat twice");
+  Serial.println("  STOP : Stop irrigation and brake robot");
   Serial.println("==============================================\n");
 }
 
+void executeSerialLine(String line) {
+  line.trim();
+  line.toUpperCase();
+  if (line == "STOP") {
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationSequenceManual = false;
+    manualControlLeaseActive = false;
+    setPump(false);
+    driveMotor(CMD_BRAKE, 0.0);
+    manualMotorDir = CMD_STOP;
+    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+    Serial.println(">> [MANUAL] Irrigation stopped; robot remains braked.");
+    return;
+  }
+  if (line == "STATUS") {
+    Serial.printf(">> [STATUS] Mode: %s | Pump: %s | Irrigation: %s | STA: %s | IP: %s\\n",
+      currentMode == MODE_AUTONOMOUS ? "AUTONOMOUS" : "MANUAL", pumpState ? "ON" : "OFF",
+      irrigationSequenceActive ? "RUNNING" : "IDLE", WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED",
+      WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str() : "none");
+    return;
+  }
+  const int split = line.indexOf(' ');
+  if (split < 1) { Serial.println(">> [SERIAL] Use L/R/B/D/F <seconds> [repeat], STOP, or STATUS."); return; }
+  const String pattern = line.substring(0, split);
+  String args = line.substring(split + 1); args.trim();
+  const int second = args.indexOf(' ');
+  const int seconds = (second < 0 ? args : args.substring(0, second)).toInt();
+  const int repeats = second < 0 ? 1 : args.substring(second + 1).toInt();
+  if (seconds < 1 || seconds > 60 || repeats < 1 || repeats > 20) {
+    Serial.println(">> [SERIAL] Duration must be 1-60 seconds; repeat must be 1-20."); return;
+  }
+  if (pattern != "L" && pattern != "R" && pattern != "B" && pattern != "D" && pattern != "F") {
+    Serial.println(">> [SERIAL] Unknown pattern. Use L, R, B, D, or F."); return;
+  }
+  irrigationLeftSeconds = (pattern == "L" || pattern == "D" || pattern == "F") ? seconds : 0;
+  irrigationBackSeconds = (pattern == "B" || pattern == "F") ? seconds : 0;
+  irrigationRightSeconds = (pattern == "R" || pattern == "D" || pattern == "F") ? seconds : 0;
+  irrigationRepeatCount = repeats;
+  manualControlLeaseActive = false;
+  Serial.printf(">> [MANUAL] Pattern %s, %d sec per selected direction, %d pass(es).\\n", pattern.c_str(), seconds, repeats);
+  startIrrigationSequence(true);
+}
 void executeCommand(char cmd) {
   switch (cmd) {
 	case 'w': case 'W':
@@ -1524,13 +1614,24 @@ void loop() {
   enforceManualControlTimeout();
   enforceAutonomousControlTimeout();
   serviceNozzleSweep();
+  if (irrigationSequenceActive && irrigationSequenceManual && currentMode == MODE_MANUAL)
+    serviceIrrigationSequence();
   refreshMotorShieldKeepAlive();
 
-  if (Serial.available() > 0) {
-	char c = Serial.read();
-	if (c != '\n' && c != '\r' && c != ' ') {
-	  executeCommand(c);
-	}
+  while (Serial.available() > 0) {
+    const char ch = (char)Serial.read();
+    if (ch == '\r') continue;
+    if (ch == '\n') {
+      serialCommandBuffer.trim();
+      if (serialCommandBuffer.length() == 1) executeCommand(serialCommandBuffer[0]);
+      else if (serialCommandBuffer.length() > 1) executeSerialLine(serialCommandBuffer);
+      serialCommandBuffer = "";
+    } else if (serialCommandBuffer.length() < 48) {
+      serialCommandBuffer += ch;
+    } else {
+      serialCommandBuffer = "";
+      Serial.println(">> [SERIAL] Command too long; input cleared.");
+    }
   }
 
   if (currentMode == MODE_MANUAL) {
