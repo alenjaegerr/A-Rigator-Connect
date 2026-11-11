@@ -38,7 +38,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
 
         ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanControl);
-        ReverseCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Reverse), () => CanControl);
+        ReverseCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Reverse), () => CanManualControl);
+        SteerLeftCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerLeft), () => CanManualControl);
+        SteerRightCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerRight), () => CanManualControl);
+        SteerCenterCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerCenter), () => CanManualControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
         PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanControl);
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanManualControl);
@@ -187,6 +190,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand ReverseCommand { get; }
 
+    public ICommand SteerLeftCommand { get; }
+
+    public ICommand SteerRightCommand { get; }
+
+    public ICommand SteerCenterCommand { get; }
+
     public ICommand StopCommand { get; }
 
     public ICommand PumpOnCommand { get; }
@@ -288,6 +297,24 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? "Forward command active. Press STOP to halt."
             : "Reverse command active. Press STOP to halt.";
         NotifyControlStateChanged();
+        await SendCommandAsync(command, CancellationToken.None);
+    }
+
+    private async Task SetSteeringAsync(RobotControlCommand command)
+    {
+        if (!CanManualControl)
+        {
+            Message = "Steering is available only while connected in Manual mode.";
+            return;
+        }
+
+        var direction = command switch
+        {
+            RobotControlCommand.SteerLeft => "maximum calibrated LEFT",
+            RobotControlCommand.SteerRight => "maximum calibrated RIGHT",
+            _ => "CENTER"
+        };
+        Message = $"Moving steering to {direction} position...";
         await SendCommandAsync(command, CancellationToken.None);
     }
 
@@ -612,6 +639,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ControlAccessMessage));
         (ForwardCommand as Command)?.ChangeCanExecute();
         (ReverseCommand as Command)?.ChangeCanExecute();
+        (SteerLeftCommand as Command)?.ChangeCanExecute();
+        (SteerRightCommand as Command)?.ChangeCanExecute();
+        (SteerCenterCommand as Command)?.ChangeCanExecute();
         (StopCommand as Command)?.ChangeCanExecute();
         (PumpOnCommand as Command)?.ChangeCanExecute();
         (PumpOffCommand as Command)?.ChangeCanExecute();
