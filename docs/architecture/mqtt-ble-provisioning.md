@@ -13,15 +13,24 @@ The existing Wi-Fi and AP configuration characteristics remain unchanged.
 
 ## Commands
 
-Write UTF-8 text to the MQTT configuration characteristic:
+Write UTF-8 text to the MQTT configuration characteristic. Credentials use a chunked hexadecimal transfer so the flow works with the default BLE MTU.
 
 | Command | Result |
 |---|---|
 | `GET` | `CONFIGURED` or `NOT_CONFIGURED` |
-| `SET|<username>|<password>` | `OK:SAVED` after NVS write and read-back verification |
-| `CLEAR` | `OK:CLEARED` after removing the saved credentials |
+| `BEGIN:<hexLength>` | Starts a transfer; expected hex length must be even and 4–388 |
+| `D000:<hexChunk>` | Appends the next chunk; offset is a zero-padded 3-digit decimal byte offset into the hex stream |
+| `COMMIT` | Validates and saves credentials; returns `OK:SAVED` |
+| `CLEAR` | `OK:CLEARED` after removing saved credentials |
 
-Username length: 1–64 characters. Password length: 1–128 characters. The pipe character (`|`) is reserved as the field delimiter and cannot appear in either credential.
+The decoded payload is:
+
+1. One byte username length (1–64)
+2. One byte password length (1–128)
+3. Username bytes (UTF-8)
+4. Password bytes (UTF-8)
+
+Chunks must arrive in order, with no gaps or overlaps. Each chunk carries at most 18 hex characters. A transfer can be abandoned by starting a new `BEGIN` or issuing `CLEAR`.
 
 The ESP32 stores credentials in the separate NVS namespace `arigator-mqtt`; Wi-Fi and AP settings are not modified. Passwords are never printed to Serial.
 
