@@ -569,6 +569,7 @@ bool controlsEnabled = false;
 bool forgetSavedWifiNetwork(bool disconnectNow = true) {
   setPump(false);
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
   driveMotor(CMD_BRAKE, 0.0);
@@ -845,6 +846,7 @@ void sendControlResponse(const char* command) {
 
 void setManualMotorDirection(uint8_t direction, const char* command) {
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   manualMotorDir = direction;
   driveMotor(direction, FULL_POWER);
   refreshManualControlLease();
@@ -1036,6 +1038,7 @@ void handlePumpOn() {
 	driveMotor(CMD_BRAKE, 0.0);
   }
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   setPump(true);
   refreshManualControlLease();
   sendControlResponse("pump_on");
