@@ -14,5 +14,7 @@ public enum RobotControlCommand
     ResetShield,
     Heartbeat,
     AutonomousStart,
-    AutonomousStop
+    AutonomousStop,
+    PathwayStart,
+    PathwayStop
 }
