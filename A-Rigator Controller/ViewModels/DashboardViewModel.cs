@@ -29,6 +29,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _hasEverConnected;
     private bool _isRefreshing;
     private bool _isCommandRunning;
+    private bool _isManualTerrainModeActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -49,6 +50,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         SteerLeftCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerLeft), () => CanManualControl);
         SteerRightCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerRight), () => CanManualControl);
         SteerCenterCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerCenter), () => CanManualControl);
+        StartManualTerrainCommand = new Command(async () => await SetManualTerrainModeAsync(true), () => CanManualControl && !IsManualTerrainModeActive);
+        StopManualTerrainCommand = new Command(async () => await SetManualTerrainModeAsync(false), () => CanControl && IsManualTerrainModeActive);
         NozzleSweepCommand = new Command(async () => await SweepNozzleAsync(), () => CanManualControl);
         StartManualIrrigationCommand = new Command(async () => await StartManualIrrigationAsync(), () => CanManualControl && SelectedIrrigationProfile is not null);
         StopManualIrrigationCommand = new Command(async () => await StopManualIrrigationAsync(), () => IsConnected);
@@ -230,6 +233,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool CanManualControl => CanControl && !IsAutonomous;
 
+    public bool IsManualTerrainModeActive
+    {
+        get => _isManualTerrainModeActive;
+        private set => SetField(ref _isManualTerrainModeActive, value);
+    }
+
     public bool IsControlWarningVisible => !CanControl;
 
     public string ControlAccessMessage => !IsConnected
@@ -249,6 +258,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public ICommand SteerRightCommand { get; }
 
     public ICommand SteerCenterCommand { get; }
+
+    public ICommand StartManualTerrainCommand { get; }
+
+    public ICommand StopManualTerrainCommand { get; }
 
     public ICommand NozzleSweepCommand { get; }
 
@@ -441,6 +454,23 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         await SendCommandAsync(command, CancellationToken.None);
     }
 
+    private async Task SetManualTerrainModeAsync(bool enable)
+    {
+        if (enable && !CanManualControl) return;
+        if (!enable && !CanControl) return;
+
+        var command = enable ? RobotControlCommand.ManualTerrainStart : RobotControlCommand.ManualTerrainStop;
+        Message = enable
+            ? "Manual Terrain Mode enabled. Steering alternates between calibrated left and right; drive remains manual."
+            : "Manual Terrain Mode disabled. Steering returned to center.";
+
+        if (await SendCommandAsync(command, CancellationToken.None))
+        {
+            IsManualTerrainModeActive = enable;
+            NotifyControlStateChanged();
+        }
+    }
+
     private async Task SetSteeringAsync(RobotControlCommand command)
     {
         if (!CanManualControl)
@@ -456,7 +486,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             _ => "CENTER"
         };
         Message = $"Moving steering to {direction} position...";
-        await SendCommandAsync(command, CancellationToken.None);
+        if (await SendCommandAsync(command, CancellationToken.None) && IsManualTerrainModeActive)
+        {
+            IsManualTerrainModeActive = false;
+            NotifyControlStateChanged();
+        }
     }
 
     private async Task SweepNozzleAsync()
@@ -869,6 +903,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(CanAdjustTerrainBias));
         OnPropertyChanged(nameof(CanStopTerrain));
         OnPropertyChanged(nameof(CanManualControl));
+        OnPropertyChanged(nameof(IsManualTerrainModeActive));
         OnPropertyChanged(nameof(IsConnected));
         OnPropertyChanged(nameof(CanControl));
         OnPropertyChanged(nameof(IsControlWarningVisible));
@@ -878,6 +913,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (SteerLeftCommand as Command)?.ChangeCanExecute();
         (SteerRightCommand as Command)?.ChangeCanExecute();
         (SteerCenterCommand as Command)?.ChangeCanExecute();
+        (StartManualTerrainCommand as Command)?.ChangeCanExecute();
+        (StopManualTerrainCommand as Command)?.ChangeCanExecute();
         (NozzleSweepCommand as Command)?.ChangeCanExecute();
         (StartManualIrrigationCommand as Command)?.ChangeCanExecute();
         (StopManualIrrigationCommand as Command)?.ChangeCanExecute();
