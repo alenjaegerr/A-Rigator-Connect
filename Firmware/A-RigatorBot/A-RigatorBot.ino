@@ -960,6 +960,7 @@ void handleAutonomousStop() {
   irrigationSequenceSpraying = false;
   irrigationZoneLatched = false;
   currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
   manualMotorDir = CMD_STOP;
   manualControlLeaseActive = false;
   driveMotor(CMD_BRAKE, 0.0);
@@ -1060,6 +1061,7 @@ void enforceAutonomousControlTimeout() {
     irrigationSequenceSpraying = false;
     irrigationZoneLatched = false;
     currentMode = MODE_MANUAL;
+    activeAutonomousMode = AUTO_NONE;
     manualMotorDir = CMD_STOP;
     driveMotor(CMD_BRAKE, 0.0);
     setPump(false);
