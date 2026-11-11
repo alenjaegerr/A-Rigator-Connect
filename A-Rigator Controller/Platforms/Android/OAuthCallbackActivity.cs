@@ -1,5 +1,6 @@
 using Android.App;
 using Android.Content;
+using Android.Content.PM;
 using Microsoft.Maui.Authentication;
 
 namespace A_Rigator_Controller;
