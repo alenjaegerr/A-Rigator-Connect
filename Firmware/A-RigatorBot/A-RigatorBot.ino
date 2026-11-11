@@ -1144,6 +1144,12 @@ void enforceManualControlTimeout() {
 	manualMotorDir = CMD_STOP;
 	driveMotor(CMD_BRAKE, 0.0);
 	setPump(false);
+    if (irrigationSequenceManual) {
+      irrigationSequenceActive = false;
+      irrigationSequenceSpraying = false;
+      irrigationSequenceManual = false;
+      writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+    }
 	manualControlLeaseActive = false;
 	Serial.println(">> Manual control lease expired; motor stopped and pump disabled.");
   }
@@ -1282,6 +1288,7 @@ void serviceIrrigationSequence() {
   if (getObstacleDistanceCM() < OBSTACLE_STOP_CM) {
     irrigationSequenceActive = false;
     irrigationSequenceSpraying = false;
+    irrigationSequenceManual = false;
     setPump(false);
     driveMotor(CMD_BRAKE, 0.0);
     Serial.println(">> [SAFETY] Obstacle detected during irrigation. Sequence aborted.");
