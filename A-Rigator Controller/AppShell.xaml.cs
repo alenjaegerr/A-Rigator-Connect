@@ -64,7 +64,6 @@ public partial class AppShell : Shell
         {
             Title = "Settings",
             Route = "settings-content",
-            Icon = ImageSource.FromFile("nav_settings.svg"),
             Content = settingsPage
         });
 
@@ -83,7 +82,7 @@ public partial class AppShell : Shell
         {
             pairingPage.StartNewPairingFlow();
             ReplaceHomeContent(pairingPage);
-            await GoToAsync("//main/home");
+            await NavigateToHomeContentAsync();
         };
 
         pairingPage.DashboardPreviewRequested += async (_, _) => await ShowDashboardAsync();
@@ -95,12 +94,18 @@ public partial class AppShell : Shell
 
     public async Task ShowDashboardAsync()
     {
-        _dashboardPage.Opacity = 0;
         ReplaceHomeContent(_dashboardPage);
-        await GoToAsync("//main/home");
+        await NavigateToHomeContentAsync();
     }
 
     public Task ShowRemoteAccessInfoAsync() => GoToAsync("remote-wifi");
+
+    private Task NavigateToHomeContentAsync()
+    {
+        // Include the ShellContent route, not only the Tab route. This makes the
+        // destination explicit after the Home tab's page instance is replaced.
+        return GoToAsync("//main/home/home-content");
+    }
 
     private async void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
     {
