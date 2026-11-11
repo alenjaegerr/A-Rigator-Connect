@@ -564,6 +564,8 @@ uint8_t irrigationSequencePhase = 0;
 int irrigationSequencesCompleted = 0;
 unsigned long irrigationPhaseStartedAt = 0;
 int nozzleSweepAngle = NOZZLE_MIN_SWEEP;
+int nozzleSweepMinimumAngle = NOZZLE_MIN_SWEEP;
+int nozzleSweepMaximumAngle = NOZZLE_MAX_SWEEP;
 int nozzleSweepDirection = 1;
 unsigned long lastNozzleSweepStep = 0;
 unsigned long lastAutonomousHeartbeat = 0;
@@ -718,6 +720,11 @@ void startWifiApi() {
 	server.on("/api/control/steer/right", HTTP_POST, handleSteerRight);
 	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
 	server.on("/api/control/nozzle/sweep", HTTP_POST, handleNozzleSweep);
+    server.on("/api/control/nozzle/sweep/left", HTTP_POST, handleLeftNozzleSweep);
+    server.on("/api/control/nozzle/sweep/back", HTTP_POST, handleBackNozzleSweep);
+    server.on("/api/control/nozzle/sweep/right", HTTP_POST, handleRightNozzleSweep);
+    server.on("/api/control/nozzle/sweep/full", HTTP_POST, handleFullNozzleSweep);
+    server.on("/api/control/nozzle/sweep/stop", HTTP_POST, handleNozzleSweepStop);
     server.on("/api/irrigation/profile", HTTP_POST, handleSetIrrigationProfile);
     server.on("/api/irrigation/start", HTTP_POST, handleIrrigationStart);
     server.on("/api/irrigation/stop", HTTP_POST, handleIrrigationStop);
@@ -922,12 +929,53 @@ void handleSteerCenter() {
 }
 
 void handleNozzleSweep() {
+  handleFullNozzleSweep();
+}
+
+void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
   if (currentMode == MODE_AUTONOMOUS) {
     server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
     return;
   }
-  startNozzleSweep();
-  sendControlResponse("nozzle_sweep_started");
+  if (irrigationSequenceActive) {
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationSequenceManual = false;
+  }
+  autonomousControlLeaseActive = false;
+  manualMotorDir = CMD_STOP;
+  driveMotor(CMD_BRAKE, 0.0);
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  nozzleSweepMinimumAngle = minimumAngle;
+  nozzleSweepMaximumAngle = maximumAngle;
+  nozzleSweepAngle = minimumAngle;
+  nozzleSweepDirection = 1;
+  lastNozzleSweepStep = 0;
+  nozzleSweepActive = true;
+  sendControlResponse(action);
+}
+
+void handleLeftNozzleSweep() {
+  startManualNozzleSweep(NOZZLE_MIN_SWEEP, 75, "nozzle_left_sweep_started");
+}
+void handleBackNozzleSweep() {
+  startManualNozzleSweep(75, 105, "nozzle_back_sweep_started");
+}
+void handleRightNozzleSweep() {
+  startManualNozzleSweep(105, NOZZLE_MAX_SWEEP, "nozzle_right_sweep_started");
+}
+void handleFullNozzleSweep() {
+  startManualNozzleSweep(NOZZLE_MIN_SWEEP, NOZZLE_MAX_SWEEP, "nozzle_full_sweep_started");
+}
+void handleNozzleSweepStop() {
+  if (currentMode == MODE_AUTONOMOUS) {
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before stopping manual nozzle sweep\"}");
+    return;
+  }
+  nozzleSweepActive = false;
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+  sendControlResponse("nozzle_sweep_stopped");
 }
 
 void handleSetIrrigationProfile() {
@@ -1255,16 +1303,17 @@ void serviceNozzleSweep() {
   lastNozzleSweepStep = millis();
   writeServo(NOZZLE_SERVO_PIN, nozzleSweepAngle);
 
-  if (nozzleSweepDirection > 0 && nozzleSweepAngle >= NOZZLE_MAX_SWEEP) {
+  if (nozzleSweepDirection > 0 && nozzleSweepAngle >= nozzleSweepMaximumAngle) {
+    nozzleSweepAngle = nozzleSweepMaximumAngle;
     nozzleSweepDirection = -1;
-  } else if (nozzleSweepDirection < 0 && nozzleSweepAngle <= NOZZLE_MIN_SWEEP) {
-    nozzleSweepActive = false;
-    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
-    Serial.println(">> [MANUAL] Nozzle sweep complete.");
-    return;
+  } else if (nozzleSweepDirection < 0 && nozzleSweepAngle <= nozzleSweepMinimumAngle) {
+    nozzleSweepAngle = nozzleSweepMinimumAngle;
+    nozzleSweepDirection = 1;
+  } else {
+    nozzleSweepAngle += nozzleSweepDirection * 5;
+    if (nozzleSweepAngle > nozzleSweepMaximumAngle) nozzleSweepAngle = nozzleSweepMaximumAngle;
+    if (nozzleSweepAngle < nozzleSweepMinimumAngle) nozzleSweepAngle = nozzleSweepMinimumAngle;
   }
-
-  nozzleSweepAngle += nozzleSweepDirection * 15;
 }
 
 // ============================================================================
