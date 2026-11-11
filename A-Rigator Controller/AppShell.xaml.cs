@@ -64,6 +64,7 @@ public partial class AppShell : Shell
         {
             Title = "Settings",
             Route = "settings-content",
+            Icon = ImageSource.FromFile("nav_settings.svg"),
             Content = settingsPage
         });
 
