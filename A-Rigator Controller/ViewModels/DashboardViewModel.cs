@@ -45,7 +45,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         NozzleSweepCommand = new Command(async () => await SweepNozzleAsync(), () => CanManualControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
         PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanManualControl);
-        PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanManualControl);
+        PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanControl);
         ResetShieldCommand = new Command(async () => await ResetShieldAsync(), () => CanControl);
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
         StartAutonomousCommand = new Command(async () => await StartAutonomousAsync(), () => CanStartAutonomous);
