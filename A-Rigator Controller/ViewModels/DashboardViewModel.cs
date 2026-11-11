@@ -13,6 +13,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private readonly IRobotCommunicationService _communicationService;
     private readonly IUserProfileService _userProfileService;
     private readonly IWifiSettingsService _wifiSettingsService;
+    private readonly IrrigationProfileService _irrigationProfileService;
     private readonly SemaphoreSlim _commandLock = new(1, 1);
     private readonly SemaphoreSlim _statusLock = new(1, 1);
     private CancellationTokenSource? _monitoringCancellation;
@@ -30,11 +31,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
         IUserProfileService userProfileService,
-        IWifiSettingsService wifiSettingsService)
+        IWifiSettingsService wifiSettingsService,
+        IrrigationProfileService irrigationProfileService)
     {
         _communicationService = communicationService;
         _userProfileService = userProfileService;
         _wifiSettingsService = wifiSettingsService;
+        _irrigationProfileService = irrigationProfileService;
+        _irrigationProfileService.SelectedProfileChanged += OnSelectedIrrigationProfileChanged;
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
 
         ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanManualControl);
@@ -55,6 +59,22 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public ObservableCollection<IrrigationProfile> IrrigationProfiles => _irrigationProfileService.Profiles;
+
+    public IrrigationProfile? SelectedIrrigationProfile
+    {
+        get => _irrigationProfileService.SelectedProfile;
+        set
+        {
+            if (value is null || value.Id == _irrigationProfileService.SelectedProfile?.Id) return;
+            _irrigationProfileService.SelectProfile(value.Id);
+        }
+    }
+
+    public string SelectedIrrigationProfileSummary => _irrigationProfileService.SelectedProfile is { } profile
+        ? $"{profile.Name} · L {profile.LeftDurationSeconds}s / B {profile.BackDurationSeconds}s / R {profile.RightDurationSeconds}s · {profile.RepeatCount} pass(es)"
+        : "No irrigation profile selected";
 
     public string RobotName => "A-Rigator";
 
@@ -488,6 +508,15 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             Message = $"Could not open network settings: {ex.Message}";
         }
+    }
+
+    private void OnSelectedIrrigationProfileChanged(object? sender, EventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(SelectedIrrigationProfile));
+            OnPropertyChanged(nameof(SelectedIrrigationProfileSummary));
+        });
     }
 
     private void NotifyConnectionStateChanged()
