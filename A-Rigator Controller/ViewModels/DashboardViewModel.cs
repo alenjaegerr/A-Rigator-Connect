@@ -332,7 +332,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         NotifyControlStateChanged();
 
         await SendCommandAsync(RobotControlCommand.AutonomousStop, CancellationToken.None);
-        _isTerrainModeActive = false;
         await RefreshStatusAsync();
 
         if (!IsAutonomous)
@@ -351,7 +350,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        _isTerrainModeActive = false;
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
         if (!await TryApplySelectedIrrigationProfileAsync())
@@ -367,7 +365,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         if (!CanStopAutonomous) return;
         Message = "Stopping Pathway Mode...";
         await SendCommandAsync(RobotControlCommand.PathwayStop, CancellationToken.None);
-        _isTerrainModeActive = false;
         await RefreshStatusAsync();
     }
 
@@ -381,7 +378,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _activeMotorCommand = null;
         _pumpRequested = false;
-        _isTerrainModeActive = false;
         Message = "Starting Terrain Mode. A-Rigator will move forward while the steering servo oscillates.";
         NotifyControlStateChanged();
         await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None);
@@ -407,7 +403,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         if (!CanStopTerrain) return;
         Message = "Stopping Terrain Mode...";
         await SendCommandAsync(RobotControlCommand.TerrainStop, CancellationToken.None);
-        _isTerrainModeActive = false;
         await RefreshStatusAsync();
         NotifyControlStateChanged();
     }
