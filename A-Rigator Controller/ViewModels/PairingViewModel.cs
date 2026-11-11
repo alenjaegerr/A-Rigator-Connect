@@ -30,6 +30,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private string _accessPointPassword = string.Empty;
     private string _newAccessPointPassword = string.Empty;
     private string _accessPointStatusMessage = "Pair with A-Rigator over Bluetooth to retrieve its private hotspot password.";
+    private string _mqttUsername = string.Empty;
+    private string _mqttPassword = string.Empty;
+    private string _mqttProvisioningStatusMessage = "Enter the EMQX device username and password to save them over BLE.";
 
     public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
@@ -52,6 +55,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
         ChangeAccessPointPasswordCommand = new Command(async () => await ChangeAccessPointPasswordAsync());
+        SaveMqttCredentialsCommand = new Command(async () => await SaveMqttCredentialsAsync());
         RefreshWifiState();
     }
 
@@ -83,6 +87,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(HasSelectedBleRobot));
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+                OnPropertyChanged(nameof(CanSubmitMqttCredentials));
             }
         }
     }
@@ -137,6 +142,28 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         private set => SetField(ref _accessPointStatusMessage, value);
     }
     public ICommand ChangeAccessPointPasswordCommand { get; }
+    public ICommand SaveMqttCredentialsCommand { get; }
+
+    public string MqttUsername
+    {
+        get => _mqttUsername;
+        set => SetField(ref _mqttUsername, value);
+    }
+
+    public string MqttPassword
+    {
+        get => _mqttPassword;
+        set => SetField(ref _mqttPassword, value);
+    }
+
+    public string MqttProvisioningStatusMessage
+    {
+        get => _mqttProvisioningStatusMessage;
+        private set => SetField(ref _mqttProvisioningStatusMessage, value);
+    }
+
+    public bool CanSubmitMqttCredentials => IsBleConnected && !IsBusy &&
+        !string.IsNullOrWhiteSpace(MqttUsername) && !string.IsNullOrEmpty(MqttPassword);
     public bool CanSubmitWifiCredentials => IsBleConnected && SelectedWifiNetwork is not null && !IsBusy;
 
     public RobotProvisioningDevice? SelectedBleRobot
@@ -161,6 +188,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             if (SetField(ref _isBleConnected, value))
             {
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+                OnPropertyChanged(nameof(CanSubmitMqttCredentials));
                 OnPropertyChanged(nameof(IsWifiInstructionsVisible));
             }
         }
@@ -483,6 +511,42 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             WifiScanStatusMessage = $"Could not provision Wi-Fi: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task SaveMqttCredentialsAsync()
+    {
+        if (IsBusy || !IsBleConnected)
+        {
+            MqttProvisioningStatusMessage = "Connect to A-Rigator over Bluetooth before saving MQTT credentials.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(MqttUsername) || string.IsNullOrEmpty(MqttPassword))
+        {
+            MqttProvisioningStatusMessage = "Enter both the EMQX username and password.";
+            return;
+        }
+
+        IsBusy = true;
+        MqttProvisioningStatusMessage = "Sending MQTT credentials to A-Rigator over encrypted BLE...";
+        try
+        {
+            var result = await _robotProvisioningService.SendMqttCredentialsAsync(
+                MqttUsername.Trim(),
+                MqttPassword);
+
+            MqttProvisioningStatusMessage = result.Message;
+            if (result.Success)
+                MqttPassword = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            MqttProvisioningStatusMessage = $"Could not save MQTT credentials: {ex.Message}";
         }
         finally
         {
