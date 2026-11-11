@@ -42,6 +42,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         SteerLeftCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerLeft), () => CanManualControl);
         SteerRightCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerRight), () => CanManualControl);
         SteerCenterCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerCenter), () => CanManualControl);
+        NozzleSweepCommand = new Command(async () => await SweepNozzleAsync(), () => CanManualControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
         PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanManualControl);
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanManualControl);
@@ -196,6 +197,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand SteerCenterCommand { get; }
 
+    public ICommand NozzleSweepCommand { get; }
+
     public ICommand StopCommand { get; }
 
     public ICommand PumpOnCommand { get; }
@@ -316,6 +319,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         };
         Message = $"Moving steering to {direction} position...";
         await SendCommandAsync(command, CancellationToken.None);
+    }
+
+    private async Task SweepNozzleAsync()
+    {
+        if (!CanManualControl)
+        {
+            Message = "Nozzle sweep is available only while connected in Manual mode.";
+            return;
+        }
+
+        Message = "Nozzle sweep started. The robot will remain stopped while the nozzle moves.";
+        await SendCommandAsync(RobotControlCommand.NozzleSweep, CancellationToken.None);
     }
 
     private async Task SetPumpAsync(bool enable)
@@ -642,6 +657,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (SteerLeftCommand as Command)?.ChangeCanExecute();
         (SteerRightCommand as Command)?.ChangeCanExecute();
         (SteerCenterCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepCommand as Command)?.ChangeCanExecute();
         (StopCommand as Command)?.ChangeCanExecute();
         (PumpOnCommand as Command)?.ChangeCanExecute();
         (PumpOffCommand as Command)?.ChangeCanExecute();
