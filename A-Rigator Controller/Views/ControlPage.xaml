@@ -73,7 +73,11 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="IRRIGATION PUMP" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Label Text="{Binding PumpStatus}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                    <Button Text="SWEEP NOZZLE" Command="{Binding NozzleSweepCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
+                    <Label Text="Run the currently selected sweep profile manually. Each selected direction uses its configured timer and repeat count." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="RUN SELECTED SWEEP" Command="{Binding StartManualIrrigationCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="52" BackgroundColor="#176B45" TextColor="White" FontSize="12" />
+                        <Button Grid.Column="1" Text="STOP IRRIGATION" Command="{Binding StopManualIrrigationCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="52" BackgroundColor="#A23A32" TextColor="White" FontSize="12" />
+                    </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <Button Text="PUMP ON" Command="{Binding PumpOnCommand}" IsEnabled="{Binding CanManualControl}" MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
                         <Button Grid.Column="1" Text="PUMP OFF" Command="{Binding PumpOffCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="52" BackgroundColor="#52615A" TextColor="White" />
