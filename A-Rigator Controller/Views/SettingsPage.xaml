@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.SettingsPage"
+             x:DataType="viewmodels:DashboardViewModel"
              Title=""
              BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
     <ScrollView>
@@ -30,6 +32,31 @@
                     <Button Text="OPEN ROBOT SETUP" Clicked="OnRobotSetupClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="LIVE SYSTEM DIAGNOSTICS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <Label Text="Connection" FontSize="13" />
+                        <Label Grid.Column="1" Text="{Binding ConnectionStatus}" FontSize="13" FontAttributes="Bold" />
+                        <Label Grid.Row="1" Text="Connection type" FontSize="13" />
+                        <Label Grid.Row="1" Grid.Column="1" Text="{Binding ConnectionModeLabel}" FontSize="13" FontAttributes="Bold" />
+                        <Label Grid.Row="2" Text="Operating mode" FontSize="13" />
+                        <Label Grid.Row="2" Grid.Column="1" Text="{Binding ModeStatus}" FontSize="13" FontAttributes="Bold" />
+                        <Label Grid.Row="3" Text="Obstacle stop threshold" FontSize="13" />
+                        <Label Grid.Row="3" Grid.Column="1" Text="{Binding ObstacleStopThresholdStatus}" FontSize="13" FontAttributes="Bold" />
+                        <Label Grid.Row="4" Text="Manual-control timeout" FontSize="13" />
+                        <Label Grid.Row="4" Grid.Column="1" Text="{Binding ManualControlTimeoutStatus}" FontSize="13" FontAttributes="Bold" />
+                        <Label Grid.Row="5" Text="Obstacle distance" FontSize="13" />
+                        <Label Grid.Row="5" Grid.Column="1" Text="{Binding ObstacleDistanceStatus}" FontSize="13" FontAttributes="Bold" />
+                    </Grid>
+                    <Label Text="{Binding ConnectionDetails}" FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="REFRESH DIAGNOSTICS" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" BackgroundColor="#2879A8" TextColor="White" />
+                        <Button Grid.Column="1" Text="RECONNECT" Command="{Binding RetryConnectionCommand}" IsEnabled="{Binding IsDisconnectedNoticeVisible}" BackgroundColor="#52615A" TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="ROBOT CONFIGURATION" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
