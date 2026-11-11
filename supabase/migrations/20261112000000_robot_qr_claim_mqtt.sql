@@ -1,11 +1,8 @@
 create schema if not exists private;
-
 create table if not exists private.robot_claim_tokens (
   robot_id uuid primary key references public.robots(id) on delete cascade,
-  token_hash text not null unique,
-  expires_at timestamptz not null,
-  claimed_by uuid references auth.users(id),
-  claimed_at timestamptz,
+  token_hash text not null unique, expires_at timestamptz not null,
+  claimed_by uuid references auth.users(id), claimed_at timestamptz,
   created_at timestamptz not null default now()
 );
 alter table private.robot_claim_tokens enable row level security;
@@ -16,17 +13,13 @@ grant all on all tables in schema private to service_role;
 
 create table if not exists public.robot_mqtt_credentials (
   robot_id uuid primary key references public.robots(id) on delete cascade,
-  mqtt_username text not null unique,
-  password_ciphertext text not null,
-  password_nonce text not null,
-  key_version integer not null default 1,
-  provisioned_at timestamptz not null default now(),
-  rotated_at timestamptz not null default now()
+  mqtt_username text not null unique, password_ciphertext text not null,
+  password_nonce text not null, key_version integer not null default 1,
+  provisioned_at timestamptz not null default now(), rotated_at timestamptz not null default now()
 );
 alter table public.robot_mqtt_credentials enable row level security;
 revoke all on public.robot_mqtt_credentials from public, anon, authenticated;
 grant all on public.robot_mqtt_credentials to service_role;
-
 alter table public.robots add column if not exists claimed_at timestamptz;
 alter table public.robots add column if not exists mqtt_provisioned_at timestamptz;
 drop policy if exists "Robots can be inserted by owner" on public.robots;
@@ -39,12 +32,9 @@ language plpgsql security definer set search_path = ''
 as $$
 declare v_robot_id uuid; v_robot_name text;
 begin
-  if p_user_id is null or p_robot_code is null or p_claim_token_hash is null then
-    raise exception 'invalid_claim';
-  end if;
+  if p_user_id is null or p_robot_code is null or p_claim_token_hash is null then raise exception 'invalid_claim'; end if;
   select r.id, r.name into v_robot_id, v_robot_name
-  from public.robots r
-  join private.robot_claim_tokens c on c.robot_id = r.id
+  from public.robots r join private.robot_claim_tokens c on c.robot_id = r.id
   where r.robot_code = p_robot_code and c.token_hash = p_claim_token_hash
     and c.claimed_at is null and c.expires_at > now() and r.owner_id is null
   for update of r, c;
