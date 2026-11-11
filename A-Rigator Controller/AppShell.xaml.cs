@@ -10,7 +10,6 @@ public partial class AppShell : Shell
         MainPage dashboardPage,
         ControlPage controlPage,
         AutonomousHubPage autonomousHubPage,
-        IrrigationProfilesPage irrigationProfilesPage,
         WelcomePage welcomePage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
@@ -57,15 +56,6 @@ public partial class AppShell : Shell
             Content = autonomousHubPage
         });
 
-        var profilesTab = new Tab { Title = "Profiles", Route = "profiles" };
-        profilesTab.Items.Add(new ShellContent
-        {
-            Title = "Profiles",
-            Route = "profiles-content",
-            Icon = ImageSource.FromFile("nav_profiles.svg"),
-            Content = irrigationProfilesPage
-        });
-
         var systemTab = new Tab { Title = "System", Route = "system" };
         systemTab.Items.Add(new ShellContent
         {
@@ -78,7 +68,6 @@ public partial class AppShell : Shell
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
         mainTabBar.Items.Add(autonomousTab);
-        mainTabBar.Items.Add(profilesTab);
         mainTabBar.Items.Add(systemTab);
 
         // Keep onboarding isolated from the persistent five-tab application shell.
@@ -109,6 +98,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("remote-wifi", typeof(RemoteWifiSetupPage));
         Routing.RegisterRoute("pathway", typeof(PathwayModePage));
         Routing.RegisterRoute("terrain", typeof(TerrainModePage));
+        Routing.RegisterRoute("irrigation-profiles", typeof(IrrigationProfilesPage));
         Routing.RegisterRoute("account", typeof(AccountPage));
 
         welcomePage.DisplayNameSaved += async (_, _) =>
