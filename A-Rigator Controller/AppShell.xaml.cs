@@ -110,7 +110,6 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("pathway", typeof(PathwayModePage));
         Routing.RegisterRoute("terrain", typeof(TerrainModePage));
         Routing.RegisterRoute("irrigation-profiles", typeof(IrrigationProfilesPage));
-        Routing.RegisterRoute("account", typeof(AccountPage));
 
         welcomePage.DisplayNameSaved += async (_, _) =>
         {
