@@ -148,7 +148,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
                 throw new InvalidOperationException("This A-Rigator firmware does not expose its hardware ID. Update the ESP32 sketch and reconnect.");
 
             var read = await characteristic.ReadAsync(cancellationToken);
-            var hardwareId = Encoding.UTF8.GetString(read.data).Trim('\\0', ' ', '\\r', '\\n').ToUpperInvariant();
+            var hardwareId = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n').ToUpperInvariant();
             if (hardwareId.Length != 12 || !hardwareId.All(Uri.IsHexDigit))
                 throw new InvalidOperationException("A-Rigator returned an invalid hardware ID.");
 
