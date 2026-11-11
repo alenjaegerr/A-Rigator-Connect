@@ -7,7 +7,7 @@
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <VerticalStackLayout Spacing="4">
-                <Label Text="Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                <Label Text="System &amp; Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                 <Label Text="Manage app appearance, robot connectivity, and account access." FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
             </VerticalStackLayout>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
