@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -8,150 +7,62 @@ namespace A_Rigator_Controller.ViewModels;
 
 public sealed class AccountViewModel : INotifyPropertyChanged
 {
-    private readonly IAccountService _accountService;
-    private readonly ISupabaseConfigService _supabaseConfigService;
-    private readonly IBackendConfigService _backendConfigService;
-    private readonly IrrigationProfileService _irrigationProfileService;
-    private readonly IIrrigationProfileCatalogService _profileCatalogService;
-    private string _supabaseUrl = string.Empty;
-    private string _supabaseAnonKey = string.Empty;
-    private string _backendApiUrl = string.Empty;
-    private string _statusMessage = "Local mode is active. Sign in with Google only if you need account-linked features.";
-    private string _catalogMessage = "Configure Supabase to browse public irrigation profiles. Google sign-in is not required.";
+    private readonly IAccountService _account;
+    private readonly IUserProfileService _userProfile;
+    private readonly IIrrigationProfileCloudService _cloudProfiles;
+    private readonly IrrigationProfileService _localProfiles;
+    private string _displayName = "";
+    private string _robotName = "A-Rigator 01";
+    private string? _avatarPath;
+    private string _syncStatus = "Sign in to download irrigation profiles saved to your account.";
     private bool _isBusy;
-    private bool _isCatalogBusy;
 
-    public AccountViewModel(
-        IAccountService accountService,
-        ISupabaseConfigService supabaseConfigService,
-        IBackendConfigService backendConfigService,
-        IrrigationProfileService irrigationProfileService,
-        IIrrigationProfileCatalogService profileCatalogService)
+    public AccountViewModel(IAccountService account, IUserProfileService userProfile,
+        IIrrigationProfileCloudService cloudProfiles, IrrigationProfileService localProfiles)
     {
-        _accountService = accountService;
-        _supabaseConfigService = supabaseConfigService;
-        _backendConfigService = backendConfigService;
-        _irrigationProfileService = irrigationProfileService;
-        _profileCatalogService = profileCatalogService;
+        _account = account;
+        _userProfile = userProfile;
+        _cloudProfiles = cloudProfiles;
+        _localProfiles = localProfiles;
+
+        _displayName = _userProfile.GetDisplayName() ?? _account.DisplayName ?? "A-Rigator User";
+        _robotName = Preferences.Default.Get("arigator.robot.nickname", "A-Rigator 01");
+        _avatarPath = Preferences.Default.Get<string?>("arigator.account.avatar", null);
 
         SignInCommand = new Command(async () => await SignInAsync(), () => !IsBusy);
         SignOutCommand = new Command(async () => await SignOutAsync(), () => !IsBusy);
-        SaveSupabaseConfigCommand = new Command(SaveSupabaseConfig);
-        SaveBackendConfigCommand = new Command(SaveBackendConfig);
-        RefreshPublicProfilesCommand = new Command(async () => await RefreshPublicProfilesAsync(), () => !IsCatalogBusy);
-        DownloadPublicProfileCommand = new Command<PublicIrrigationProfileItem>(
-            async item => await DownloadPublicProfileAsync(item));
+        SaveAccountCommand = new Command(SaveAccount);
+        DownloadProfilesCommand = new Command(async () => await DownloadProfilesAsync(), () => !IsBusy && IsAuthenticated);
+        PickAvatarCommand = new Command(async () => await PickAvatarAsync());
 
-        _supabaseUrl = _supabaseConfigService.Url ?? "https://pcgbyowcqpgtkfbdfwfb.supabase.co";
-        _supabaseAnonKey = _supabaseConfigService.AnonKey ?? string.Empty;
-        _backendApiUrl = _backendConfigService.ApiBaseUrl ?? string.Empty;
-
-        _irrigationProfileService.ProfilesChanged += OnLocalProfilesChanged;
-        _ = InitializeAsync();
+        _ = RestoreSessionAsync();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
-
-    public ObservableCollection<PublicIrrigationProfileItem> PublicProfiles { get; } = new();
-
-    public string SupabaseUrl
-    {
-        get => _supabaseUrl;
-        set
-        {
-            if (_supabaseUrl == value) return;
-            _supabaseUrl = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string SupabaseAnonKey
-    {
-        get => _supabaseAnonKey;
-        set
-        {
-            if (_supabaseAnonKey == value) return;
-            _supabaseAnonKey = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string BackendApiUrl
-    {
-        get => _backendApiUrl;
-        set
-        {
-            if (_backendApiUrl == value) return;
-            _backendApiUrl = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string StatusMessage
-    {
-        get => _statusMessage;
-        private set
-        {
-            if (_statusMessage == value) return;
-            _statusMessage = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public string CatalogMessage
-    {
-        get => _catalogMessage;
-        private set
-        {
-            if (_catalogMessage == value) return;
-            _catalogMessage = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public bool IsBusy
-    {
-        get => _isBusy;
-        private set
-        {
-            if (_isBusy == value) return;
-            _isBusy = value;
-            OnPropertyChanged();
-            (SignInCommand as Command)?.ChangeCanExecute();
-            (SignOutCommand as Command)?.ChangeCanExecute();
-        }
-    }
-
-    public bool IsCatalogBusy
-    {
-        get => _isCatalogBusy;
-        private set
-        {
-            if (_isCatalogBusy == value) return;
-            _isCatalogBusy = value;
-            OnPropertyChanged();
-            (RefreshPublicProfilesCommand as Command)?.ChangeCanExecute();
-        }
-    }
-
-    public bool IsAuthenticated => _accountService.IsAuthenticated;
-
-    public bool IsRemoteModeAllowed => _accountService.IsRemoteModeAllowed;
-
-    public bool IsSupabaseConfigured => _supabaseConfigService.IsConfigured;
-
-    public bool IsBackendConfigured => _backendConfigService.IsConfigured;
-
-    public string AccountSummary => IsAuthenticated
-        ? $"Signed in as {_accountService.DisplayName ?? "Google user"}"
-        : "Not signed in with Google";
+    public string DisplayName { get => _displayName; set { if (_displayName == value) return; _displayName = value; OnPropertyChanged(); } }
+    public string RobotName { get => _robotName; set { if (_robotName == value) return; _robotName = value; OnPropertyChanged(); } }
+    public string? AvatarPath { get => _avatarPath; private set { _avatarPath = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasAvatar)); } }
+    public bool HasAvatar => !string.IsNullOrWhiteSpace(AvatarPath) && File.Exists(AvatarPath);
+    public bool IsBusy { get => _isBusy; private set { _isBusy = value; OnPropertyChanged(); (SignInCommand as Command)?.ChangeCanExecute(); (SignOutCommand as Command)?.ChangeCanExecute(); (DownloadProfilesCommand as Command)?.ChangeCanExecute(); } }
+    public bool IsAuthenticated => _account.IsAuthenticated;
+    public string AccountSummary => IsAuthenticated ? (_account.Email ?? "Signed in") : "Guest account — local features available";
+    public string SyncStatus { get => _syncStatus; private set { _syncStatus = value; OnPropertyChanged(); } }
 
     public ICommand SignInCommand { get; }
     public ICommand SignOutCommand { get; }
-    public ICommand SaveSupabaseConfigCommand { get; }
-    public ICommand SaveBackendConfigCommand { get; }
-    public ICommand RefreshPublicProfilesCommand { get; }
-    public ICommand DownloadPublicProfileCommand { get; }
+    public ICommand SaveAccountCommand { get; }
+    public ICommand DownloadProfilesCommand { get; }
+    public ICommand PickAvatarCommand { get; }
+
+    private async Task RestoreSessionAsync()
+    {
+        try { await _account.InitializeSessionAsync(); }
+        catch { /* Keep local account settings available if session restoration fails. */ }
+        OnPropertyChanged(nameof(IsAuthenticated));
+        OnPropertyChanged(nameof(AccountSummary));
+        (DownloadProfilesCommand as Command)?.ChangeCanExecute();
+        if (IsAuthenticated) SyncStatus = "Signed in. Download your saved irrigation profiles whenever you need them.";
+    }
 
     private async Task SignInAsync()
     {
@@ -159,182 +70,82 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            await _accountService.SignInWithGoogleAsync();
-            StatusMessage = _backendConfigService.IsConfigured
-                ? "Google authentication succeeded and its session is stored securely. Remote relay and cloud telemetry still require deployed backend endpoints."
-                : "Google authentication succeeded. Configure the backend URL before enabling remote-mode prerequisites.";
-            OnPropertyChanged(nameof(IsAuthenticated));
-            OnPropertyChanged(nameof(IsRemoteModeAllowed));
-            OnPropertyChanged(nameof(AccountSummary));
+            await _account.SignInWithGoogleAsync();
+            if (string.IsNullOrWhiteSpace(_userProfile.GetDisplayName()) && !string.IsNullOrWhiteSpace(_account.DisplayName))
+                DisplayName = _account.DisplayName!;
+            SaveAccount();
+            SyncStatus = "Signed in successfully. Your account's irrigation profiles are ready to download.";
         }
-        catch (Exception ex)
-        {
-            StatusMessage = ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        catch (Exception ex) { SyncStatus = $"Sign-in failed: {ex.Message}"; }
+        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(AccountSummary)); }
     }
 
     private async Task SignOutAsync()
     {
         if (IsBusy) return;
         IsBusy = true;
-        try
-        {
-            await _accountService.SignOutAsync();
-            StatusMessage = "Signed out. Local mode remains available.";
-            OnPropertyChanged(nameof(IsAuthenticated));
-            OnPropertyChanged(nameof(IsRemoteModeAllowed));
-            OnPropertyChanged(nameof(AccountSummary));
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        try { await _account.SignOutAsync(); SyncStatus = "Signed out. Local profiles and robot controls remain available."; }
+        catch (Exception ex) { SyncStatus = ex.Message; }
+        finally { IsBusy = false; OnPropertyChanged(nameof(IsAuthenticated)); OnPropertyChanged(nameof(AccountSummary)); }
     }
 
-    private async Task InitializeAsync()
+    private void SaveAccount()
     {
+        if (string.IsNullOrWhiteSpace(DisplayName) || DisplayName.Trim().Length > 48)
+        {
+            SyncStatus = "Display name must contain 1–48 characters.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(RobotName) || RobotName.Trim().Length > 32)
+        {
+            SyncStatus = "Robot name must contain 1–32 characters.";
+            return;
+        }
+        _userProfile.SaveDisplayName(DisplayName.Trim());
+        Preferences.Default.Set("arigator.robot.nickname", RobotName.Trim());
+        DisplayName = DisplayName.Trim();
+        RobotName = RobotName.Trim();
+        SyncStatus = IsAuthenticated
+            ? "Account settings saved on this device. Cloud account sync will be added with the account-profile update."
+            : "Account settings saved on this device. Sign in to associate them with your account.";
+    }
+
+    private async Task PickAvatarAsync()
+    {
+        try
+        {
+            var photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo is null) return;
+            var extension = Path.GetExtension(photo.FileName);
+            if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
+            var destination = Path.Combine(FileSystem.AppDataDirectory, $"account-avatar{extension}");
+            await using var source = await photo.OpenReadAsync();
+            await using var target = File.Create(destination);
+            await source.CopyToAsync(target);
+            AvatarPath = destination;
+            Preferences.Default.Set("arigator.account.avatar", destination);
+            SyncStatus = "Profile picture saved on this device.";
+        }
+        catch (Exception ex) { SyncStatus = $"Could not select profile picture: {ex.Message}"; }
+    }
+
+    private async Task DownloadProfilesAsync()
+    {
+        if (IsBusy || !IsAuthenticated) return;
         IsBusy = true;
+        SyncStatus = "Downloading your irrigation profiles…";
         try
         {
-            await _accountService.InitializeSessionAsync();
-            StatusMessage = IsAuthenticated
-                ? (_backendConfigService.IsConfigured
-                    ? "Your secure Google session was restored. Remote backend configuration is present; remote relay services still need deployment."
-                    : "Your secure Google session was restored. Add the backend API URL to complete remote-mode configuration.")
-                : "Local mode is active. Sign in with Google only if you need account-linked features.";
-            OnPropertyChanged(nameof(IsAuthenticated));
-            OnPropertyChanged(nameof(IsRemoteModeAllowed));
-            OnPropertyChanged(nameof(AccountSummary));
+            var downloaded = await _cloudProfiles.DownloadProfilesAsync();
+            foreach (var profile in downloaded) _localProfiles.SaveProfile(profile);
+            SyncStatus = downloaded.Count == 0
+                ? "No irrigation profiles are saved to this account yet."
+                : $"Irrigation profiles have been loaded. {downloaded.Count} profile(s) are available in Auto.";
         }
-        catch
-        {
-            StatusMessage = "Could not restore the account session. Local robot control remains available.";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-
-        if (_supabaseConfigService.IsConfigured)
-            await RefreshPublicProfilesAsync();
+        catch (Exception ex) { SyncStatus = $"Profile download failed: {ex.Message}"; }
+        finally { IsBusy = false; }
     }
 
-    private void SaveSupabaseConfig()
-    {
-        if (string.IsNullOrWhiteSpace(SupabaseUrl) || string.IsNullOrWhiteSpace(SupabaseAnonKey))
-        {
-            StatusMessage = "Enter both the Supabase URL and public anon key to enable the profile catalog.";
-            return;
-        }
-
-        try
-        {
-            _supabaseConfigService.Save(SupabaseUrl, SupabaseAnonKey);
-            StatusMessage = "Supabase settings saved. Public profile downloads are available without Google sign-in.";
-            OnPropertyChanged(nameof(IsSupabaseConfigured));
-            OnPropertyChanged(nameof(IsRemoteModeAllowed));
-            _ = RefreshPublicProfilesAsync();
-        }
-        catch (ArgumentException ex)
-        {
-            StatusMessage = ex.Message;
-        }
-    }
-
-    private void SaveBackendConfig()
-    {
-        if (string.IsNullOrWhiteSpace(BackendApiUrl))
-        {
-            StatusMessage = "Enter the backend API base URL to configure remote services.";
-            return;
-        }
-
-        try
-        {
-            _backendConfigService.Save(BackendApiUrl);
-            StatusMessage = "Backend URL saved. Remote relay and cloud telemetry still require deployed backend endpoints.";
-            OnPropertyChanged(nameof(IsBackendConfigured));
-            OnPropertyChanged(nameof(IsRemoteModeAllowed));
-        }
-        catch (ArgumentException ex)
-        {
-            StatusMessage = ex.Message;
-        }
-    }
-
-    private async Task RefreshPublicProfilesAsync()
-    {
-        if (IsCatalogBusy) return;
-        if (!_supabaseConfigService.IsConfigured)
-        {
-            CatalogMessage = "Enter the Supabase project URL and public anon key above to browse public profiles.";
-            return;
-        }
-
-        IsCatalogBusy = true;
-        CatalogMessage = "Loading public irrigation profiles…";
-        try
-        {
-            var profiles = await _profileCatalogService.GetPublicProfilesAsync();
-            PublicProfiles.Clear();
-            foreach (var profile in profiles)
-            {
-                var item = new PublicIrrigationProfileItem(profile)
-                {
-                    IsDownloaded = IsProfileDownloaded(profile.Id)
-                };
-                PublicProfiles.Add(item);
-            }
-
-            CatalogMessage = profiles.Count == 0
-                ? "No public profiles are published yet. Published profiles will appear here."
-                : $"{profiles.Count} public profile(s) available. Downloads are saved on this device.";
-        }
-        catch (Exception ex)
-        {
-            CatalogMessage = $"Could not load the public catalog: {ex.Message}";
-        }
-        finally
-        {
-            IsCatalogBusy = false;
-        }
-    }
-
-    private Task DownloadPublicProfileAsync(PublicIrrigationProfileItem? item)
-    {
-        if (item is null || item.IsDownloaded) return Task.CompletedTask;
-
-        try
-        {
-            _irrigationProfileService.SaveProfile(item.Profile);
-            item.IsDownloaded = true;
-            CatalogMessage = $"“{item.Name}” was downloaded to this device and is available in Auto profiles.";
-        }
-        catch (Exception ex)
-        {
-            CatalogMessage = $"Could not download “{item.Name}”: {ex.Message}";
-        }
-
-        return Task.CompletedTask;
-    }
-
-    private bool IsProfileDownloaded(string id) =>
-        _irrigationProfileService.Profiles.Any(profile => profile.Id == id);
-
-    private void OnLocalProfilesChanged(object? sender, EventArgs e)
-    {
-        foreach (var item in PublicProfiles)
-            item.IsDownloaded = IsProfileDownloaded(item.Profile.Id);
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
