@@ -59,14 +59,6 @@
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ROBOT CONFIGURATION" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Label Text="Telemetry and sensor calibration" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
-                    <Label Text="The current obstacle stop threshold and manual-control safety timeout are visible in Telemetry. Water-level thresholds, battery alerts, line-sensor calibration and irrigation parameters still need firmware support. Writable settings will only be enabled after configuration endpoints are implemented and verified." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Label Text="FIRMWARE INTEGRATION PENDING" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-                </VerticalStackLayout>
-            </Border>
-            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
-                <VerticalStackLayout Spacing="10">
                     <Label Text="ACCOUNT &amp; CLOUD" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="Sign-in and service configuration" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
                     <Label Text="Manage Google sign-in and Supabase configuration. Local robot pairing and control remain available independently of cloud account status." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
