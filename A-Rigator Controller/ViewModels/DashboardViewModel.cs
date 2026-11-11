@@ -37,13 +37,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _wifiSettingsService = wifiSettingsService;
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
 
-        ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanControl);
+        ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanManualControl);
         ReverseCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Reverse), () => CanManualControl);
         SteerLeftCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerLeft), () => CanManualControl);
         SteerRightCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerRight), () => CanManualControl);
         SteerCenterCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerCenter), () => CanManualControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
-        PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanControl);
+        PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanManualControl);
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanManualControl);
         ResetShieldCommand = new Command(async () => await ResetShieldAsync(), () => CanControl);
         RefreshCommand = new Command(async () => await RefreshStatusAsync(), () => IsConnected);
@@ -286,9 +286,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
     {
-        if (!CanControl)
+        if (!CanManualControl)
         {
-            Message = "Connect to A-Rigator before sending controls.";
+            Message = "Drive controls are available only while connected in Manual mode.";
             return;
         }
 
@@ -320,9 +320,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     private async Task SetPumpAsync(bool enable)
     {
-        if (enable && !CanControl)
+        if (enable && !CanManualControl)
         {
-            Message = "Connect to A-Rigator before turning the pump on.";
+            Message = "Pump activation is available only while connected in Manual mode.";
             return;
         }
 
