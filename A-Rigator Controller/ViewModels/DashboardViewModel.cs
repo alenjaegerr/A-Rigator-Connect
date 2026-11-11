@@ -52,9 +52,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         SteerCenterCommand = new Command(async () => await SetSteeringAsync(RobotControlCommand.SteerCenter), () => CanManualControl);
         StartManualTerrainCommand = new Command(async () => await SetManualTerrainModeAsync(true), () => CanManualControl && !IsManualTerrainModeActive);
         StopManualTerrainCommand = new Command(async () => await SetManualTerrainModeAsync(false), () => CanControl && IsManualTerrainModeActive);
-        NozzleSweepCommand = new Command(async () => await SweepNozzleAsync(), () => CanManualControl);
-        StartManualIrrigationCommand = new Command(async () => await StartManualIrrigationAsync(), () => CanManualControl && SelectedIrrigationProfile is not null);
-        StopManualIrrigationCommand = new Command(async () => await StopManualIrrigationAsync(), () => IsConnected);
+        NozzleSweepLeftCommand = new Command(async () => await SweepNozzleAsync(RobotControlCommand.NozzleSweepLeft, "Left sweep"), () => CanManualControl);
+        NozzleSweepBackCommand = new Command(async () => await SweepNozzleAsync(RobotControlCommand.NozzleSweepBack, "Back sweep"), () => CanManualControl);
+        NozzleSweepRightCommand = new Command(async () => await SweepNozzleAsync(RobotControlCommand.NozzleSweepRight, "Right sweep"), () => CanManualControl);
+        NozzleSweepFullCommand = new Command(async () => await SweepNozzleAsync(RobotControlCommand.NozzleSweepFull, "Full sweep"), () => CanManualControl);
+        NozzleSweepStopCommand = new Command(async () => await StopNozzleSweepAsync(), () => CanManualControl);
         StopCommand = new Command(async () => await StopAsync(), () => CanControl);
         PumpOnCommand = new Command(async () => await SetPumpAsync(true), () => CanManualControl);
         PumpOffCommand = new Command(async () => await SetPumpAsync(false), () => CanControl);
@@ -265,11 +267,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand StopManualTerrainCommand { get; }
 
-    public ICommand NozzleSweepCommand { get; }
-
-    public ICommand StartManualIrrigationCommand { get; }
-
-    public ICommand StopManualIrrigationCommand { get; }
+    public ICommand NozzleSweepLeftCommand { get; }
+    public ICommand NozzleSweepBackCommand { get; }
+    public ICommand NozzleSweepRightCommand { get; }
+    public ICommand NozzleSweepFullCommand { get; }
+    public ICommand NozzleSweepStopCommand { get; }
 
     public ICommand StopCommand { get; }
 
@@ -498,7 +500,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
     }
 
-    private async Task SweepNozzleAsync()
+    private async Task SweepNozzleAsync(RobotControlCommand command, string sweepName)
     {
         if (!CanManualControl)
         {
@@ -506,37 +508,15 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             return;
         }
 
-        Message = "Nozzle sweep started. The robot will remain stopped while the nozzle moves.";
-        await SendCommandAsync(RobotControlCommand.NozzleSweep, CancellationToken.None);
+        Message = $"{sweepName} started. It will continue until you stop it.";
+        await SendCommandAsync(command, CancellationToken.None);
     }
 
-    private async Task StartManualIrrigationAsync()
+    private async Task StopNozzleSweepAsync()
     {
-        var profile = _irrigationProfileService.SelectedProfile;
-        if (!CanManualControl || profile is null)
-        {
-            Message = "Select an irrigation profile and connect in Manual mode first.";
-            return;
-        }
-
-        Message = $"Applying '{profile.Name}' and starting its manual sweep...";
-        if (!await TryApplySelectedIrrigationProfileAsync()) return;
-
-        if (await SendCommandAsync(RobotControlCommand.ManualIrrigationStart, CancellationToken.None))
-        {
-            _pumpRequested = true;
-            Message = $"Manual irrigation started: {profile.DirectionMode}, {profile.DurationSeconds}s per selected direction, {profile.RepeatCount} pass(es).";
-            NotifyControlStateChanged();
-        }
-    }
-
-    private async Task StopManualIrrigationAsync()
-    {
-        if (!IsConnected) return;
-        Message = "Stopping manual irrigation...";
-        await SendCommandAsync(RobotControlCommand.ManualIrrigationStop, CancellationToken.None);
-        _pumpRequested = false;
-        NotifyControlStateChanged();
+        if (!CanManualControl) return;
+        Message = "Stopping nozzle sweep and centering the nozzle...";
+        await SendCommandAsync(RobotControlCommand.NozzleSweepStop, CancellationToken.None);
     }
 
     private async Task SetPumpAsync(bool enable)
@@ -923,9 +903,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (SteerCenterCommand as Command)?.ChangeCanExecute();
         (StartManualTerrainCommand as Command)?.ChangeCanExecute();
         (StopManualTerrainCommand as Command)?.ChangeCanExecute();
-        (NozzleSweepCommand as Command)?.ChangeCanExecute();
-        (StartManualIrrigationCommand as Command)?.ChangeCanExecute();
-        (StopManualIrrigationCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepLeftCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepBackCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepRightCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepFullCommand as Command)?.ChangeCanExecute();
+        (NozzleSweepStopCommand as Command)?.ChangeCanExecute();
         (StopCommand as Command)?.ChangeCanExecute();
         (PumpOnCommand as Command)?.ChangeCanExecute();
         (PumpOffCommand as Command)?.ChangeCanExecute();
