@@ -29,8 +29,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     private bool _isRefreshing;
     private bool _isCommandRunning;
     private bool _isTerrainModeActive;
-    private string _terrainBiasStatus = "NEUTRAL";
-    private bool _isTerrainModeActive;
 
     public DashboardViewModel(
         IRobotCommunicationService communicationService,
@@ -352,37 +350,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _pumpRequested = false;
         Message = "Applying the selected irrigation profile...";
         NotifyControlStateChanged();
-        if (!await ApplySelectedIrrigationProfileAsync())
-            return;
-
         if (!await TryApplySelectedIrrigationProfileAsync())
             return;
 
         Message = "Starting Pathway Mode: line-following operation...";
         await SendCommandAsync(RobotControlCommand.PathwayStart, CancellationToken.None);
         await RefreshStatusAsync();
-    }
-
-    private async Task<bool> ApplySelectedIrrigationProfileAsync()
-    {
-        var profile = _irrigationProfileService.SelectedProfile;
-        if (profile is null)
-        {
-            Message = "Choose an irrigation profile before starting autonomous operation.";
-            return false;
-        }
-
-        try
-        {
-            await _communicationService.ApplyIrrigationProfileAsync(profile, CancellationToken.None);
-            Message = $"'{profile.Name}' synchronized with A-Rigator.";
-            return true;
-        }
-        catch (Exception)
-        {
-            Message = "Could not synchronize the selected irrigation profile. Autonomous operation was not started.";
-            return false;
-        }
     }
 
     private async Task StopPathwayAsync()
@@ -434,54 +407,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _isTerrainModeActive = false;
         await RefreshStatusAsync();
         NotifyControlStateChanged();
-    }
-
-    private async Task StartTerrainAsync()
-    {
-        if (!CanStartAutonomous)
-        {
-            Message = "Connect to A-Rigator before starting Terrain Mode.";
-            return;
-        }
-
-        _activeMotorCommand = null;
-        _pumpRequested = false;
-        Message = "Starting Terrain Mode: forward propulsion with continuous steering oscillation...";
-        NotifyControlStateChanged();
-        if (await SendCommandAsync(RobotControlCommand.TerrainStart, CancellationToken.None))
-        {
-            IsTerrainModeActive = true;
-            TerrainBiasStatus = "NEUTRAL";
-            Message = "Terrain Mode active. Use LEFT or RIGHT to bias the steering pattern.";
-        }
-    }
-
-    private async Task StopTerrainAsync()
-    {
-        if (!CanStopAutonomous || !IsTerrainModeActive) return;
-        Message = "Stopping Terrain Mode...";
-        if (await SendCommandAsync(RobotControlCommand.TerrainStop, CancellationToken.None))
-        {
-            IsTerrainModeActive = false;
-            TerrainBiasStatus = "NEUTRAL";
-            Message = "Terrain Mode stopped. Propulsion and steering oscillation are disabled.";
-        }
-        await RefreshStatusAsync();
-    }
-
-    private async Task SetTerrainBiasAsync(RobotControlCommand command, string bias)
-    {
-        if (!CanSetTerrainBias)
-        {
-            Message = "Start Terrain Mode before changing its steering bias.";
-            return;
-        }
-
-        if (await SendCommandAsync(command, CancellationToken.None))
-        {
-            TerrainBiasStatus = bias;
-            Message = $"Terrain steering bias set to {bias}. The left-right oscillation continues.";
-        }
     }
 
     private async Task SetMotorCommandAsync(RobotControlCommand command)
@@ -910,16 +835,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (StopTerrainCommand as Command)?.ChangeCanExecute();
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
         (ConnectViaApCommand as Command)?.ChangeCanExecute();
-    }
-
-    private void NotifyTerrainStateChanged()
-    {
-        OnPropertyChanged(nameof(IsTerrainModeActive));
-        OnPropertyChanged(nameof(CanSetTerrainBias));
-        (StopTerrainCommand as Command)?.ChangeCanExecute();
-        (TerrainBiasLeftCommand as Command)?.ChangeCanExecute();
-        (TerrainBiasRightCommand as Command)?.ChangeCanExecute();
-        (TerrainBiasCenterCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
