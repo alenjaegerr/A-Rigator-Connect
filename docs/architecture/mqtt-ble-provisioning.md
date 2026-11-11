@@ -30,7 +30,7 @@ The decoded payload is:
 3. Username bytes (UTF-8)
 4. Password bytes (UTF-8)
 
-Chunks must arrive in order, with no gaps or overlaps. Each chunk carries at most 18 hex characters. A transfer can be abandoned by starting a new `BEGIN` or issuing `CLEAR`.
+Chunks must arrive in order, with no gaps or overlaps. Each chunk carries at most 12 hex characters (17 bytes including the command prefix), fitting the default ATT write payload. A transfer can be abandoned by starting a new `BEGIN` or issuing `CLEAR`.
 
 The ESP32 stores credentials in the separate NVS namespace `arigator-mqtt`; Wi-Fi and AP settings are not modified. Passwords are never printed to Serial.
 
