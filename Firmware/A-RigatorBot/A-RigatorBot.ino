@@ -839,7 +839,7 @@ void handleSteerCenter() {
 
 void handleNozzleSweep() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\\"success\\":false,\\"message\\":\\"Stop autonomous mode before manual nozzle sweep\\"}");
+    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
     return;
   }
   startNozzleSweep();
@@ -854,6 +854,7 @@ void handleStop() {
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   sendControlResponse("stop");
 }
 
