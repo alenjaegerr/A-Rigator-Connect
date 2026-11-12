@@ -230,7 +230,7 @@
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#176B45" />
-                        <Label Text="The robot joined your router. Cloud control will be the preferred route once MQTT is configured; the robot's private hotspot remains available when local or internet connectivity is unavailable."
+                        <Label Text="The robot joined your router. Its private hotspot remains available as a local backup."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Label Text="DIRECT HOTSPOT"
@@ -263,22 +263,7 @@
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
-                        <Border IsVisible="{Binding IsCustomerMqttSetupVisible}"
-                                Padding="14"
-                                BackgroundColor="#EAF5EE"
-                                Stroke="#C9E1D1"
-                                StrokeShape="RoundRectangle 14">
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="CLOUD CONNECTION"
-                                       FontSize="11"
-                                       FontAttributes="Bold"
-                                       TextColor="#176B45" />
-                                <Label Text="Your robot's secure cloud connection will be configured automatically during setup. You won't need to enter technical broker credentials."
-                                       FontSize="13"
-                                       TextColor="#35443B" />
-                            </VerticalStackLayout>
-                        </Border>
-                        <Label Text="You can leave the phone on its normal network and try verification. If the router blocks local device traffic, switch to the direct A-Rigator hotspot below. The MQTT cloud path will later remove the same-network requirement."
+                        <Label Text="Keep your phone on the same router to test local control. If the router blocks device-to-device traffic, switch to the direct A-Rigator hotspot."
                                FontSize="14"
                                TextColor="#35443B" />
                         <Button Text="CONTINUE"
@@ -308,7 +293,7 @@
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="Test whether your phone can reach the robot over the router. Some networks block device-to-device traffic; if this test fails, use the robot's direct hotspot instead. Cloud control will be added in the MQTT phase."
+                        <Label Text="Test whether your phone can reach the robot over the router. Some networks block device-to-device traffic; if this test fails, use the robot's direct hotspot instead."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Label Text="{Binding ErrorMessage}"
