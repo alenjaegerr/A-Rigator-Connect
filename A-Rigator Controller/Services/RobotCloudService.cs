@@ -39,10 +39,10 @@ public sealed class RobotCloudService : IRobotCloudService
     }
 
     public Task<RobotCloudRegistration> RegisterRobotAsync(string hardwareId, string robotName, CancellationToken cancellationToken = default) =>
-        InvokeAsync<RobotCloudRegistration>("register", new { hardwareId, robotName }, cancellationToken);
+        InvokeAsync<RobotCloudRegistration>("register", new Dictionary<string, object?> { ["hardwareId"] = hardwareId, ["robotName"] = robotName }, cancellationToken);
 
     public Task<RobotMqttProvisioning> ProvisionMqttAsync(string robotId, CancellationToken cancellationToken = default) =>
-        InvokeAsync<RobotMqttProvisioning>("provision", new { robotId }, cancellationToken);
+        InvokeAsync<RobotMqttProvisioning>("provision", new Dictionary<string, object?> { ["robotId"] = robotId }, cancellationToken);
 
     private async Task<T> InvokeAsync<T>(string action, object payload, CancellationToken cancellationToken)
     {
@@ -55,18 +55,11 @@ public sealed class RobotCloudService : IRobotCloudService
         using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _account.AccessToken);
         request.Headers.Add("apikey", _supabase.AnonKey);
-        request.Content = JsonContent.Create(new { action, payload });
-
-        // Edge Function expects action and its fields at the same JSON level.
-        request.Content = JsonContent.Create(new Dictionary<string, object?>
+        var requestBody = new Dictionary<string, object?>(payload as Dictionary<string, object?> ?? new())
         {
-            ["action"] = action,
-            [action == "register" ? "hardwareId" : "robotId"] =
-                action == "register"
-                    ? ((dynamic)payload).hardwareId
-                    : ((dynamic)payload).robotId,
-            ["robotName"] = action == "register" ? ((dynamic)payload).robotName : null
-        });
+            ["action"] = action
+        };
+        request.Content = JsonContent.Create(requestBody);
 
         using var response = await _http.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
