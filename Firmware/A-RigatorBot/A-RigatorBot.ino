@@ -7,7 +7,6 @@
 #include <BLESecurity.h>
 #include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
-#include "RobotMqttConfig.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
@@ -45,7 +44,6 @@ static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-
 static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_AP_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
-static const char* BLE_MQTT_CONFIG_CHARACTERISTIC_UUID = "7a1c0007-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_HARDWARE_ID_CHARACTERISTIC_UUID = "7a1c0008-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
 BLEService* bleProvisioningService = nullptr;
@@ -54,10 +52,7 @@ BLECharacteristic* bleWifiScanCharacteristic = nullptr;
 BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
 BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
 BLECharacteristic* bleApConfigCharacteristic = nullptr;
-BLECharacteristic* bleMqttConfigCharacteristic = nullptr;
 BLECharacteristic* bleHardwareIdCharacteristic = nullptr;
-RobotMqttCredentialStore mqttCredentialStore;
-bool mqttCredentialStoreAvailable = false;
 String pendingApPassword;
 volatile bool bleApPasswordChangeRequested = false;
 String bleCredentialHexBuffer;
@@ -165,141 +160,6 @@ class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
     pendingApPassword = newPassword;
     bleApPasswordChangeRequested = true;
     characteristic->setValue("QUEUED");
-  }
-};
-
-class MqttConfigCommandCallbacks : public BLECharacteristicCallbacks {
-  String hexBuffer;
-  int expectedHexLength = -1;
-
-  void resetTransfer() {
-    hexBuffer = "";
-    expectedHexLength = -1;
-  }
-
-  void onWrite(BLECharacteristic* characteristic) override {
-    const String command = characteristic->getValue();
-
-    if (command == "GET") {
-      characteristic->setValue(
-        mqttCredentialStoreAvailable && mqttCredentialStore.isConfigured()
-          ? "CONFIGURED" : "NOT_CONFIGURED");
-      return;
-    }
-
-    if (command == "CLEAR") {
-      resetTransfer();
-      if (!mqttCredentialStoreAvailable) {
-        characteristic->setValue("ERROR:STORAGE");
-        return;
-      }
-      characteristic->setValue(mqttCredentialStore.clear() ? "OK:CLEARED" : "ERROR:CLEAR");
-      return;
-    }
-
-    // Chunked transfer supports the default BLE MTU. Payload bytes are:
-    // [usernameLength][passwordLength][username UTF-8][password UTF-8],
-    // represented as hexadecimal. Commands: BEGIN:<hexLength>, D000:<chunk>,
-    // COMMIT. Chunk offsets are three decimal digits and chunks are in order.
-    if (command.startsWith("BEGIN:")) {
-      const int expected = command.substring(6).toInt();
-      if (expected < 4 || expected > 388 || (expected % 2) != 0) {
-        resetTransfer();
-        characteristic->setValue("ERROR:SIZE");
-        return;
-      }
-      expectedHexLength = expected;
-      hexBuffer = "";
-      hexBuffer.reserve(expected);
-      characteristic->setValue("RECEIVING");
-      return;
-    }
-
-    if (command.startsWith("D") && command.length() >= 6 && command[4] == ':') {
-      if (expectedHexLength < 0) {
-        characteristic->setValue("ERROR:NO_BEGIN");
-        return;
-      }
-      const int offset = command.substring(1, 4).toInt();
-      const String chunk = command.substring(5);
-      if (offset != (int)hexBuffer.length() ||
-          hexBuffer.length() + chunk.length() > expectedHexLength) {
-        resetTransfer();
-        characteristic->setValue("ERROR:ORDER");
-        return;
-      }
-      for (size_t i = 0; i < chunk.length(); ++i) {
-        if (!isHexadecimalDigit(chunk[i])) {
-          resetTransfer();
-          characteristic->setValue("ERROR:FORMAT");
-          return;
-        }
-      }
-      hexBuffer += chunk;
-      characteristic->setValue("RECEIVING");
-      return;
-    }
-
-    if (command == "COMMIT") {
-      if (expectedHexLength < 0 || hexBuffer.length() != expectedHexLength) {
-        resetTransfer();
-        characteristic->setValue("ERROR:INCOMPLETE");
-        return;
-      }
-
-      uint8_t payload[194];
-      const size_t byteCount = hexBuffer.length() / 2;
-      for (size_t i = 0; i < byteCount; ++i) {
-        const String byteText = hexBuffer.substring(i * 2, i * 2 + 2);
-        payload[i] = (uint8_t)strtol(byteText.c_str(), nullptr, 16);
-      }
-      resetTransfer();
-
-      if (byteCount < 2) {
-        characteristic->setValue("ERROR:FORMAT");
-        return;
-      }
-      const uint8_t usernameLength = payload[0];
-      const uint8_t passwordLength = payload[1];
-      if (usernameLength == 0 || usernameLength > 64 ||
-          passwordLength == 0 || passwordLength > 128 ||
-          byteCount != (size_t)(2 + usernameLength + passwordLength)) {
-        characteristic->setValue("ERROR:VALIDATION");
-        return;
-      }
-
-      String username;
-      String password;
-      for (uint8_t i = 0; i < usernameLength; ++i) {
-        if (payload[2 + i] == 0) {
-          characteristic->setValue("ERROR:VALIDATION");
-          return;
-        }
-        username += (char)payload[2 + i];
-      }
-      for (uint8_t i = 0; i < passwordLength; ++i) {
-        if (payload[2 + usernameLength + i] == 0) {
-          characteristic->setValue("ERROR:VALIDATION");
-          return;
-        }
-        password += (char)payload[2 + usernameLength + i];
-      }
-
-      if (!mqttCredentialStoreAvailable) {
-        characteristic->setValue("ERROR:STORAGE");
-        return;
-      }
-      if (mqttCredentialStore.save(username, password)) {
-        characteristic->setValue("OK:SAVED");
-        Serial.println(">> MQTT credentials received over BLE and saved in NVS.");
-      } else {
-        characteristic->setValue("ERROR:SAVE");
-        Serial.println(">> MQTT credential save failed.");
-      }
-      return;
-    }
-
-    characteristic->setValue("ERROR:COMMAND");
   }
 };
 
@@ -611,14 +471,6 @@ void startBleDiscovery() {
   bleApConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
   bleApConfigCharacteristic->setCallbacks(new ApConfigCommandCallbacks());
   bleApConfigCharacteristic->setValue("READY");
-
-  bleMqttConfigCharacteristic = bleProvisioningService->createCharacteristic(
-    BLE_MQTT_CONFIG_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-  bleMqttConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
-  bleMqttConfigCharacteristic->setCallbacks(new MqttConfigCommandCallbacks());
-  bleMqttConfigCharacteristic->setValue("NOT_CONFIGURED");
 
   BLESecurity* security = new BLESecurity();
   security->setAuthenticationMode(true, false, true);
@@ -1847,16 +1699,6 @@ void setup() {
     Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
   }
 
-  // Initialize BLE before first-boot password generation so the ESP32 hardware
-  // RNG has an active radio entropy source.
-  if (mqttCredentialStore.begin()) {
-    mqttCredentialStoreAvailable = true;
-    Serial.println(mqttCredentialStore.isConfigured()
-      ? ">> MQTT credentials found in NVS."
-      : ">> MQTT credentials not configured. Use BLE setup.");
-  } else {
-    Serial.println(">> MQTT credential storage unavailable.");
-  }
 
   startBleDiscovery();
   if (apConfigStoreAvailable) {
