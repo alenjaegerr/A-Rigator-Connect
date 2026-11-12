@@ -540,9 +540,13 @@ float lastShieldMotorSpeed = 0.0;
 #define STEER_LEFT          45
 #define STEER_RIGHT         135
 
-#define NOZZLE_CENTER       90
-#define NOZZLE_MIN_SWEEP    45
-#define NOZZLE_MAX_SWEEP    135
+#define NOZZLE_CENTER           90
+// Start with a conservative 120-degree command range; validate physical clearance
+// before increasing it further on the assembled nozzle mechanism.
+#define NOZZLE_MIN_SWEEP        30
+#define NOZZLE_MAX_SWEEP        150
+#define NOZZLE_LEFT_SECTOR_MAX  70
+#define NOZZLE_RIGHT_SECTOR_MIN 110
 
 #define OBSTACLE_STOP_CM    25
 
@@ -1381,11 +1385,11 @@ void beginIrrigationPhase() {
     }
   }
 
-  // The nozzle is mounted at the rear. Preserve the currently calibrated
-  // 45-135 degree operating envelope and divide it into left, rear, and right
-  // arcs. Each phase sweeps back and forth inside its own sector.
-  const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, 75, 105 };
-  const int sweepMaximums[] = { 75, 105, NOZZLE_MAX_SWEEP };
+  // The nozzle is mounted at the rear. Divide the expanded 30-150 degree
+  // command range into left, rear, and right arcs of approximately equal width.
+  // Each phase sweeps back and forth inside its own sector.
+  const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, NOZZLE_LEFT_SECTOR_MAX, NOZZLE_RIGHT_SECTOR_MIN };
+  const int sweepMaximums[] = { NOZZLE_LEFT_SECTOR_MAX, NOZZLE_RIGHT_SECTOR_MIN, NOZZLE_MAX_SWEEP };
   nozzleSweepAngle = sweepMinimums[irrigationSequencePhase];
   nozzleSweepDirection = 1;
   lastNozzleSweepStep = millis();
@@ -1431,8 +1435,8 @@ void serviceIrrigationSequence() {
   // Sweep the nozzle continuously within the active directional arc.
   if (now - lastNozzleSweepStep >= 80) {
     lastNozzleSweepStep = now;
-    const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, 75, 105 };
-    const int sweepMaximums[] = { 75, 105, NOZZLE_MAX_SWEEP };
+    const int sweepMinimums[] = { NOZZLE_MIN_SWEEP, NOZZLE_LEFT_SECTOR_MAX, NOZZLE_RIGHT_SECTOR_MIN };
+    const int sweepMaximums[] = { NOZZLE_LEFT_SECTOR_MAX, NOZZLE_RIGHT_SECTOR_MIN, NOZZLE_MAX_SWEEP };
     const int low = sweepMinimums[irrigationSequencePhase];
     const int high = sweepMaximums[irrigationSequencePhase];
     nozzleSweepAngle += nozzleSweepDirection * 5;
