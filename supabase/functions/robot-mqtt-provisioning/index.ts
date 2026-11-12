@@ -95,20 +95,37 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const action = body?.action;
 
-    if (action === "claim") {
-      const robotCode = String(body.robotCode ?? "").trim();
-      const claimCode = String(body.claimCode ?? "").trim();
-      if (!/^[A-Za-z0-9_-]{4,64}$/.test(robotCode) || claimCode.length < 20 || claimCode.length > 256) {
-        return json({ error: "invalid_claim" }, 400);
+    if (action === "register") {
+      const hardwareId = String(body.hardwareId ?? "").replace(/[^A-Fa-f0-9]/g, "").toUpperCase();
+      const robotName = String(body.robotName ?? "A-Rigator").trim().slice(0, 48);
+      if (!/^[A-F0-9]{12}$/.test(hardwareId)) {
+        return json({ error: "invalid_robot_identifier" }, 400);
       }
-      const tokenHash = await sha256(claimCode);
-      const { data, error } = await admin.rpc("_claim_arigator_robot", {
-        p_robot_code: robotCode,
-        p_claim_token_hash: tokenHash,
+
+      const { data, error } = await admin.rpc("_register_arigator_robot", {
+        p_hardware_id: hardwareId,
         p_user_id: user.id,
+        p_robot_name: robotName || "A-Rigator",
       });
-      if (error || !data?.length) return json({ error: "claim_invalid_or_already_used" }, 409);
-      return json({ success: true, robotId: data[0].robot_id, robotName: data[0].robot_name });
+
+      if (error) {
+        if (error.message.includes("robot_already_registered")) {
+          return json({ error: "robot_already_registered" }, 409);
+        }
+        if (error.message.includes("invalid_registration")) {
+          return json({ error: "invalid_robot_identifier" }, 400);
+        }
+        console.error("robot registration failed", error.message);
+        return json({ error: "registration_failed" }, 500);
+      }
+
+      if (!data?.length) return json({ error: "registration_failed" }, 500);
+      return json({
+        success: true,
+        robotId: data[0].robot_id,
+        robotName: data[0].robot_name,
+        alreadyRegistered: data[0].already_registered,
+      });
     }
 
     if (action === "provision") {
