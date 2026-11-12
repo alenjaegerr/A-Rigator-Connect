@@ -45,7 +45,6 @@ namespace A_Rigator_Controller
             builder.Services.AddSingleton<IBackendConfigService, BackendConfigService>();
             builder.Services.AddSingleton<ISecureSessionStorage, SecureSessionStorage>();
             builder.Services.AddSingleton<IAccountService, AccountService>();
-            builder.Services.AddSingleton<IRobotCloudService, RobotCloudService>();
             builder.Services.AddSingleton<ISupabaseSyncService, SupabaseSyncService>();
 
             // One shared dashboard state keeps Home, Control and Telemetry in sync.
