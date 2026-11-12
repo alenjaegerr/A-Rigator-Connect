@@ -29,8 +29,6 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         Guid.Parse("7a1c0005-8f2d-4b6a-9c31-4a5249474154");
     public static readonly Guid ApConfigCharacteristicUuid =
         Guid.Parse("7a1c0006-8f2d-4b6a-9c31-4a5249474154");
-    public static readonly Guid MqttConfigCharacteristicUuid =
-        Guid.Parse("7a1c0007-8f2d-4b6a-9c31-4a5249474154");
 
 
     private readonly Dictionary<string, IDevice> _discoveredDevices = new();
@@ -323,77 +321,6 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
             SetState(RobotProvisioningState.Failed);
             return new RobotProvisioningResult(false,
                 "A-Rigator did not confirm the connection in time. Its direct hotspot should still be available.");
-        }
-        catch
-        {
-            SetState(RobotProvisioningState.Failed);
-            throw;
-        }
-        finally
-        {
-            _gattLock.Release();
-        }
-    }
-
-    public async Task<RobotProvisioningResult> SendMqttCredentialsAsync(
-        string username,
-        string password,
-        CancellationToken cancellationToken = default)
-    {
-        if (_connectedDevice is null)
-            return new RobotProvisioningResult(false, "Connect to A-Rigator over Bluetooth first.");
-
-        var usernameBytes = Encoding.UTF8.GetBytes(username);
-        var passwordBytes = Encoding.UTF8.GetBytes(password);
-        if (usernameBytes.Length is < 1 or > 64)
-            return new RobotProvisioningResult(false, "The MQTT username must be 1–64 UTF-8 bytes.");
-        if (passwordBytes.Length is < 1 or > 128)
-            return new RobotProvisioningResult(false, "The MQTT password must be 1–128 UTF-8 bytes.");
-
-        var payload = new byte[2 + usernameBytes.Length + passwordBytes.Length];
-        payload[0] = (byte)usernameBytes.Length;
-        payload[1] = (byte)passwordBytes.Length;
-        Buffer.BlockCopy(usernameBytes, 0, payload, 2, usernameBytes.Length);
-        Buffer.BlockCopy(passwordBytes, 0, payload, 2 + usernameBytes.Length, passwordBytes.Length);
-        var hex = Convert.ToHexString(payload);
-
-        await _gattLock.WaitAsync(cancellationToken);
-        try
-        {
-            SetState(RobotProvisioningState.SendingCredentials);
-            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
-            var characteristic = await service.GetCharacteristicAsync(MqttConfigCharacteristicUuid, cancellationToken);
-            if (characteristic is null)
-                return new RobotProvisioningResult(false, "This firmware does not expose MQTT credential provisioning. Update the ESP32 sketch and reconnect.");
-
-            async Task WriteCommandAsync(string command)
-            {
-                await characteristic.WriteAsync(Encoding.ASCII.GetBytes(command), cancellationToken);
-            }
-
-            await WriteCommandAsync($"BEGIN:{hex.Length}");
-            for (var offset = 0; offset < hex.Length; offset += 12)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var chunk = hex.Substring(offset, Math.Min(12, hex.Length - offset));
-                await WriteCommandAsync($"D{offset:D3}:{chunk}");
-            }
-            await WriteCommandAsync("COMMIT");
-
-            var read = await characteristic.ReadAsync(cancellationToken);
-            var response = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n');
-            if (response == "OK:SAVED")
-            {
-                SetState(RobotProvisioningState.Completed);
-                return new RobotProvisioningResult(true,
-                    "MQTT credentials were saved on A-Rigator. The robot has not connected to the broker yet.");
-            }
-
-            SetState(RobotProvisioningState.Failed);
-            return new RobotProvisioningResult(false,
-                response.StartsWith("ERROR:", StringComparison.Ordinal)
-                    ? $"A-Rigator rejected the MQTT credentials ({response})."
-                    : $"A-Rigator returned an unexpected MQTT provisioning response ({response}).");
         }
         catch
         {
