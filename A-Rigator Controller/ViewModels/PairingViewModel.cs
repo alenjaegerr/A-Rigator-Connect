@@ -13,6 +13,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private readonly IWifiStatusService _wifiStatusService;
     private readonly IRobotCommunicationService _robotCommunicationService;
     private readonly IRobotProvisioningService _robotProvisioningService;
+    private readonly IRobotCloudService _robotCloudService;
+    private readonly IAccountService _accountService;
+    private string? _registeredRobotId;
     private RobotProvisioningDevice? _selectedBleRobot;
     private string _bleStatusMessage = "Use Bluetooth to discover a nearby A-Rigator (BLE discovery prototype).";
     private PairingStage _stage = PairingStage.DiscoverRobot;
@@ -35,11 +38,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private string _mqttPassword = string.Empty;
     private string _mqttProvisioningStatusMessage = "Enter the EMQX device username and password to save them over BLE.";
 
-    public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
+    public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService, IRobotCloudService robotCloudService, IAccountService accountService)
     {
         _wifiStatusService = wifiStatusService;
         _robotCommunicationService = robotCommunicationService;
         _robotProvisioningService = robotProvisioningService;
+        _robotCloudService = robotCloudService;
+        _accountService = accountService;
         OpenWifiSettingsCommand = new Command(OpenWifiSettings);
         StartDirectWifiSetupCommand = new Command(StartDirectWifiSetup);
         ContinueToVerifyCommand = new Command(() => SetStage(PairingStage.VerifyConnection));
@@ -423,6 +428,16 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             await _robotProvisioningService.ConnectToRobotAsync(SelectedBleRobot.DeviceId);
             IsBleConnected = true;
             BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
+
+            if (_isRemoteSetup)
+            {
+                var hardwareId = await _robotProvisioningService.GetConnectedRobotHardwareIdAsync();
+                var registration = await _robotCloudService.RegisterRobotAsync(hardwareId, "A-Rigator");
+                _registeredRobotId = registration.RobotId;
+                BleStatusMessage = registration.AlreadyRegistered
+                    ? "A-Rigator is already linked to your account."
+                    : "A-Rigator has been registered to your account.";
+            }
             try
             {
                 AccessPointPassword = await _robotProvisioningService.GetAccessPointPasswordAsync();
@@ -534,6 +549,21 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 }
                 WifiPassword = string.Empty;
                 BleStatusMessage = "A-Rigator joined the selected Wi-Fi network. Its direct hotspot remains enabled.";
+
+                if (_isRemoteSetup)
+                {
+                    if (string.IsNullOrWhiteSpace(_registeredRobotId))
+                        throw new InvalidOperationException("Register A-Rigator to your account before enabling remote access.");
+
+                    WifiScanStatusMessage = "Wi-Fi saved. Preparing the secure remote connection...";
+                    var mqtt = await _robotCloudService.ProvisionMqttAsync(_registeredRobotId);
+                    var mqttSave = await _robotProvisioningService.SendMqttCredentialsAsync(mqtt.Username, mqtt.Password);
+                    if (!mqttSave.Success)
+                        throw new InvalidOperationException(mqttSave.Message);
+
+                    WifiScanStatusMessage = "Remote credentials saved. A-Rigator will connect to the cloud when its Wi-Fi connection is ready.";
+                }
+
                 SetStage(PairingStage.PhoneNetwork);
             }
         }
