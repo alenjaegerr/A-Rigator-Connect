@@ -47,6 +47,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         BackToWifiSetupCommand = new Command(() => SetStage(PairingStage.ConfigureWifi));
         BackToPhoneNetworkCommand = new Command(() => SetStage(PairingStage.PhoneNetwork));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
+        FinishRemoteSetupCommand = new Command(FinishRemoteSetup, () => !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
@@ -88,6 +89,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(HasSelectedBleRobot));
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
+                (FinishRemoteSetupCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -191,6 +193,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand OpenWifiSettingsCommand { get; }
 
     public ICommand ConfirmWifiConnectionCommand { get; }
+
+    public ICommand FinishRemoteSetupCommand { get; }
 
     public ICommand OpenDashboardPreviewCommand { get; }
 
@@ -301,15 +305,22 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     private async Task ConfirmWifiConnectionAsync()
     {
-        if (IsBusy)
+        // Remote onboarding must never require the phone to join the robot's LAN.
+        // The current cloud contract supports registration only, not live MQTT
+        // presence or command acknowledgements.
+        if (_isRemoteSetup)
         {
+            ResultMessage = "Remote broker verification is not available yet. Account registration and Wi-Fi provisioning are complete, but remote control has not been verified.";
             return;
         }
+
+        if (IsBusy)
+            return;
 
         RefreshWifiState();
         if (!_isWifiEnabled)
         {
-            ErrorMessage = "Turn on Wi-Fi in Android settings before confirming this setup step.";
+            ErrorMessage = "Turn on Wi-Fi in Android settings before confirming this local setup step.";
             return;
         }
 
@@ -330,14 +341,24 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             IsConnectionVerified = true;
             SetStage(PairingStage.Result);
         }
-        catch (Exception)
+        catch
         {
-            ResultMessage = $"Could not reach A-Rigator over the router{(string.IsNullOrWhiteSpace(RobotAddress) ? string.Empty : $" at {RobotAddress}")}. Your network may block local device traffic. Try the direct A-Rigator hotspot instead.";
+            ResultMessage = $"Could not reach A-Rigator at {RobotAddress}. Connect your phone to the robot's direct hotspot and retry.";
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private void FinishRemoteSetup()
+    {
+        if (IsBusy || !_isRemoteSetup)
+            return;
+
+        // This completes configuration only; it does not claim MQTT connectivity.
+        IsConnectionVerified = false;
+        SetStage(PairingStage.Result);
     }
 
     private async Task ScanForBleRobotsAsync()
