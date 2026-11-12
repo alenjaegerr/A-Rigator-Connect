@@ -10,12 +10,12 @@ public partial class RemoteWifiSetupPage : ContentPage
         Shell.SetTabBarIsVisible(this, false);
         BindingContext = viewModel;
 
-        viewModel.DashboardRequested += (_, _) =>
+        viewModel.RemoteSetupRequested += (_, _) =>
         {
-            if (DashboardRequested is not null)
-                DashboardRequested.Invoke(this, EventArgs.Empty);
+            if (RemoteSetupRequested is not null)
+                RemoteSetupRequested.Invoke(this, EventArgs.Empty);
             else if (Shell.Current is AppShell shell)
-                _ = shell.ShowDashboardAsync();
+                _ = shell.BeginRemoteRobotSetupAsync();
         };
         viewModel.NotNowRequested += (_, _) =>
         {
@@ -26,7 +26,7 @@ public partial class RemoteWifiSetupPage : ContentPage
         };
     }
 
-    public event EventHandler? DashboardRequested;
+    public event EventHandler? RemoteSetupRequested;
 
     public event EventHandler? NotNowRequested;
 }
