@@ -23,6 +23,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isWifiEnabled;
     private bool _isBusy;
     private bool _isBleConnected;
+    private bool _isRemoteSetup;
     private string _wifiScanStatusMessage = "Connect to A-Rigator, then scan for nearby Wi-Fi networks.";
     private bool _hasScannedWifiNetworks;
     private RobotWifiNetwork? _selectedWifiNetwork;
@@ -196,6 +197,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool HasSelectedBleRobot => SelectedBleRobot is not null && !IsBusy;
 
+    public bool IsRemoteSetup => _isRemoteSetup;
+
     public bool IsBleConnected
     {
         get => _isBleConnected;
@@ -320,8 +323,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(WifiStatusMessage));
     }
 
-    public void StartNewPairingFlow()
+    public void StartNewPairingFlow(bool isRemoteSetup = false)
     {
+        _isRemoteSetup = isRemoteSetup;
+        OnPropertyChanged(nameof(IsRemoteSetup));
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         RobotAddress = string.Empty;
@@ -427,10 +432,18 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             {
                 AccessPointStatusMessage = $"Could not retrieve hotspot credentials: {ex.Message}";
             }
-            SetStage(PairingStage.ConfigureWifi);
-            WifiScanStatusMessage = "Bluetooth is ready. Scan to see Wi-Fi networks detected by the robot.";
-            HasScannedWifiNetworks = false;
-            NearbyWifiNetworks.Clear();
+            if (_isRemoteSetup)
+            {
+                SetStage(PairingStage.ConfigureWifi);
+                WifiScanStatusMessage = "Bluetooth is ready. Choose the Wi-Fi network for your robot's internet connection.";
+                HasScannedWifiNetworks = false;
+                NearbyWifiNetworks.Clear();
+            }
+            else
+            {
+                SetStage(PairingStage.DirectWifi);
+                AccessPointStatusMessage = "Your robot is ready for local setup. Review or change its direct hotspot password, then connect your phone to the A-Rigator network.";
+            }
         }
         catch (Exception ex)
         {
