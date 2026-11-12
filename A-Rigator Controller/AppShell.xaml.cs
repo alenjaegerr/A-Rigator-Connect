@@ -14,7 +14,9 @@ public partial class AppShell : Shell
         PairingPage pairingPage,
         SettingsPage settingsPage,
         AccountPage accountPage,
+        RemoteWifiSetupPage remoteWifiSetupPage,
         IUserProfileService userProfileService,
+        IAccountService accountService,
         IrrigationProfileSyncCoordinator profileSyncCoordinator)
     {
         InitializeComponent();
@@ -27,7 +29,7 @@ public partial class AppShell : Shell
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         if (hasDisplayName)
-            pairingPage.StartNewPairingFlow();
+            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
 
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
@@ -115,13 +117,14 @@ public partial class AppShell : Shell
 
         welcomePage.DisplayNameSaved += async (_, _) =>
         {
-            pairingPage.StartNewPairingFlow();
+            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
             await GoToAsync("//setup/pairing");
         };
 
         pairingPage.DashboardPreviewRequested += async (_, _) => await ShowDashboardAsync();
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
+        remoteWifiSetupPage.RemoteSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
 
         CurrentItem = setupTabBar;
         setupTabBar.CurrentItem = hasDisplayName ? pairingTab : welcomeTab;
@@ -130,6 +133,19 @@ public partial class AppShell : Shell
     public Task ShowDashboardAsync() => GoToAsync("//main/home");
 
     public Task ShowRemoteAccessInfoAsync() => GoToAsync("remote-wifi");
+
+    public async Task BeginRemoteRobotSetupAsync()
+    {
+        var pairingPage = Items.OfType<TabBar>()
+            .SelectMany(tab => tab.Items)
+            .SelectMany(tab => tab.Items)
+            .Select(content => content.Content)
+            .OfType<PairingPage>()
+            .FirstOrDefault();
+        if (pairingPage is null) return;
+        pairingPage.StartNewPairingFlow(isRemoteSetup: true);
+        await GoToAsync("//setup/pairing");
+    }
 
     private async void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
     {
