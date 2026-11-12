@@ -31,10 +31,6 @@ public interface IRobotProvisioningService
         string password,
         CancellationToken cancellationToken = default);
 
-    Task<RobotProvisioningResult> SendMqttCredentialsAsync(
-        string username,
-        string password,
-        CancellationToken cancellationToken = default);
 
     Task<string> GetAccessPointPasswordAsync(
         CancellationToken cancellationToken = default);
