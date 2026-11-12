@@ -219,37 +219,26 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- STEP 3: PHONE JOINS THE SAME ROUTER -->
+                <!-- STEP 3: REMOTE CONNECTION SETUP -->
                 <Border IsVisible="{Binding IsPhoneNetworkStage}"
                         Padding="20"
                         BackgroundColor="White"
                         Stroke="#D8E3DC"
                         StrokeShape="RoundRectangle 20">
                     <VerticalStackLayout Spacing="14">
-                        <Label Text="A-Rigator is on your Wi-Fi!"
+                        <Label Text="A-Rigator is connected to Wi-Fi"
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#176B45" />
-                        <Label Text="The robot joined your router. Its private hotspot remains available as a local backup."
+                        <Label Text="Your robot has received the selected router credentials. Your phone can remain on mobile data for remote access."
                                FontSize="14"
-                               TextColor="#52615A" />
-                        <Label Text="DIRECT HOTSPOT"
-                               FontSize="11"
-                               FontAttributes="Bold"
-                               TextColor="#718078" />
-                        <Label Text="{Binding RobotAccessPointSsid}"
-                               FontSize="15"
-                               FontAttributes="Bold"
-                               TextColor="#17231C" />
-                        <Label Text="{Binding AccessPointPassword, StringFormat='{}Password: {0}'}"
-                               FontSize="13"
                                TextColor="#52615A" />
                         <Border Padding="14"
                                 BackgroundColor="#EAF5EE"
                                 Stroke="#C9E1D1"
                                 StrokeShape="RoundRectangle 14">
                             <VerticalStackLayout Spacing="5">
-                                <Label Text="ROUTER NETWORK"
+                                <Label Text="ROBOT WI-FI NETWORK"
                                        FontSize="10"
                                        FontAttributes="Bold"
                                        CharacterSpacing="0.7"
@@ -258,12 +247,12 @@
                                        FontSize="16"
                                        FontAttributes="Bold"
                                        TextColor="#176B45" />
-                                <Label Text="{Binding RobotAddress, StringFormat='{}Robot address: {0}'}"
+                                <Label Text="{Binding RobotAddress, StringFormat='{}Robot network address: {0}'}"
                                        FontSize="12"
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
-                        <Label Text="Keep your phone on the same router to test local control. If the router blocks device-to-device traffic, switch to the direct A-Rigator hotspot."
+                        <Label Text="Next, we'll check the remote-service setup. This does not require your phone to join the robot's Wi-Fi network."
                                FontSize="14"
                                TextColor="#35443B" />
                         <Button Text="CONTINUE"
@@ -282,41 +271,55 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- STEP 4: VERIFY PHONE-TO-ROBOT COMMUNICATION -->
+                <!-- STEP 4: VERIFY REMOTE CONNECTION -->
                 <Border IsVisible="{Binding IsVerifyStage}"
                         Padding="20"
                         BackgroundColor="White"
                         Stroke="#D8E3DC"
                         StrokeShape="RoundRectangle 20">
                     <VerticalStackLayout Spacing="14">
-                        <Label Text="Let's test the connection"
+                        <Label Text="Remote setup is ready for verification"
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="Test whether your phone can reach the robot over the router. Some networks block device-to-device traffic; if this test fails, use the robot's direct hotspot instead."
+                        <Label Text="Your phone can stay on mobile data. A-Rigator must connect to the internet through the Wi-Fi network you selected."
                                FontSize="14"
                                TextColor="#52615A" />
-                        <Label Text="{Binding ErrorMessage}"
-                               FontSize="13"
-                               TextColor="#A23A32" />
+                        <Border Padding="14"
+                                BackgroundColor="#F4F8F5"
+                                Stroke="#D8E3DC"
+                                StrokeShape="RoundRectangle 14">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="SETUP CHECKLIST"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       CharacterSpacing="0.7"
+                                       TextColor="#64736B" />
+                                <Label Text="✓ Google account authenticated"
+                                       FontSize="14"
+                                       TextColor="#176B45" />
+                                <Label Text="✓ Robot registered to your account"
+                                       FontSize="14"
+                                       TextColor="#176B45" />
+                                <Label Text="✓ Router credentials sent to A-Rigator"
+                                       FontSize="14"
+                                       TextColor="#176B45" />
+                                <Label Text="• Live MQTT connection and remote command test are not yet available in this app build."
+                                       FontSize="13"
+                                       TextColor="#8A5A18" />
+                            </VerticalStackLayout>
+                        </Border>
                         <Label Text="{Binding ResultMessage}"
                                IsVisible="{Binding IsErrorVisible}"
                                FontSize="13"
                                TextColor="#A23A32" />
-                        <Button Text="VERIFY CONNECTION"
-                                Command="{Binding ConfirmWifiConnectionCommand}"
+                        <Button Text="FINISH SETUP"
+                                Command="{Binding FinishRemoteSetupCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="54"
                                 CornerRadius="14"
                                 FontAttributes="Bold"
                                 BackgroundColor="#176B45"
-                                TextColor="White" />
-                        <Button Text="USE DIRECT A-RIGATOR HOTSPOT"
-                                Command="{Binding StartDirectWifiSetupCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                MinimumHeightRequest="48"
-                                CornerRadius="12"
-                                BackgroundColor="#2879A8"
                                 TextColor="White" />
                         <Button Text="BACK"
                                 Command="{Binding BackToPhoneNetworkCommand}"
