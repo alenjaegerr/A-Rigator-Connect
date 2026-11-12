@@ -7,6 +7,7 @@
 #include <BLESecurity.h>
 #include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
+#include "RobotMqttConfig.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
