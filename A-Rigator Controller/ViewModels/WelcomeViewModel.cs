@@ -86,8 +86,18 @@ public sealed class WelcomeViewModel : INotifyPropertyChanged
     private void SelectLocal()
     {
         if (IsBusy) return;
+
+        // Local mode should begin robot discovery immediately. The user can
+        // customize their account name later from Account settings.
+        var existingName = _userProfileService.GetDisplayName();
+        if (string.IsNullOrWhiteSpace(existingName))
+        {
+            DisplayName = "Local User";
+            _userProfileService.SaveDisplayName(DisplayName);
+        }
+
         StatusMessage = string.Empty;
-        IsNameEntryVisible = true;
+        DisplayNameSaved?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task SignInWithGoogleAsync()
