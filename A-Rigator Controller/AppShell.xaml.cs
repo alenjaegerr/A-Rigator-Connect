@@ -6,6 +6,7 @@ namespace A_Rigator_Controller;
 
 public partial class AppShell : Shell
 {
+    private readonly PairingPage _pairingPage;
     public AppShell(
         MainPage dashboardPage,
         ControlPage controlPage,
@@ -20,6 +21,7 @@ public partial class AppShell : Shell
         IrrigationProfileSyncCoordinator profileSyncCoordinator)
     {
         InitializeComponent();
+        _pairingPage = pairingPage;
         Navigated += OnShellNavigated;
         _ = profileSyncCoordinator.StartAsync();
 
@@ -104,13 +106,21 @@ public partial class AppShell : Shell
             Content = pairingPage
         });
 
+        var remoteConnectionTab = new Tab { Title = "Remote connection", Route = "remote-connection" };
+        remoteConnectionTab.Items.Add(new ShellContent
+        {
+            Title = "Remote connection",
+            Route = "remote-connection-content",
+            Content = remoteWifiSetupPage
+        });
+
         setupTabBar.Items.Add(welcomeTab);
         setupTabBar.Items.Add(pairingTab);
+        setupTabBar.Items.Add(remoteConnectionTab);
 
         Items.Add(mainTabBar);
         Items.Add(setupTabBar);
 
-        Routing.RegisterRoute("remote-wifi", typeof(RemoteWifiSetupPage));
         Routing.RegisterRoute("pathway", typeof(PathwayModePage));
         Routing.RegisterRoute("terrain", typeof(TerrainModePage));
         Routing.RegisterRoute("irrigation-profiles", typeof(IrrigationProfilesPage));
@@ -132,16 +142,11 @@ public partial class AppShell : Shell
 
     public Task ShowDashboardAsync() => GoToAsync("//main/home");
 
-    public Task ShowRemoteAccessInfoAsync() => GoToAsync("remote-wifi");
+    public Task ShowRemoteAccessInfoAsync() => GoToAsync("//setup/remote-connection");
 
     public async Task BeginRemoteRobotSetupAsync()
     {
-        var pairingPage = Items.OfType<TabBar>()
-            .SelectMany(tab => tab.Items)
-            .SelectMany(tab => tab.Items)
-            .Select(content => content.Content)
-            .OfType<PairingPage>()
-            .FirstOrDefault();
+        var pairingPage = _pairingPage;
         if (pairingPage is null) return;
         pairingPage.StartNewPairingFlow(isRemoteSetup: true);
         await GoToAsync("//setup/pairing");
