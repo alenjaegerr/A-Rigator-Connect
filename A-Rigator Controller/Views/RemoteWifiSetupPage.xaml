@@ -14,18 +14,19 @@
                 StrokeShape="RoundRectangle 22"
                 VerticalOptions="Center">
             <VerticalStackLayout Spacing="14">
-                <Label Text="Remote access is coming later"
+                <Label Text="Set up remote connection"
                        FontSize="25"
                        FontAttributes="Bold"
                        TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                <Label Text="The current release supports local IoT Wi-Fi control and direct A-Rigator AP recovery. Remote robot control, cloud telemetry and MQTT relay are not connected yet."
+                <Label Text="Sign in to your A-Rigator account, then connect your robot to a nearby Wi-Fi network. We'll take care of the technical setup automatically."
                        FontSize="14"
                        TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 <Label Text="{Binding StatusMessage}"
                        FontSize="13"
                        TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                <Button Text="CONTINUE IN LOCAL MODE"
+                <Button Text="{Binding ButtonText}"
                         Command="{Binding ContinueCommand}"
+                        IsEnabled="{Binding IsNotBusy}"
                         MinimumHeightRequest="52"
                         BackgroundColor="#176B45"
                         TextColor="White" />
