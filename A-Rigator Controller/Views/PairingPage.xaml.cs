@@ -49,9 +49,9 @@ public partial class PairingPage : ContentPage
 
     public event EventHandler? NotNowRequested;
 
-    public void StartNewPairingFlow()
+    public void StartNewPairingFlow(bool isRemoteSetup = false)
     {
-        ((PairingViewModel)BindingContext).StartNewPairingFlow();
+        ((PairingViewModel)BindingContext).StartNewPairingFlow(isRemoteSetup);
     }
 
     protected override void OnAppearing()
