@@ -10,19 +10,9 @@ public sealed record RobotCloudRegistration(
     string RobotName,
     bool AlreadyRegistered);
 
-public sealed record RobotMqttProvisioning(
-    string RobotId,
-    string Host,
-    int Port,
-    bool Tls,
-    string Username,
-    string Password,
-    string TopicRoot);
-
 public interface IRobotCloudService
 {
     Task<RobotCloudRegistration> RegisterRobotAsync(string hardwareId, string robotName, CancellationToken cancellationToken = default);
-    Task<RobotMqttProvisioning> ProvisionMqttAsync(string robotId, CancellationToken cancellationToken = default);
 }
 
 public sealed class RobotCloudService : IRobotCloudService
@@ -40,9 +30,6 @@ public sealed class RobotCloudService : IRobotCloudService
 
     public Task<RobotCloudRegistration> RegisterRobotAsync(string hardwareId, string robotName, CancellationToken cancellationToken = default) =>
         InvokeAsync<RobotCloudRegistration>("register", new Dictionary<string, object?> { ["hardwareId"] = hardwareId, ["robotName"] = robotName }, cancellationToken);
-
-    public Task<RobotMqttProvisioning> ProvisionMqttAsync(string robotId, CancellationToken cancellationToken = default) =>
-        InvokeAsync<RobotMqttProvisioning>("provision", new Dictionary<string, object?> { ["robotId"] = robotId }, cancellationToken);
 
     private async Task<T> InvokeAsync<T>(string action, object payload, CancellationToken cancellationToken)
     {
