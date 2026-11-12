@@ -43,6 +43,7 @@ begin
     now()
   )
   on conflict (hardware_id) where hardware_id is not null do nothing;
+  v_already_registered := not found;
 
   select r.id, r.name, r.owner_id
     into v_robot_id, v_robot_name, v_owner_id
@@ -57,12 +58,6 @@ begin
   if v_owner_id <> p_user_id then
     raise exception 'robot_already_registered';
   end if;
-
-  v_already_registered := exists (
-    select 1 from public.robots r
-    where r.id = v_robot_id
-      and r.created_at < now() - interval '2 seconds'
-  );
 
   return query select v_robot_id, v_robot_name, v_already_registered;
 end;
