@@ -73,7 +73,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
         StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
-        ConnectViaApCommand = new Command(async () => await ConnectViaAccessPointAsync(), () => !IsConnected && !IsConnecting);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -302,7 +301,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand RetryConnectionCommand { get; }
 
-    public ICommand ConnectViaApCommand { get; }
 
     public void StartMonitoring()
     {
@@ -670,32 +668,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     private async Task SearchForRobotAsync()
     {
-        // Restore IoT discovery preference after a previous direct-AP attempt.
-        if (_latestStatus?.ConnectionMode == RobotConnectionMode.AccessPoint)
-        {
-            var stationAddress = _latestStatus.WifiConnected == true
-                ? _latestStatus.WifiIp
-                : null;
-
-            _communicationService.SetRobotAddress(
-                string.IsNullOrWhiteSpace(stationAddress) ? "arigator.local" : stationAddress);
-        }
-
+        // Connection manager handles IoT-first discovery and BLE fallback.
         await RetryConnectionAsync();
-    }
-
-    private async Task ConnectViaAccessPointAsync()
-    {
-        try
-        {
-            _communicationService.SetRobotAddress("192.168.4.1");
-            Message = "Connect your phone to the A-Rigator Wi-Fi network in system settings. Return here and tap Search for robot.";
-            await _wifiSettingsService.OpenNetworkSettingsAsync();
-        }
-        catch (Exception ex)
-        {
-            Message = $"Could not open network settings: {ex.Message}";
-        }
     }
 
     private void OnSelectedIrrigationProfileChanged(object? sender, EventArgs e)
@@ -743,7 +717,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsControlWarningVisible));
         OnPropertyChanged(nameof(ControlAccessMessage));
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
-        (ConnectViaApCommand as Command)?.ChangeCanExecute();
         NotifyControlStateChanged();
     }
 
