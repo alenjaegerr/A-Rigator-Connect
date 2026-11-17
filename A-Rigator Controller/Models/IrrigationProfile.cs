@@ -10,7 +10,7 @@ public sealed class IrrigationProfile
     public int BackDurationSeconds { get; set; } = 3;
     public int RightDurationSeconds { get; set; } = 3;
     public int RepeatCount { get; set; } = 1;
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.MinValue;
 
     public void ApplyDirectionMode()
     {
