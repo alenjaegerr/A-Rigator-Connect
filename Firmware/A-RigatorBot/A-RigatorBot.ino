@@ -727,8 +727,34 @@ static const unsigned long OBSTACLE_AUDIO_COOLDOWN_MS = 10000;
 static const unsigned long WARNING_AUDIO_PRIORITY_MS = 8000;
 unsigned long warningAudioPriorityUntil = 0;
 
-// Forget only the saved router profile. Preserve the A-Rigator AP password and
-// keep the local setup hotspot available so the app can provision another network.
+// Forget the saved router profile while preserving BLE local access.
+bool forgetSavedWifiNetwork() {
+  setPump(false);
+  autonomousControlLeaseActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationZoneLatched = false;
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  driveMotor(CMD_BRAKE, 0.0);
+
+  if (!wifiCredentialStore.clear()) {
+    savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
+    Serial.println(">> Failed to clear saved Wi-Fi credentials.");
+    return false;
+  }
+
+  savedWifiCredentials.ssid = "";
+  savedWifiCredentials.password = "";
+  savedWifiCredentialsAvailable = false;
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(false, true);
+  Serial.println(">> Saved router Wi-Fi forgotten. BLE remains available for reprovisioning.");
+  return true;
+}
+
 // ============================================================================
 // 5. HARDWARE DRIVERS
 // ============================================================================
@@ -1865,7 +1891,7 @@ void executeCommand(char cmd) {
 
 	case 'q': case 'Q':
 	  if (forgetSavedWifiNetwork()) {
-	    Serial.println(">> [CMD] Router Wi-Fi reset complete. AP password preserved.");
+	    Serial.println(">> [CMD] Router Wi-Fi reset complete. BLE provisioning remains available.");
 	  } else {
 	    Serial.println(">> [CMD] Router Wi-Fi reset failed.");
 	  }
