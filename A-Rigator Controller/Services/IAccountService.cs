@@ -27,4 +27,6 @@ public interface IAccountService
     Task InitializeSessionAsync(CancellationToken cancellationToken = default);
 
     Task SaveAccountSettingsAsync(string displayName, string robotName, CancellationToken cancellationToken = default);
+
+    Task DeleteAccountAsync(CancellationToken cancellationToken = default);
 }
