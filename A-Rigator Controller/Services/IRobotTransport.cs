@@ -8,6 +8,7 @@ namespace A_Rigator_Controller.Services;
 /// </summary>
 public interface IRobotTransport
 {
+    RobotTransportKind TransportKind { get; }
     ConnectionState ConnectionState { get; }
     event Action<ConnectionState>? ConnectionStateChanged;
     Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default);
