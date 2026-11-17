@@ -91,6 +91,10 @@
                            TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
                     <Button Text="DOWNLOAD LOCAL IRRIGATION PROFILES" Command="{Binding DownloadLocalProfilesCommand}"
                             MinimumHeightRequest="52" BackgroundColor="#2879A8" TextColor="White" />
+                    <Button Text="IMPORT IRRIGATION PROFILES (.JSON)" Clicked="OnImportProfilesClicked"
+                            MinimumHeightRequest="48" BackgroundColor="#2879A8" TextColor="White" />
+                    <Label Text="Import a previously exported A-Rigator profile file. Imported profiles are merged with your current local profiles."
+                           FontSize="12" TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
                     <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="#176B45" />
                     <Label Text="{Binding SyncStatus}" FontSize="13"
                            TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
@@ -102,6 +106,12 @@
             <Button Text="SIGN IN WITH GOOGLE" Command="{Binding SignInCommand}"
                     IsVisible="{Binding IsGuest}"
                     MinimumHeightRequest="50" BackgroundColor="#2879A8" TextColor="White" />
+            <Button Text="DELETE ACCOUNT" Clicked="OnDeleteAccountClicked"
+                    IsVisible="{Binding IsAuthenticated}" MinimumHeightRequest="50"
+                    BackgroundColor="#A83232" TextColor="White" />
+            <Label Text="Deleting your account permanently removes your cloud profile, registered robots, and cloud irrigation profiles. Local profiles on this device will be reset."
+                   IsVisible="{Binding IsAuthenticated}" FontSize="12"
+                   TextColor="{AppThemeBinding Light=#A83232, Dark=#F09A9A}" />
             <Button Text="SIGN OUT" Command="{Binding SignOutCommand}"
                     IsVisible="{Binding IsAuthenticated}" MinimumHeightRequest="50"
                     BackgroundColor="#52615A" TextColor="White" />
