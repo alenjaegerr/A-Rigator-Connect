@@ -4,6 +4,8 @@ public sealed class RobotStatus
 {
     public RobotState State { get; init; } = RobotState.Idle;
 
+    public string? FirmwareVersion { get; init; }
+
     public OperatingMode? Mode { get; init; }
 
     public string? AutonomousMode { get; init; }
