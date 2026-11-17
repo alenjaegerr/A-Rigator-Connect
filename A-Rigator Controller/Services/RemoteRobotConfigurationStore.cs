@@ -10,15 +10,21 @@ public sealed class RemoteRobotConfigurationStore : IRemoteRobotConfigurationSto
     private const string PortKey = "arigator_mqtt_port";
     private const string RobotIdKey = "arigator_mqtt_robot_id";
     private const string UsernameKey = "arigator_mqtt_username";
-    private const string PasswordKey = "arigator_mqtt_password";
+    // TEMPORARY — STI EXPO DEMONSTRATION ONLY.
+    // Remove these hardcoded credentials after STI EXPO and restore secure
+    // credential provisioning before any production release.
+    private const string DemoMqttUsername = "a-rigator-demo";
+    private const string DemoMqttPassword = "69420";
 
     public async Task<RemoteRobotConnectionOptions?> LoadAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var host = await SecureStorage.GetAsync(HostKey);
         var robotId = await SecureStorage.GetAsync(RobotIdKey);
-        var username = await SecureStorage.GetAsync(UsernameKey);
-        var password = await SecureStorage.GetAsync(PasswordKey);
+        // TEMPORARY — STI EXPO DEMONSTRATION ONLY.
+        // These must match RobotMqttConfig.h. Remove after STI EXPO.
+        const string username = DemoMqttUsername;
+        const string password = DemoMqttPassword;
         var portText = await SecureStorage.GetAsync(PortKey);
         if (!int.TryParse(portText, out var port)) port = 8883;
 
@@ -35,8 +41,6 @@ public sealed class RemoteRobotConfigurationStore : IRemoteRobotConfigurationSto
         await SecureStorage.SetAsync(HostKey, options.BrokerHost);
         await SecureStorage.SetAsync(PortKey, options.BrokerPort.ToString());
         await SecureStorage.SetAsync(RobotIdKey, options.RobotId);
-        await SecureStorage.SetAsync(UsernameKey, options.Username);
-        await SecureStorage.SetAsync(PasswordKey, options.Password);
     }
 
     public Task ClearAsync(CancellationToken cancellationToken = default)
@@ -45,8 +49,6 @@ public sealed class RemoteRobotConfigurationStore : IRemoteRobotConfigurationSto
         SecureStorage.Remove(HostKey);
         SecureStorage.Remove(PortKey);
         SecureStorage.Remove(RobotIdKey);
-        SecureStorage.Remove(UsernameKey);
-        SecureStorage.Remove(PasswordKey);
         return Task.CompletedTask;
     }
 }
