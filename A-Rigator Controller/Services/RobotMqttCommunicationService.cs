@@ -118,7 +118,8 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
     public Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(_latestStatus);
+        ReportRobotReachability();
+        return Task.FromResult(IsRobotResponsive ? _latestStatus : null);
     }
 
     public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
