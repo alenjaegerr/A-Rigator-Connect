@@ -60,24 +60,36 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         SetConnectionState(ConnectionState.Connecting);
-        if (await CheckAvailabilityAsync(cancellationToken))
+        Exception? lastError = null;
+
+        foreach (var transport in _transports)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                await _activeTransport!.ConnectAsync(cancellationToken);
+                if (!await transport.CheckAvailabilityAsync(cancellationToken))
+                    continue;
+
+                await transport.ConnectAsync(cancellationToken);
+                _activeTransport = transport;
                 SetConnectionState(ConnectionState.Connected);
                 return;
             }
-            catch
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                _activeTransport = null;
-                SetConnectionState(ConnectionState.Disconnected);
                 throw;
+            }
+            catch (Exception error)
+            {
+                lastError = error;
+                _activeTransport = null;
             }
         }
 
         SetConnectionState(ConnectionState.Disconnected);
-        throw new InvalidOperationException("A-Rigator could not be reached through any configured connection path.");
+        throw new InvalidOperationException(
+            "A-Rigator could not be reached through any configured connection path.",
+            lastError);
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -133,7 +145,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
     {
         if (_activeTransport is not null && _activeTransport.ConnectionState == ConnectionState.Connected)
-            return _activeTransport;
+            return _activeTransport!;
 
         if (await CheckAvailabilityAsync(cancellationToken))
         {
