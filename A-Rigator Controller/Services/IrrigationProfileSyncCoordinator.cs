@@ -12,6 +12,8 @@ public sealed class IrrigationProfileSyncCoordinator
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _started;
     private bool _syncPending = true;
+    private bool _applyingCloudChanges;
+    private long _localChangeVersion;
     private const string KnownCloudIdsKey = "arigator.irrigation.cloud-profile-ids.v1";
     private readonly HashSet<string> _knownCloudIds;
 
@@ -63,6 +65,7 @@ public sealed class IrrigationProfileSyncCoordinator
         }
         if (!await _gate.WaitAsync(0, cancellationToken)) return;
 
+        var syncChangeVersion = Interlocked.Read(ref _localChangeVersion);
         try
         {
             StatusChanged?.Invoke(this, "Loading irrigation profiles from your account…");
@@ -77,7 +80,9 @@ public sealed class IrrigationProfileSyncCoordinator
                 await _cloud.DeleteProfilesAsync(deletedIds, cancellationToken);
 
             var deletedSet = deletedIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            _profiles.MergeProfiles(cloudProfiles.Where(profile => !deletedSet.Contains(profile.Id)));
+            _applyingCloudChanges = true;
+            try { _profiles.MergeProfiles(cloudProfiles.Where(profile => !deletedSet.Contains(profile.Id))); }
+            finally { _applyingCloudChanges = false; }
 
             StatusChanged?.Invoke(this, "Syncing irrigation profiles…");
             var currentProfiles = _profiles.Profiles.ToList();
@@ -85,7 +90,7 @@ public sealed class IrrigationProfileSyncCoordinator
             _knownCloudIds.Clear();
             foreach (var profile in currentProfiles) _knownCloudIds.Add(profile.Id);
             Preferences.Default.Set(KnownCloudIdsKey, JsonSerializer.Serialize(_knownCloudIds.ToArray()));
-            _syncPending = false;
+            _syncPending = Interlocked.Read(ref _localChangeVersion) != syncChangeVersion;
             StatusChanged?.Invoke(this, $"Irrigation profiles are synced to your account ({_profiles.Profiles.Count}).");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
@@ -98,6 +103,8 @@ public sealed class IrrigationProfileSyncCoordinator
 
     private async void OnProfilesChanged(object? sender, EventArgs e)
     {
+        if (_applyingCloudChanges) return;
+        Interlocked.Increment(ref _localChangeVersion);
         _syncPending = true;
         if (_account.IsAuthenticated)
             await SyncNowAsync();
