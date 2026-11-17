@@ -115,6 +115,10 @@ The legacy generic `nozzle_sweep` command maps to `nozzle_sweep_full`. Emergency
 
 Match the existing firmware validation: each duration is 0–60 seconds, repeat count is 1–20, and at least one direction duration must be greater than zero.
 
+## Current firmware implementation
+
+The ESP32 dispatcher currently enables only `stop`, `forward`, `reverse`, `pump_on`, `pump_off`, and `heartbeat`. Other listed commands are protocol targets and must be rejected until their shared safety-aware execution paths are implemented. The firmware now requires the **ArduinoJson** library by Benoit Blanchon in addition to PubSubClient.
+
 ## Safety and execution rules
 
 1. MQTT callback only copies bounded payloads into the command queue. Parse, validate, deduplicate, and execute from the main loop.
