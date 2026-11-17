@@ -955,7 +955,7 @@ void handleForgetWifi() {
     sendHttpResponse(200, "application/json",
                 "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
   } else {
-    server.send(500, "application/json",
+    sendHttpResponse(500, "application/json",
                 "{\"success\":false,\"message\":\"Could not clear saved router Wi-Fi\"}");
   }
 }
@@ -1035,11 +1035,11 @@ void handleStatus() {
   json += ",\"lineGpio27\":";
   json += digitalRead(27) == HIGH ? "true" : "false";
   json += "}";
-  server.send(200, "application/json", json);
+  sendHttpResponse(200, "application/json", json);
 }
 
 void handleNotFound() {
-  server.send(404, "application/json", "{\"success\":false,\"message\":\"Not found\"}");
+  sendHttpResponse(404, "application/json", "{\"success\":false,\"message\":\"Not found\"}");
 }
 
 void startWifiApi() {
@@ -1076,7 +1076,7 @@ void startWifiApi() {
   });
   server.on("/api/safety/emergency-reset", HTTP_POST, []() {
     if (resetEmergencyStop()) sendControlResponse("emergency_reset");
-    else server.send(409, "application/json", "{\"success\":false,\"message\":\"Emergency stop is not latched\"}");
+    else sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Emergency stop is not latched\"}");
   });
   if (controlsEnabled) {
 	server.on("/api/control/forward", HTTP_POST, handleForward);
@@ -1386,12 +1386,12 @@ void sendControlResponse(const char* command) {
   String json = "{\"success\":true,\"command\":\"";
   json += command;
   json += "\"}";
-  server.send(200, "application/json", json);
+  sendHttpResponse(200, "application/json", json);
 }
 
 void setManualMotorDirection(uint8_t direction, const char* command) {
   if (emergencyStopLatched) {
-    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
     return;
   }
   if (currentMode == MODE_AUTONOMOUS) {
@@ -1419,7 +1419,7 @@ void handleReverse() {
 
 void handleSteerLeft() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   manualTerrainModeActive = false;
@@ -1429,7 +1429,7 @@ void handleSteerLeft() {
 
 void handleSteerRight() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   manualTerrainModeActive = false;
@@ -1439,7 +1439,7 @@ void handleSteerRight() {
 
 void handleSteerCenter() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
     return;
   }
   manualTerrainModeActive = false;
@@ -1469,7 +1469,7 @@ void configureManualNozzleSweep(int minimumAngle, int maximumAngle) {
 
 void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
     return;
   }
   configureManualNozzleSweep(minimumAngle, maximumAngle);
@@ -1490,7 +1490,7 @@ void handleFullNozzleSweep() {
 }
 void handleNozzleSweepStop() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before stopping manual nozzle sweep\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before stopping manual nozzle sweep\"}");
     return;
   }
   nozzleSweepActive = false;
@@ -1500,13 +1500,13 @@ void handleNozzleSweepStop() {
 
 void handleSetIrrigationProfile() {
   if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous irrigation before changing the profile\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous irrigation before changing the profile\"}");
     return;
   }
 
   if (!server.hasArg("left") || !server.hasArg("back") ||
       !server.hasArg("right") || !server.hasArg("repeat")) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"Missing irrigation profile values\"}");
+    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Missing irrigation profile values\"}");
     return;
   }
 
@@ -1518,7 +1518,7 @@ void handleSetIrrigationProfile() {
   if (left < 0 || left > 60 || back < 0 || back > 60 ||
       right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
       (left == 0 && back == 0 && right == 0)) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"Choose at least one direction; selected durations must be 1-60 seconds and unused directions must be 0\"}");
+    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Choose at least one direction; selected durations must be 1-60 seconds and unused directions must be 0\"}");
     return;
   }
 
@@ -1531,11 +1531,11 @@ void handleSetIrrigationProfile() {
 
 void handleIrrigationStart() {
   if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Manual irrigation requires idle Manual mode\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Manual irrigation requires idle Manual mode\"}");
     return;
   }
   if (irrigationLeftSeconds == 0 && irrigationBackSeconds == 0 && irrigationRightSeconds == 0) {
-    server.send(400, "application/json", "{\"success\":false,\"message\":\"Apply a valid irrigation profile first\"}");
+    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Apply a valid irrigation profile first\"}");
     return;
   }
   nozzleSweepActive = false;
@@ -1577,7 +1577,7 @@ void handleStop() {
 
 void handleAutonomousStart() {
   if (emergencyStopLatched) {
-    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
     return;
   }
   manualTerrainModeActive = false;
@@ -1620,7 +1620,7 @@ void handleAutonomousStop() {
 
 void handlePathwayStart() {
   if (emergencyStopLatched) {
-    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
     return;
   }
   handleAutonomousStart();
@@ -1635,7 +1635,7 @@ void handlePathwayStop() {
 
 void handleTerrainStart() {
   if (emergencyStopLatched) {
-    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
     return;
   }
   handleAutonomousStart();
@@ -1649,7 +1649,7 @@ void handleTerrainStart() {
 
 void setTerrainBias(int bias, const char* response) {
   if (currentMode != MODE_AUTONOMOUS || activeAutonomousMode != AUTO_TERRAIN) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Terrain mode is not active\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Terrain mode is not active\"}");
     return;
   }
   terrainBias = constrain(bias, -1, 1);
@@ -1669,7 +1669,7 @@ void handleTerrainStop() {
 // It only oscillates the steering servo; propulsion remains user-controlled.
 void handleManualTerrainStart() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before enabling manual terrain steering\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before enabling manual terrain steering\"}");
     return;
   }
   manualTerrainModeActive = true;
@@ -1685,7 +1685,7 @@ void handleManualTerrainStart() {
 
 void handleManualTerrainStop() {
   if (currentMode == MODE_AUTONOMOUS) {
-    server.send(409, "application/json", "{\"success\":false,\"message\":\"Manual Terrain Mode cannot be stopped through manual controls while autonomous mode is active\"}");
+    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Manual Terrain Mode cannot be stopped through manual controls while autonomous mode is active\"}");
     return;
   }
   manualTerrainModeActive = false;
@@ -1717,7 +1717,7 @@ void runTerrainStep() {
 
 void handlePumpOn() {
   if (emergencyStopLatched) {
-    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
     return;
   }
 	if (currentMode == MODE_AUTONOMOUS) {
