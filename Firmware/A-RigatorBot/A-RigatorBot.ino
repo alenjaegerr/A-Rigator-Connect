@@ -343,7 +343,7 @@ void publishBleTelemetryIfDue() {
     case AUTO_GENERIC: doc["autonomousMode"] = "GENERIC"; break;
     default: doc["autonomousMode"] = "NONE"; break;
   }
-  doc["pump"] = pumpState;
+  doc["pumpIsOn"] = pumpState;
   doc["controlsEnabled"] = controlsEnabled;
   doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
   doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
