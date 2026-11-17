@@ -20,6 +20,7 @@ public sealed class IrrigationProfileService
     public void SaveProfile(IrrigationProfile profile)
     {
         Validate(profile);
+        profile.UpdatedAt = DateTimeOffset.UtcNow;
         profile.ApplyDirectionMode();
         var existing = Profiles.FirstOrDefault(item => item.Id == profile.Id);
         if (existing is null) Profiles.Add(profile);
@@ -30,8 +31,19 @@ public sealed class IrrigationProfileService
 
     public void MergeProfiles(IEnumerable<IrrigationProfile> incoming)
     {
+        var remote = incoming.ToList();
         var changed = false;
-        foreach (var profile in incoming)
+
+        // The untouched first-run starter profile should not be copied to a
+        // device that already has the user's cloud profiles.
+        if (remote.Count > 0 && Profiles.Count == 1 &&
+            string.Equals(Profiles[0].Name, "Balanced watering", StringComparison.Ordinal))
+        {
+            Profiles.Clear();
+            changed = true;
+        }
+
+        foreach (var profile in remote)
         {
             if (string.IsNullOrWhiteSpace(profile.Id) || !Guid.TryParse(profile.Id, out _))
                 continue;
@@ -47,11 +59,10 @@ public sealed class IrrigationProfileService
                 Profiles.Add(profile);
                 changed = true;
             }
-            else
+            else if (profile.UpdatedAt > existing.UpdatedAt)
             {
-                // Keep local edits when the same profile ID exists on both devices.
-                // A future revision can use per-record updated_at timestamps to resolve conflicts.
-                continue;
+                Profiles[Profiles.IndexOf(existing)] = profile;
+                changed = true;
             }
         }
 
