@@ -10,9 +10,11 @@
   "releaseNotes": [],
   "firmware": {
     "url": null,
+    "size": null,
     "sha256": null,
     "signature": null,
-    "signatureAlgorithm": "Ed25519"
+    "signatureAlgorithm": "ECDSA-P256-SHA256",
+    "signatureEncoding": "base64-der"
   },
   "security": {
     "requireHttps": true,
