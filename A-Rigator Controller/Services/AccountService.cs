@@ -141,6 +141,32 @@ public sealed class AccountService : IAccountService
         await _secureSessionStorage.ClearAsync(cancellationToken);
     }
 
+    public async Task DeleteAccountAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(AccessToken))
+            throw new InvalidOperationException("Sign in before deleting your account.");
+
+        var baseUrl = _supabaseConfigService.Url?.TrimEnd('/');
+        var anonKey = _supabaseConfigService.AnonKey;
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(anonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{baseUrl}/functions/v1/account-management");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+        request.Headers.TryAddWithoutValidation("apikey", anonKey);
+        request.Content = new StringContent("{\"action\":\"delete_account\"}", Encoding.UTF8, "application/json");
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"Account deletion failed ({(int)response.StatusCode}): {body}",
+                null, response.StatusCode);
+
+        await SignOutAsync(cancellationToken);
+    }
+
     public async Task SaveAccountSettingsAsync(
         string displayName,
         string robotName,
