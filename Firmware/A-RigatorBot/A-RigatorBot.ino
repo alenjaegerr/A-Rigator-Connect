@@ -8,46 +8,30 @@
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 #include <WiFi.h>
-#include <WebServer.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLESecurity.h>
-#include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
 #include "RobotMqttConfig.h"
 #include "RobotMqttManager.h"
 
 // ============================================================================
-// 1. WI-FI STATUS API
+// 1. WI-FI STATION + MQTT
 // ============================================================================
-// AP credentials are device-specific. The password is generated once and
-// persisted in NVS; never print it to the serial console or commit it to Git.
-static const char* WIFI_SSID = "A-Rigator";
-String apPassword;
-RobotApConfigStore apConfigStore;
-bool apConfigStoreAvailable = false;
 RobotMqttConfigStore mqttConfigStore;
 RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
 bool mqttConfigStoreAvailable = false;
 bool mqttConfigured = false;
-static const IPAddress AP_IP(192, 168, 4, 1);
-static const IPAddress AP_GATEWAY(192, 168, 4, 1);
-static const IPAddress AP_SUBNET(255, 255, 255, 0);
 static const unsigned long MANUAL_CONTROL_TIMEOUT_MS = 750;
 static const unsigned long BOOT_POWER_SETTLE_MS = 1500;
-static const uint8_t WIFI_AP_START_RETRIES = 3;
-static const unsigned long WIFI_AP_RETRY_DELAY_MS = 400;
-
-WebServer server(80);
 RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
 bool wifiForgetDisconnectPending = false;
 unsigned long wifiForgetDisconnectAt = 0;
-bool mdnsStarted = false;
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
 // not provide MITM protection; production pairing needs physical presence or
@@ -134,7 +118,6 @@ void handlePumpOff();
 void handleHeartbeat();
 void handleResetShield();
 void serviceBleWifiProvisioning();
-void serviceBleApPasswordChange();
 float getObstacleDistanceCM();
 void initializeAudio();
 void playAudioTrack(uint16_t trackNumber);
@@ -165,38 +148,6 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
     } else {
       characteristic->setValue("ERROR");
     }
-  }
-};
-
-class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic* characteristic) override {
-    const String command = characteristic->getValue();
-    if (command == "GET") {
-      characteristic->setValue((String("PASSWORD:") + apPassword).c_str());
-      return;
-    }
-    if (!command.startsWith("SET:")) {
-      characteristic->setValue("ERROR:COMMAND");
-      return;
-    }
-
-    const String newPassword = command.substring(4);
-    if (newPassword.length() < 8 || newPassword.length() > 63) {
-      characteristic->setValue("ERROR:LENGTH");
-      return;
-    }
-
-    for (size_t i = 0; i < newPassword.length(); ++i) {
-      const uint8_t ch = (uint8_t)newPassword[i];
-      if (ch < 0x20 || ch == 0x7F) {
-        characteristic->setValue("ERROR:FORMAT");
-        return;
-      }
-    }
-
-    pendingApPassword = newPassword;
-    bleApPasswordChangeRequested = true;
-    characteristic->setValue("QUEUED");
   }
 };
 
@@ -434,7 +385,7 @@ void serviceBleWifiProvisioning() {
     wifiProvisioningInProgress = true;
     wifiProvisioningStartedAt = millis();
     bleWifiStatusCharacteristic->setValue("CONNECTING");
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.disconnect(false, false);
     WiFi.begin(pendingWifiSsid.c_str(), pendingWifiPassword.c_str());
@@ -448,9 +399,6 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentials.ssid = pendingWifiSsid;
       savedWifiCredentials.password = pendingWifiPassword;
       savedWifiCredentialsAvailable = true;
-      if (mdnsStarted) MDNS.end();
-      mdnsStarted = MDNS.begin("arigator");
-      if (mdnsStarted) MDNS.addService("http", "tcp", 80);
       const String result = String("OK:") + WiFi.localIP().toString();
       bleWifiStatusCharacteristic->setValue(result.c_str());
       Serial.printf(">> Wi-Fi provisioned. STA IP: %s (mDNS: arigator.local)\n",
@@ -471,64 +419,10 @@ void serviceBleWifiProvisioning() {
     wifiProvisioningInProgress = false;
     pendingWifiSsid = "";
     pendingWifiPassword = "";
-    Serial.println(">> Wi-Fi provisioning timed out. A-Rigator AP remains available.");
+    Serial.println(">> Wi-Fi provisioning timed out. BLE remains available for retry.");
     if (savedWifiCredentialsAvailable) {
       WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
     }
-  }
-}
-
-void serviceBleApPasswordChange() {
-  if (!bleApPasswordChangeRequested) return;
-
-  bleApPasswordChangeRequested = false;
-  const String requestedPassword = pendingApPassword;
-  pendingApPassword = "";
-
-  if (!apConfigStoreAvailable || requestedPassword.length() < 8 ||
-      requestedPassword.length() > 63) {
-    bleApConfigCharacteristic->setValue("ERROR:STORAGE");
-    return;
-  }
-
-  const String previousPassword = apPassword;
-  if (!apConfigStore.save(requestedPassword)) {
-    bleApConfigCharacteristic->setValue("ERROR:SAVE");
-    return;
-  }
-
-  // Restart only the access point. The station connection and BLE service
-  // remain active, allowing the app to reconnect using the new password.
-  WiFi.softAPdisconnect(false);
-  delay(250);
-  WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET);
-
-  bool apStarted = false;
-  for (uint8_t attempt = 1; attempt <= WIFI_AP_START_RETRIES; ++attempt) {
-    apStarted = WiFi.softAP(WIFI_SSID, requestedPassword.c_str());
-    if (apStarted) break;
-    delay(WIFI_AP_RETRY_DELAY_MS);
-  }
-
-  if (apStarted) {
-    apPassword = requestedPassword;
-    bleApConfigCharacteristic->setValue("OK:AP_RESTARTED");
-    Serial.println(">> AP password updated and access point restarted.");
-    Serial.println(">> The app must reconnect to A-Rigator using the new password.");
-    return;
-  }
-
-  // Roll back both NVS and the running AP if the new AP could not start.
-  apConfigStore.save(previousPassword);
-  WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET);
-  const bool rollbackStarted = WiFi.softAP(WIFI_SSID, previousPassword.c_str());
-  if (rollbackStarted) {
-    apPassword = previousPassword;
-    bleApConfigCharacteristic->setValue("ERROR:AP_START_ROLLED_BACK");
-    Serial.println(">> New AP password failed to start; previous password restored.");
-  } else {
-    bleApConfigCharacteristic->setValue("ERROR:AP_START");
-    Serial.println(">> AP restart and rollback both failed. BLE remains available.");
   }
 }
 
@@ -713,14 +607,6 @@ void startBleDiscovery() {
     BLECharacteristic::PROPERTY_READ
   );
   bleWifiStatusCharacteristic->setValue("IDLE");
-
-  bleApConfigCharacteristic = bleProvisioningService->createCharacteristic(
-    BLE_AP_CONFIG_CHARACTERISTIC_UUID,
-    BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE
-  );
-  bleApConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED | ESP_GATT_PERM_WRITE_ENCRYPTED);
-  bleApConfigCharacteristic->setCallbacks(new ApConfigCommandCallbacks());
-  bleApConfigCharacteristic->setValue("READY");
 
   BLESecurity* security = new BLESecurity();
   security->setAuthenticationMode(true, false, true);
