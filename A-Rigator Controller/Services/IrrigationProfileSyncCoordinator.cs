@@ -35,11 +35,16 @@ public sealed class IrrigationProfileSyncCoordinator
 
     public event EventHandler<string>? StatusChanged;
 
-    public void ClearAccountSyncState()
+    public async Task ClearAccountSyncStateAsync(CancellationToken cancellationToken = default)
     {
-        _knownCloudIds.Clear();
-        Preferences.Default.Remove(KnownCloudIdsKey);
-        _syncPending = false;
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            _knownCloudIds.Clear();
+            Preferences.Default.Remove(KnownCloudIdsKey);
+            _syncPending = false;
+        }
+        finally { _gate.Release(); }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
