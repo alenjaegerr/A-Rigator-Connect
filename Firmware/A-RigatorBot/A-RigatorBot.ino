@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include <time.h>
 
-// Firmware version reported by the local status API.
+// Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
 
 #include <HardwareSerial.h>
@@ -1964,7 +1964,7 @@ void setup() {
       Serial.println(">> Per-device MQTT configuration loaded. Waiting for station Wi-Fi.");
     } else {
       mqttConfigured = false;
-      Serial.println(">> MQTT is not provisioned. Local control remains available.");
+      Serial.println(">> MQTT is not provisioned. BLE local control remains available.");
     }
   } else {
     Serial.println(">> MQTT NVS unavailable. Local control remains available.");
