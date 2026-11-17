@@ -53,10 +53,14 @@ public sealed class IrrigationProfileSyncCoordinator
 
         try
         {
+            StatusChanged?.Invoke(this, "Loading irrigation profiles from your account…");
+            var cloudProfiles = await _cloud.DownloadProfilesAsync(cancellationToken);
+            _profiles.MergeProfiles(cloudProfiles);
+
             StatusChanged?.Invoke(this, "Syncing irrigation profiles…");
             await _cloud.SyncProfilesAsync(_profiles.Profiles.ToList(), cancellationToken);
             _syncPending = false;
-            StatusChanged?.Invoke(this, $"Irrigation profiles synced to your account ({_profiles.Profiles.Count}).");
+            StatusChanged?.Invoke(this, $"Irrigation profiles are synced to your account ({_profiles.Profiles.Count}).");
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex)
