@@ -910,7 +910,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         (TerrainBiasCenterCommand as Command)?.ChangeCanExecute();
         (StopTerrainCommand as Command)?.ChangeCanExecute();
         (RetryConnectionCommand as Command)?.ChangeCanExecute();
-        (ConnectViaApCommand as Command)?.ChangeCanExecute();
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
