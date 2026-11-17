@@ -81,7 +81,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         }
         catch
         {
-            SetTransportState(ConnectionState.Disconnected);
+            SetTransportState(_connectedDevice?.State == DeviceState.Connected
+                ? ConnectionState.Connected
+                : ConnectionState.Disconnected);
             throw;
         }
         finally
@@ -170,7 +172,11 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         }
         catch
         {
-            SetTransportState(ConnectionState.Disconnected);
+            // A rejected command or malformed telemetry does not mean the
+            // BLE link itself has disconnected.
+            SetTransportState(_connectedDevice?.State == DeviceState.Connected
+                ? ConnectionState.Connected
+                : ConnectionState.Disconnected);
             throw;
         }
         finally
