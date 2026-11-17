@@ -20,9 +20,11 @@
 class RobotOtaManager {
 public:
   using SignatureVerifier = bool (*)(
+    void* context,
     const String& version,
     const String& firmwareUrl,
     const String& sha256Hex,
+    size_t firmwareSize,
     const String& signatureBase64
   );
 
@@ -47,8 +49,9 @@ public:
 
   RobotOtaManager() = default;
 
-  void setSignatureVerifier(SignatureVerifier verifier) {
+  void setSignatureVerifier(SignatureVerifier verifier, void* context) {
     _signatureVerifier = verifier;
+    _signatureContext = context;
   }
 
   void setSafetyInterlock(SafetyInterlock interlock) {
@@ -85,9 +88,11 @@ public:
       return fail("Release metadata is incomplete or invalid.");
     }
     if (!_signatureVerifier(
+          _signatureContext,
           release.version,
           release.firmwareUrl,
           release.sha256Hex,
+          release.firmwareSize,
           release.signatureBase64)) {
       return fail("Release signature verification failed.");
     }
@@ -226,6 +231,7 @@ public:
 
 private:
   SignatureVerifier _signatureVerifier = nullptr;
+  void* _signatureContext = nullptr;
   SafetyInterlock _safetyInterlock = nullptr;
   State _state = State::Idle;
   uint8_t _progressPercent = 0;
