@@ -716,7 +716,9 @@ void handleStatus() {
 	state = "Manual";
   }
 
-	String json = "{\"success\":true,\"state\":\"";
+	String json = "{\"success\":true,\"firmwareVersion\":\"";
+  json += ARIGATOR_FIRMWARE_VERSION;
+  json += "\",\"state\":\"";
   json += state;
   json += "\",\"mode\":\"";
   json += mode;
