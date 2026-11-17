@@ -873,7 +873,7 @@ void initializeAudio() {
   audioSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX_PIN, DFPLAYER_TX_PIN);
   if (audioPlayer.begin(audioSerial, true, true)) {
     audioAvailable = true;
-    audioPlayer.volume(22); // DFPlayer volume range: 0-30
+    audioPlayer.volume(10); // Conservative starting volume for the 8-ohm, 0.5W speaker (DFPlayer range: 0-30)
     Serial.println(">> DFPlayer Mini initialized.");
   } else {
     audioAvailable = false;
