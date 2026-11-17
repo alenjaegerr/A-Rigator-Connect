@@ -255,9 +255,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             }
 
             IsConnectionVerified = true;
-            ResultMessage = status.WifiConnected
-                ? "A-Rigator is responding. IoT connectivity is available, with Bluetooth retained as the local fallback."
-                : "A-Rigator is responding over Bluetooth. Router Wi-Fi is not connected yet; local control is available.";
+            ResultMessage = status.ConnectionMode == RobotConnectionMode.IoT
+                ? "A-Rigator is responding through IoT. Bluetooth remains available for local fallback."
+                : "A-Rigator is responding over Bluetooth. Remote IoT is unavailable; local control is ready.";
             SetStage(PairingStage.Result);
         }
         catch (Exception ex)
