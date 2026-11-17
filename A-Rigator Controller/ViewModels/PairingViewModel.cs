@@ -211,8 +211,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public string SetupStepLabel => _stage switch
     {
-        PairingStage.DiscoverRobot => "STEP 1 OF 4 · FIND YOUR ROBOT",
-        PairingStage.ConfigureWifi => "STEP 2 OF 4 · CONNECT TO WI-FI",
+        PairingStage.DiscoverRobot => "STEP 1 OF 3 · FIND YOUR ROBOT",
+        PairingStage.ConfigureWifi => "STEP 2 OF 3 · CONNECT TO WI-FI",
         PairingStage.VerifyConnection => "STEP 3 · VERIFY ROBOT CONNECTION",
         PairingStage.Result => "SETUP COMPLETE",
         _ => "DIRECT CONNECTION SETUP"
@@ -220,8 +220,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public double SetupProgress => _stage switch
     {
-        PairingStage.DiscoverRobot => 0.25,
-        PairingStage.ConfigureWifi => 0.50,
+        PairingStage.DiscoverRobot => 0.33,
+        PairingStage.ConfigureWifi => 0.66,
         PairingStage.VerifyConnection => 0.90,
         PairingStage.Result => 1.0,
         _ => 0.25
