@@ -69,7 +69,6 @@ BLEService* bleControlService = nullptr;
 BLECharacteristic* bleControlCommandCharacteristic = nullptr;
 BLECharacteristic* bleControlAckCharacteristic = nullptr;
 BLECharacteristic* bleControlTelemetryCharacteristic = nullptr;
-portMUX_TYPE bleControlMux = portMUX_INITIALIZER_UNLOCKED;
 String pendingBleControlCommand;
 volatile bool bleControlCommandPending = false;
 unsigned long lastBleTelemetryAt = 0;
@@ -238,12 +237,11 @@ class BleControlCommandCallbacks : public BLECharacteristicCallbacks {
       return;
     }
 
-    portENTER_CRITICAL(&bleControlMux);
+    // Keep heap-backed String operations outside FreeRTOS critical sections.
     if (!bleControlCommandPending) {
       pendingBleControlCommand = bleControlAssembly;
       bleControlCommandPending = true;
     }
-    portEXIT_CRITICAL(&bleControlMux);
     bleControlExpectedLength = -1;
     bleControlAssembly = "";
   }
@@ -265,12 +263,9 @@ void publishBleControlAck(const String& commandId, const char* status,
 void serviceBleControlCommands() {
   if (!bleControlCommandPending) return;
 
-  String raw;
-  portENTER_CRITICAL(&bleControlMux);
-  raw = pendingBleControlCommand;
+  String raw = pendingBleControlCommand;
   pendingBleControlCommand = "";
   bleControlCommandPending = false;
-  portEXIT_CRITICAL(&bleControlMux);
 
   StaticJsonDocument<512> doc;
   if (deserializeJson(doc, raw) || !doc.is<JsonObject>()) {
