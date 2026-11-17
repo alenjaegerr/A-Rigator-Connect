@@ -1336,6 +1336,10 @@ void handleAutonomousStop() {
 }
 
 void handlePathwayStart() {
+  if (emergencyStopLatched) {
+    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    return;
+  }
   handleAutonomousStart();
   activeAutonomousMode = AUTO_PATHWAY;
   Serial.println(">> [PATHWAY] Line-following mode selected.");
@@ -1347,6 +1351,10 @@ void handlePathwayStop() {
 }
 
 void handleTerrainStart() {
+  if (emergencyStopLatched) {
+    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    return;
+  }
   handleAutonomousStart();
   activeAutonomousMode = AUTO_TERRAIN;
   terrainBias = 0;
@@ -1621,6 +1629,12 @@ void beginIrrigationPhase() {
 }
 
 void startIrrigationSequence(bool manual) {
+  if (emergencyStopLatched) {
+    setPump(false);
+    driveMotor(CMD_BRAKE, 0.0);
+    Serial.println(">> [SAFETY] Irrigation start rejected: emergency stop is latched.");
+    return;
+  }
   irrigationSequenceManual = manual;
   playAudioTrack(3); // Irrigation started: /mp3/0003.mp3
   Serial.println(manual ? "\n>> [MANUAL] Running selected irrigation sweep..." : "\n>> [AUTO] Irrigation zone reached. Running selected profile...");
@@ -1802,6 +1816,10 @@ void executeSerialLine(String line) {
   startIrrigationSequence(true);
 }
 void executeCommand(char cmd) {
+  if (emergencyStopLatched) {
+    Serial.println(">> [SAFETY] Command rejected: emergency stop is latched. Use RESET-ESTOP first.");
+    return;
+  }
   switch (cmd) {
 	case 'w': case 'W':
 	  currentMode = MODE_MANUAL;
