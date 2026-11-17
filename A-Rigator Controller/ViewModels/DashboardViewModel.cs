@@ -849,8 +849,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
-            OnPropertyChanged(nameof(ApModeMobileDataWarning));
         });
     }
 
