@@ -109,6 +109,10 @@ public sealed class IrrigationProfileService
                             ? document.RootElement.EnumerateArray().ElementAtOrDefault(index)
                             : default;
                         if (item.ValueKind == JsonValueKind.Object &&
+                            !item.TryGetProperty("UpdatedAt", out _))
+                            profile.UpdatedAt = DateTimeOffset.MinValue;
+
+                        if (item.ValueKind == JsonValueKind.Object &&
                             !item.TryGetProperty("DirectionMode", out _))
                         {
                             profile.DirectionMode = "FullSweep";
