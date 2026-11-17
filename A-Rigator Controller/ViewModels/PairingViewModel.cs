@@ -16,7 +16,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private readonly IRobotCloudService _robotCloudService;
     private readonly IAccountService _accountService;
     private RobotProvisioningDevice? _selectedBleRobot;
-    private string _bleStatusMessage = "Use Bluetooth to discover a nearby A-Rigator (BLE discovery prototype).";
+    private string _bleStatusMessage = "Use Bluetooth to discover and connect to your A-Rigator.";
     private PairingStage _stage = PairingStage.DiscoverRobot;
     private string _robotAddress = string.Empty;
     private string _errorMessage = string.Empty;
@@ -96,7 +96,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsNotBusy => !IsBusy;
 
-    public string RobotAccessPointSsid => RobotNetworkOptions.AccessPointSsid;
+    public string RobotAccessPointSsid => string.Empty;
 
     public ObservableCollection<RobotProvisioningDevice> NearbyBleRobots { get; } = new();
 
@@ -225,7 +225,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public bool IsWifiSettingsButtonVisible => true;
 
-    public string SuccessfulResultMessage => "A-Rigator has joined your Wi-Fi network. Connect this phone to the same network to control it.";
+    public string SuccessfulResultMessage => "A-Rigator is paired. IoT is preferred, with Bluetooth available for local control.";
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
@@ -255,8 +255,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         PairingStage.DiscoverRobot => "STEP 1 OF 4 · FIND YOUR ROBOT",
         PairingStage.ConfigureWifi => "STEP 2 OF 4 · CONNECT TO WI-FI",
-        PairingStage.PhoneNetwork => "STEP 3 OF 4 · CONNECT YOUR PHONE",
-        PairingStage.VerifyConnection => "STEP 4 OF 4 · VERIFY CONNECTION",
+        PairingStage.PhoneNetwork => "STEP 3 · CHECK ROBOT CONNECTION",
+        PairingStage.VerifyConnection => "STEP 3 · VERIFY ROBOT CONNECTION",
         PairingStage.Result => "SETUP COMPLETE",
         _ => "DIRECT CONNECTION SETUP"
     };
@@ -265,7 +265,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         PairingStage.DiscoverRobot => 0.25,
         PairingStage.ConfigureWifi => 0.50,
-        PairingStage.PhoneNetwork => 0.75,
+        PairingStage.PhoneNetwork => 0.80,
         PairingStage.VerifyConnection => 0.90,
         PairingStage.Result => 1.0,
         _ => 0.25
@@ -305,45 +305,32 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     private async Task ConfirmWifiConnectionAsync()
     {
-        // Remote onboarding must never require the phone to join the robot's LAN.
-        // The current cloud contract supports registration only, not live MQTT
-        // presence or command acknowledgements.
-        if (_isRemoteSetup)
-        {
-            ResultMessage = "Remote broker verification is not available yet. Account registration and Wi-Fi provisioning are complete, but remote control has not been verified.";
-            return;
-        }
-
-        if (IsBusy)
-            return;
-
-        RefreshWifiState();
-        if (!_isWifiEnabled)
-        {
-            ErrorMessage = "Turn on Wi-Fi in Android settings before confirming this local setup step.";
-            return;
-        }
+        if (IsBusy) return;
 
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         IsBusy = true;
         try
         {
+            // IoT is preferred by the connection manager. If the robot is not
+            // reachable through MQTT, its already-paired BLE session is used.
             await _robotCommunicationService.ConnectAsync();
             var status = await _robotCommunicationService.GetStatusAsync();
             if (status is null)
             {
-                await _robotCommunicationService.DisconnectAsync();
-                ResultMessage = "The device responded, but its status was invalid. Check that the ESP32 firmware matches the app protocol.";
+                ResultMessage = "A-Rigator is paired, but it has not returned telemetry yet. Check that the robot is powered on and that its firmware supports BLE control.";
                 return;
             }
 
             IsConnectionVerified = true;
+            ResultMessage = status.WifiConnected
+                ? "A-Rigator is responding. IoT connectivity is available, with Bluetooth retained as the local fallback."
+                : "A-Rigator is responding over Bluetooth. Router Wi-Fi is not connected yet; local control is available.";
             SetStage(PairingStage.Result);
         }
-        catch
+        catch (Exception ex)
         {
-            ResultMessage = $"Could not reach A-Rigator at {RobotAddress}. Connect your phone to the robot's direct hotspot and retry.";
+            ResultMessage = $"Could not verify A-Rigator: {ex.Message}";
         }
         finally
         {
@@ -414,27 +401,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                     ? "A-Rigator is already linked to your account."
                     : "A-Rigator has been registered to your account.";
             }
-            try
-            {
-                AccessPointPassword = await _robotProvisioningService.GetAccessPointPasswordAsync();
-                AccessPointStatusMessage = "Hotspot password received over the encrypted Bluetooth link. BLE Just Works does not protect against an active man-in-the-middle.";
-            }
-            catch (Exception ex)
-            {
-                AccessPointStatusMessage = $"Could not retrieve hotspot credentials: {ex.Message}";
-            }
-            if (_isRemoteSetup)
-            {
-                SetStage(PairingStage.ConfigureWifi);
-                WifiScanStatusMessage = "Bluetooth is ready. Choose the Wi-Fi network for your robot's internet connection.";
-                HasScannedWifiNetworks = false;
-                NearbyWifiNetworks.Clear();
-            }
-            else
-            {
-                SetStage(PairingStage.DirectWifi);
-                AccessPointStatusMessage = "Your robot is ready for local setup. Review or change its direct hotspot password, then connect your phone to the A-Rigator network.";
-            }
+            SetStage(PairingStage.ConfigureWifi);
+            WifiScanStatusMessage = "Bluetooth is connected. Choose the router Wi-Fi network that A-Rigator will use for IoT access. You can also continue with Bluetooth-only local control.";
+            HasScannedWifiNetworks = false;
+            NearbyWifiNetworks.Clear();
         }
         catch (Exception ex)
         {
@@ -455,7 +425,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             BleStatusMessage = "Disconnected from A-Rigator.";
             NearbyWifiNetworks.Clear();
             HasScannedWifiNetworks = false;
-            WifiScanStatusMessage = "Connect to A-Rigator, then scan for nearby Wi-Fi networks.";
+            WifiScanStatusMessage = "Bluetooth is connected. Scan for the router network you want A-Rigator to use.";
         }
         catch (Exception ex)
         {
@@ -524,14 +494,14 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                     _robotCommunicationService.SetRobotAddress(result.DeviceAddress);
                 }
                 WifiPassword = string.Empty;
-                BleStatusMessage = "A-Rigator joined the selected Wi-Fi network. Its direct hotspot remains enabled.";
+                BleStatusMessage = "A-Rigator joined the selected router network. Bluetooth remains available for local control.";
 
                 if (_isRemoteSetup)
                 {
                     WifiScanStatusMessage = "Wi-Fi saved. The robot is ready for the MQTT remote-connection test.";
                 }
 
-                SetStage(PairingStage.PhoneNetwork);
+                SetStage(PairingStage.VerifyConnection);
             }
         }
         catch (Exception ex)
@@ -602,15 +572,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
-        if (!IsBleConnected || string.IsNullOrWhiteSpace(AccessPointPassword))
+        if (!IsBleConnected)
         {
-            ErrorMessage = "Pair with A-Rigator over Bluetooth first. The robot uses a unique hotspot password, which the app retrieves after pairing.";
+            ErrorMessage = "Connect to A-Rigator over Bluetooth first.";
             SetStage(PairingStage.DiscoverRobot);
             return;
         }
-        RobotAddress = "192.168.4.1";
-        _robotCommunicationService.SetRobotAddress(RobotAddress);
-        SetStage(PairingStage.DirectWifi);
+        SetStage(PairingStage.ConfigureWifi);
     }
 
     private void OpenRemoteWifiSetup()
