@@ -336,7 +336,7 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentialsAvailable = true;
       const String result = String("OK:") + WiFi.localIP().toString();
       bleWifiStatusCharacteristic->setValue(result.c_str());
-      Serial.printf(">> Wi-Fi provisioned. STA IP: %s (mDNS: arigator.local)\n",
+      Serial.printf(">> Wi-Fi provisioned. STA IP: %s \n",
                     WiFi.localIP().toString().c_str());
     } else {
       bleWifiStatusCharacteristic->setValue("ERROR:SAVE");
