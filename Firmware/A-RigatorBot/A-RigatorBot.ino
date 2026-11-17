@@ -352,12 +352,45 @@ class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
 class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const String command = characteristic->getValue();
+
     if (command == "SCAN" || command == "scan") {
+      // Start a fresh scan and clear any previous payload.
+      bleWifiScanJson = "{\\"networks\\":[]}";
       bleWifiScanRequested = true;
       characteristic->setValue("SCANNING");
-    } else {
-      characteristic->setValue("ERROR:COMMAND");
+      return;
     }
+
+    // The mobile client retrieves the completed JSON in small reads because
+    // the default BLE ATT MTU cannot carry the complete scan response.
+    if (command.startsWith("GET:")) {
+      const String offsetText = command.substring(4);
+      if (offsetText.length() == 0) {
+        characteristic->setValue("ERROR:OFFSET");
+        return;
+      }
+
+      for (unsigned int i = 0; i < offsetText.length(); ++i) {
+        if (!isDigit(offsetText[i])) {
+          characteristic->setValue("ERROR:OFFSET");
+          return;
+        }
+      }
+
+      const int offset = offsetText.toInt();
+      if (offset < 0 || offset >= (int)bleWifiScanJson.length()) {
+        characteristic->setValue("ERROR:OFFSET");
+        return;
+      }
+
+      static const int BLE_WIFI_SCAN_CHUNK_SIZE = 18;
+      characteristic->setValue(
+        bleWifiScanJson.substring(offset, offset + BLE_WIFI_SCAN_CHUNK_SIZE).c_str()
+      );
+      return;
+    }
+
+    characteristic->setValue("ERROR:COMMAND");
   }
 };
 
