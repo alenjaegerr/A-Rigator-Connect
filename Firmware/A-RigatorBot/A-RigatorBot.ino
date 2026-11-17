@@ -621,6 +621,18 @@ bool batteryVoltageValid = false;
 unsigned long lastBatteryRead = 0;
 static const unsigned long BATTERY_SAMPLE_INTERVAL_MS = 1000;
 static const float BATTERY_DIVIDER_RATIO = 5.0f; // Standard 0-25V sensor module
+// Starting 2S LiFePO4 thresholds. Calibrate the voltage sensor before relying
+// on these values for safety decisions.
+static const float BATTERY_LOW_WARNING_V = 6.0f;
+static const float BATTERY_CRITICAL_V = 5.8f;
+static const bool BATTERY_CRITICAL_STOP_ENABLED = false; // Enable only after meter calibration
+static const unsigned long BATTERY_WARNING_REPEAT_MS = 60000;
+bool lowBatteryWarningActive = false;
+bool criticalBatteryWarningActive = false;
+unsigned long lastBatteryWarningAt = 0;
+bool obstacleWasDetected = false;
+unsigned long lastObstacleAlertAt = 0;
+static const unsigned long OBSTACLE_AUDIO_COOLDOWN_MS = 10000;
 
 // Forget only the saved router profile. Preserve the A-Rigator AP password and
 // keep the local setup hotspot available so the app can provision another network.
@@ -923,7 +935,62 @@ void initializeAudio() {
 
 void playAudioTrack(uint16_t trackNumber) {
   if (!audioAvailable || trackNumber == 0) return;
+  // DFPlayer plays one track at a time; a warning replaces any ordinary
+  // announcement currently playing. Callers apply cooldowns to avoid repeats.
   audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
+}
+
+void serviceObstacleAudioAlert(float distanceCm) {
+  const bool detected = distanceCm < OBSTACLE_STOP_CM;
+  const unsigned long now = millis();
+  if (detected && (!obstacleWasDetected ||
+      now - lastObstacleAlertAt >= OBSTACLE_AUDIO_COOLDOWN_MS)) {
+    playAudioTrack(5); // Obstacle detected: /mp3/0005.mp3
+    lastObstacleAlertAt = now;
+  }
+  obstacleWasDetected = detected;
+}
+
+void serviceBatteryWarnings() {
+  if (!batteryVoltageValid) return;
+  const unsigned long now = millis();
+
+  if (batteryVoltage <= BATTERY_CRITICAL_V) {
+    if (!criticalBatteryWarningActive ||
+        now - lastBatteryWarningAt >= BATTERY_WARNING_REPEAT_MS) {
+      playAudioTrack(6); // Low/critical battery warning: /mp3/0006.mp3
+      lastBatteryWarningAt = now;
+    }
+    criticalBatteryWarningActive = true;
+    lowBatteryWarningActive = true;
+
+    // Keep this disabled until the ADC reading is calibrated against a meter.
+    if (BATTERY_CRITICAL_STOP_ENABLED &&
+        currentMode == MODE_AUTONOMOUS) {
+      irrigationSequenceActive = false;
+      irrigationSequenceSpraying = false;
+      setPump(false);
+      driveMotor(CMD_BRAKE, 0.0);
+      currentMode = MODE_MANUAL;
+      activeAutonomousMode = AUTO_NONE;
+      manualMotorDir = CMD_STOP;
+      autonomousControlLeaseActive = false;
+      Serial.println(">> [SAFETY] Critical battery: autonomous operation stopped.");
+    }
+    return;
+  }
+
+  criticalBatteryWarningActive = false;
+  if (batteryVoltage <= BATTERY_LOW_WARNING_V) {
+    if (!lowBatteryWarningActive ||
+        now - lastBatteryWarningAt >= BATTERY_WARNING_REPEAT_MS) {
+      playAudioTrack(6);
+      lastBatteryWarningAt = now;
+    }
+    lowBatteryWarningActive = true;
+  } else if (batteryVoltage >= BATTERY_LOW_WARNING_V + 0.20f) {
+    lowBatteryWarningActive = false;
+  }
 }
 
 void setLedOutput(bool enabled) {
@@ -944,6 +1011,7 @@ void readBatteryVoltage() {
   const float adcVoltage = (totalMilliVolts / 10.0f) / 1000.0f;
   batteryVoltage = adcVoltage * BATTERY_DIVIDER_RATIO;
   batteryVoltageValid = true;
+  serviceBatteryWarnings();
 }
 
 void setPump(bool enable) {
@@ -1480,7 +1548,9 @@ void startIrrigationSequence(bool manual) {
 void serviceIrrigationSequence() {
   if (!irrigationSequenceActive) return;
 
-  if (getObstacleDistanceCM() < OBSTACLE_STOP_CM) {
+  const float obstacleDistance = getObstacleDistanceCM();
+  serviceObstacleAudioAlert(obstacleDistance);
+  if (obstacleDistance < OBSTACLE_STOP_CM) {
     irrigationSequenceActive = false;
     irrigationSequenceSpraying = false;
     irrigationSequenceManual = false;
@@ -1540,7 +1610,9 @@ void runAutonomousStep() {
     return;
   }
 
-  if (getObstacleDistanceCM() < OBSTACLE_STOP_CM) {
+  const float obstacleDistance = getObstacleDistanceCM();
+  serviceObstacleAudioAlert(obstacleDistance);
+  if (obstacleDistance < OBSTACLE_STOP_CM) {
 	driveMotor(CMD_BRAKE, 0.0);
 	setPump(false);
 	return;
@@ -1755,7 +1827,6 @@ void setup() {
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
   initializeAudio();
-  setLedOutput(true);
   playAudioTrack(1); // Startup: /mp3/0001.mp3
 
   pinMode(STEER_SERVO_PIN, OUTPUT);
@@ -1795,6 +1866,8 @@ void setup() {
   initializeMotorShield();
 
   driveMotor(CMD_STOP, 0.0);
+  setLedOutput(true);
+  playAudioTrack(2); // Ready: /mp3/0002.mp3
   printMenu();
 }
 
