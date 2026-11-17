@@ -145,169 +145,6 @@ class BleControlCommandCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
-void publishBleControlAck(const String& commandId, const char* status,
-                          const char* code, const char* message) {
-  if (bleControlAckCharacteristic == nullptr) return;
-  StaticJsonDocument<256> doc;
-  doc["commandId"] = commandId;
-  doc["status"] = status;
-  doc["code"] = code;
-  doc["message"] = message;
-  String payload;
-  serializeJson(doc, payload);
-  bleControlAckCharacteristic->setValue(payload.c_str());
-}
-
-void serviceBleControlCommands() {
-  if (!bleControlCommandPending) return;
-
-  String raw = pendingBleControlCommand;
-  pendingBleControlCommand = "";
-  bleControlCommandPending = false;
-
-  StaticJsonDocument<512> doc;
-  if (deserializeJson(doc, raw) || !doc.is<JsonObject>()) {
-    publishBleControlAck("", "rejected", "INVALID_JSON", "Command JSON is invalid");
-    return;
-  }
-
-  const int version = doc["version"] | 0;
-  const String commandId = doc["commandId"] | "";
-  const String command = doc["command"] | "";
-  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 || command.length() == 0) {
-    publishBleControlAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
-    return;
-  }
-
-  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
-    publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
-    return;
-  }
-
-  bool supported = true;
-  bleCommandRejected = false;
-  bleCommandExecution = true;
-  if (command == "irrigation_profile") {
-    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
-    const int left = payload["left"] | -1;
-    const int back = payload["back"] | -1;
-    const int right = payload["right"] | -1;
-    const int repeat = payload["repeat"] | -1;
-    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive ||
-        left < 0 || left > 60 || back < 0 || back > 60 ||
-        right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
-        (left == 0 && back == 0 && right == 0)) {
-      bleCommandExecution = false;
-      publishBleControlAck(commandId, "rejected", "INVALID_PROFILE",
-                           "Profile values are invalid or irrigation is currently active");
-      return;
-    }
-    irrigationLeftSeconds = left;
-    irrigationBackSeconds = back;
-    irrigationRightSeconds = right;
-    irrigationRepeatCount = repeat;
-  } else if (command == "forward") {
-    setManualMotorDirection(CMD_CW, "forward");
-  } else if (command == "reverse") {
-    setManualMotorDirection(CMD_CCW, "reverse");
-  } else if (command == "stop") {
-    handleStop();
-  } else if (command == "pump_on") {
-    handlePumpOn();
-  } else if (command == "pump_off") {
-    handlePumpOff();
-  } else if (command == "heartbeat") {
-    handleHeartbeat();
-  } else if (command == "steer_left") {
-    handleSteerLeft();
-  } else if (command == "steer_right") {
-    handleSteerRight();
-  } else if (command == "steer_center") {
-    handleSteerCenter();
-  } else if (command == "nozzle_sweep" || command == "nozzle_sweep_full") {
-    handleFullNozzleSweep();
-  } else if (command == "nozzle_sweep_left") {
-    handleLeftNozzleSweep();
-  } else if (command == "nozzle_sweep_back") {
-    handleBackNozzleSweep();
-  } else if (command == "nozzle_sweep_right") {
-    handleRightNozzleSweep();
-  } else if (command == "nozzle_sweep_stop") {
-    handleNozzleSweepStop();
-  } else if (command == "irrigation_start") {
-    handleIrrigationStart();
-  } else if (command == "irrigation_stop") {
-    handleIrrigationStop();
-  } else if (command == "autonomous_start") {
-    handleAutonomousStart();
-  } else if (command == "autonomous_stop") {
-    handleAutonomousStop();
-  } else if (command == "pathway_start") {
-    handlePathwayStart();
-  } else if (command == "pathway_stop") {
-    handlePathwayStop();
-  } else if (command == "terrain_start") {
-    handleTerrainStart();
-  } else if (command == "terrain_bias_left") {
-    handleTerrainBiasLeft();
-  } else if (command == "terrain_bias_right") {
-    handleTerrainBiasRight();
-  } else if (command == "terrain_bias_center") {
-    handleTerrainBiasCenter();
-  } else if (command == "terrain_stop") {
-    handleTerrainStop();
-  } else if (command == "manual_terrain_start") {
-    handleManualTerrainStart();
-  } else if (command == "manual_terrain_stop") {
-    handleManualTerrainStop();
-  } else if (command == "reset_shield") {
-    handleResetShield();
-  } else {
-    supported = false;
-  }
-
-  bleCommandExecution = false;
-  if (!supported) {
-    publishBleControlAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled over BLE yet");
-  } else if (bleCommandRejected) {
-    publishBleControlAck(commandId, "rejected", "COMMAND_REJECTED", "Robot safety or operating-state checks rejected the command");
-  } else {
-    publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
-  }
-}
-
-void publishBleTelemetryIfDue() {
-  if (bleControlTelemetryCharacteristic == nullptr ||
-      millis() - lastBleTelemetryAt < 1000) return;
-  lastBleTelemetryAt = millis();
-
-  StaticJsonDocument<768> doc;
-  doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
-  doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
-                 ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
-  doc["mode"] = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
-  switch (activeAutonomousMode) {
-    case AUTO_PATHWAY: doc["autonomousMode"] = "PATHWAY"; break;
-    case AUTO_TERRAIN: doc["autonomousMode"] = "TERRAIN"; break;
-    case AUTO_GENERIC: doc["autonomousMode"] = "GENERIC"; break;
-    default: doc["autonomousMode"] = "NONE"; break;
-  }
-  doc["pumpIsOn"] = pumpState;
-  doc["controlsEnabled"] = controlsEnabled;
-  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
-  doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
-  doc["hostname"] = "A-Rigator";
-  doc["obstacleDistanceCm"] = getObstacleDistanceCM();
-  doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
-  doc["manualControlTimeoutMs"] = MANUAL_CONTROL_TIMEOUT_MS;
-  doc["lineGpio14"] = digitalRead(14) == HIGH;
-  doc["lineGpio27"] = digitalRead(27) == HIGH;
-  doc["connectionMode"] = "BLE";
-  String payload;
-  serializeJson(doc, payload);
-  bleControlTelemetryCharacteristic->setValue(payload.c_str());
-}
-
 String escapeJsonString(const String& value) {
   String escaped;
   escaped.reserve(value.length() + 8);
@@ -509,6 +346,18 @@ class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
     }
 
     bleWifiStatusCharacteristic->setValue("ERROR:COMMAND");
+  }
+};
+
+class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const String command = characteristic->getValue();
+    if (command == "SCAN" || command == "scan") {
+      bleWifiScanRequested = true;
+      characteristic->setValue("SCANNING");
+    } else {
+      characteristic->setValue("ERROR:COMMAND");
+    }
   }
 };
 
@@ -736,6 +585,170 @@ unsigned long lastObstacleAlertAt = 0;
 static const unsigned long OBSTACLE_AUDIO_COOLDOWN_MS = 10000;
 static const unsigned long WARNING_AUDIO_PRIORITY_MS = 8000;
 unsigned long warningAudioPriorityUntil = 0;
+
+void publishBleControlAck(const String& commandId, const char* status,
+                          const char* code, const char* message) {
+  if (bleControlAckCharacteristic == nullptr) return;
+  StaticJsonDocument<256> doc;
+  doc["commandId"] = commandId;
+  doc["status"] = status;
+  doc["code"] = code;
+  doc["message"] = message;
+  String payload;
+  serializeJson(doc, payload);
+  bleControlAckCharacteristic->setValue(payload.c_str());
+}
+
+void serviceBleControlCommands() {
+  if (!bleControlCommandPending) return;
+
+  String raw = pendingBleControlCommand;
+  pendingBleControlCommand = "";
+  bleControlCommandPending = false;
+
+  StaticJsonDocument<512> doc;
+  if (deserializeJson(doc, raw) || !doc.is<JsonObject>()) {
+    publishBleControlAck("", "rejected", "INVALID_JSON", "Command JSON is invalid");
+    return;
+  }
+
+  const int version = doc["version"] | 0;
+  const String commandId = doc["commandId"] | "";
+  const String command = doc["command"] | "";
+  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 || command.length() == 0) {
+    publishBleControlAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
+    return;
+  }
+
+  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
+    publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+    return;
+  }
+
+  bool supported = true;
+  bleCommandRejected = false;
+  bleCommandExecution = true;
+  if (command == "irrigation_profile") {
+    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
+    const int left = payload["left"] | -1;
+    const int back = payload["back"] | -1;
+    const int right = payload["right"] | -1;
+    const int repeat = payload["repeat"] | -1;
+    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive ||
+        left < 0 || left > 60 || back < 0 || back > 60 ||
+        right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
+        (left == 0 && back == 0 && right == 0)) {
+      bleCommandExecution = false;
+      publishBleControlAck(commandId, "rejected", "INVALID_PROFILE",
+                           "Profile values are invalid or irrigation is currently active");
+      return;
+    }
+    irrigationLeftSeconds = left;
+    irrigationBackSeconds = back;
+    irrigationRightSeconds = right;
+    irrigationRepeatCount = repeat;
+  } else if (command == "forward") {
+    setManualMotorDirection(CMD_CW, "forward");
+  } else if (command == "reverse") {
+    setManualMotorDirection(CMD_CCW, "reverse");
+  } else if (command == "stop") {
+    handleStop();
+  } else if (command == "pump_on") {
+    handlePumpOn();
+  } else if (command == "pump_off") {
+    handlePumpOff();
+  } else if (command == "heartbeat") {
+    handleHeartbeat();
+  } else if (command == "steer_left") {
+    handleSteerLeft();
+  } else if (command == "steer_right") {
+    handleSteerRight();
+  } else if (command == "steer_center") {
+    handleSteerCenter();
+  } else if (command == "nozzle_sweep" || command == "nozzle_sweep_full") {
+    handleFullNozzleSweep();
+  } else if (command == "nozzle_sweep_left") {
+    handleLeftNozzleSweep();
+  } else if (command == "nozzle_sweep_back") {
+    handleBackNozzleSweep();
+  } else if (command == "nozzle_sweep_right") {
+    handleRightNozzleSweep();
+  } else if (command == "nozzle_sweep_stop") {
+    handleNozzleSweepStop();
+  } else if (command == "irrigation_start") {
+    handleIrrigationStart();
+  } else if (command == "irrigation_stop") {
+    handleIrrigationStop();
+  } else if (command == "autonomous_start") {
+    handleAutonomousStart();
+  } else if (command == "autonomous_stop") {
+    handleAutonomousStop();
+  } else if (command == "pathway_start") {
+    handlePathwayStart();
+  } else if (command == "pathway_stop") {
+    handlePathwayStop();
+  } else if (command == "terrain_start") {
+    handleTerrainStart();
+  } else if (command == "terrain_bias_left") {
+    handleTerrainBiasLeft();
+  } else if (command == "terrain_bias_right") {
+    handleTerrainBiasRight();
+  } else if (command == "terrain_bias_center") {
+    handleTerrainBiasCenter();
+  } else if (command == "terrain_stop") {
+    handleTerrainStop();
+  } else if (command == "manual_terrain_start") {
+    handleManualTerrainStart();
+  } else if (command == "manual_terrain_stop") {
+    handleManualTerrainStop();
+  } else if (command == "reset_shield") {
+    handleResetShield();
+  } else {
+    supported = false;
+  }
+
+  bleCommandExecution = false;
+  if (!supported) {
+    publishBleControlAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled over BLE yet");
+  } else if (bleCommandRejected) {
+    publishBleControlAck(commandId, "rejected", "COMMAND_REJECTED", "Robot safety or operating-state checks rejected the command");
+  } else {
+    publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
+  }
+}
+
+void publishBleTelemetryIfDue() {
+  if (bleControlTelemetryCharacteristic == nullptr ||
+      millis() - lastBleTelemetryAt < 1000) return;
+  lastBleTelemetryAt = millis();
+
+  StaticJsonDocument<768> doc;
+  doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
+  doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
+                 ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
+  doc["mode"] = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
+  switch (activeAutonomousMode) {
+    case AUTO_PATHWAY: doc["autonomousMode"] = "PATHWAY"; break;
+    case AUTO_TERRAIN: doc["autonomousMode"] = "TERRAIN"; break;
+    case AUTO_GENERIC: doc["autonomousMode"] = "GENERIC"; break;
+    default: doc["autonomousMode"] = "NONE"; break;
+  }
+  doc["pumpIsOn"] = pumpState;
+  doc["controlsEnabled"] = controlsEnabled;
+  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
+  doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
+  doc["hostname"] = "A-Rigator";
+  doc["obstacleDistanceCm"] = getObstacleDistanceCM();
+  doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
+  doc["manualControlTimeoutMs"] = MANUAL_CONTROL_TIMEOUT_MS;
+  doc["lineGpio14"] = digitalRead(14) == HIGH;
+  doc["lineGpio27"] = digitalRead(27) == HIGH;
+  doc["connectionMode"] = "BLE";
+  String payload;
+  serializeJson(doc, payload);
+  bleControlTelemetryCharacteristic->setValue(payload.c_str());
+}
+
 
 // Forget the saved router profile while preserving BLE local access.
 bool forgetSavedWifiNetwork() {
@@ -1697,7 +1710,7 @@ void serviceIrrigationSequence() {
 
 void executeIrrigationZone() {
   if (!irrigationSequenceActive)
-    startIrrigationSequence();
+    startIrrigationSequence(false);
 }
 
 void runAutonomousStep() {
