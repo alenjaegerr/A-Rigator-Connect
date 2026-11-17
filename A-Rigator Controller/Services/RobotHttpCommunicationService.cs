@@ -4,7 +4,7 @@ using A_Rigator_Controller.Models;
 
 namespace A_Rigator_Controller.Services;
 
-public sealed class RobotHttpCommunicationService : IRobotCommunicationService, IDisposable
+public sealed class RobotHttpCommunicationService : IRobotTransport, IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly HttpClient _httpClient;
