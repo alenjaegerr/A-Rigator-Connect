@@ -33,7 +33,6 @@ namespace A_Rigator_Controller
 #endif
 
             builder.Services.AddSingleton<IRemoteRobotConfigurationStore, RemoteRobotConfigurationStore>();
-            builder.Services.AddSingleton<IRobotTransport, RobotHttpCommunicationService>();
             builder.Services.AddSingleton<IRobotTransport, RobotMqttCommunicationService>();
             builder.Services.AddSingleton<IRobotCommunicationService, RobotConnectionManager>();
             // Provisioning and local control share one BLE device/adapter session.
