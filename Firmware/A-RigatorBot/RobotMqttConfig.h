@@ -14,10 +14,9 @@
 static const char* ARIGATOR_DEMO_MQTT_USERNAME = "a-rigator-demo";
 static const char* ARIGATOR_DEMO_MQTT_PASSWORD = "69420";
 
-// MQTT credentials and trust material are provisioned per robot and stored
-// in this dedicated NVS namespace. Never commit broker passwords or private
-// keys to source control. The CA certificate is public trust material, but is
-// stored with the device configuration so it can be rotated independently.
+// Broker endpoint, robot ID and public TLS trust certificate are stored in
+// this dedicated NVS namespace. MQTT username/password use the temporary
+// STI EXPO demonstration constants above and must be removed after the expo.
 struct RobotMqttConfig {
   String brokerHost;
   uint16_t brokerPort = 8883;
