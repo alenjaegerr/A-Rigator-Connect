@@ -128,7 +128,6 @@ public sealed class AccountViewModel : INotifyPropertyChanged
 
     private async Task SaveAccountAsync()
     {
-        if (IsBusy) return;
         if (string.IsNullOrWhiteSpace(DisplayName) || DisplayName.Trim().Length > 48)
         {
             SyncStatus = "Display name must contain 1–48 characters.";
