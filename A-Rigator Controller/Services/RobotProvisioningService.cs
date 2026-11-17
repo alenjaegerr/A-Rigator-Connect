@@ -15,7 +15,7 @@ namespace A_Rigator_Controller.Services;
 /// provisioning over a bonded encrypted GATT characteristic. The BLE Just Works
 /// pairing method does not provide MITM protection.
 /// </summary>
-public sealed class RobotProvisioningService : IRobotProvisioningService
+public sealed class RobotProvisioningService : IRobotProvisioningService, IRobotTransport
 {
     public static readonly Guid ProvisioningServiceUuid =
         Guid.Parse("7a1c0001-8f2d-4b6a-9c31-4a5249474154");
@@ -37,6 +37,142 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
     private RobotProvisioningState _state = RobotProvisioningState.Idle;
 
     public RobotProvisioningState State => _state;
+
+    public RobotTransportKind TransportKind => RobotTransportKind.Local;
+    private ConnectionState _transportConnectionState = ConnectionState.Disconnected;
+    public ConnectionState ConnectionState => _transportConnectionState;
+    public event Action<ConnectionState>? ConnectionStateChanged;
+
+    public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return _connectedDevice is not null && _connectedDevice.State == DeviceState.Connected;
+    }
+
+    public Task ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+            throw new InvalidOperationException("Discover and pair with A-Rigator over Bluetooth before using local control.");
+        SetTransportState(ConnectionState.Connected);
+        return Task.CompletedTask;
+    }
+
+    public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
+    {
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+        {
+            SetTransportState(ConnectionState.Disconnected);
+            return null;
+        }
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            var service = await _connectedDevice.GetServiceAsync(RobotBleProtocol.ServiceUuid, cancellationToken);
+            var characteristic = await service.GetCharacteristicAsync(RobotBleProtocol.TelemetryCharacteristicUuid, cancellationToken);
+            if (characteristic is null)
+                throw new InvalidOperationException("This firmware does not expose BLE robot telemetry. Update the ESP32 firmware.");
+            var result = await characteristic.ReadAsync(cancellationToken);
+            var json = Encoding.UTF8.GetString(result.data);
+            var status = JsonSerializer.Deserialize<RobotStatus>(json,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            SetTransportState(ConnectionState.Connected);
+            return status;
+        }
+        catch
+        {
+            SetTransportState(ConnectionState.Disconnected);
+            throw;
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
+    }
+
+    public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
+    {
+        await SendBleEnvelopeAsync(RobotBleProtocol.SerializeCommand(Guid.NewGuid().ToString("N"), command), cancellationToken);
+    }
+
+    public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
+    {
+        await SendBleEnvelopeAsync(RobotBleProtocol.SerializeProfile(profile), cancellationToken);
+    }
+
+    public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendCommandAsync(RobotControlCommand.ManualIrrigationStart, cancellationToken);
+
+    public Task StopManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendCommandAsync(RobotControlCommand.ManualIrrigationStop, cancellationToken);
+
+    public void SetRobotAddress(string address)
+    {
+        // BLE identifies the robot by its connected GATT device, not a LAN address.
+    }
+
+    private async Task SendBleEnvelopeAsync(string envelope, CancellationToken cancellationToken)
+    {
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+        {
+            SetTransportState(ConnectionState.Disconnected);
+            throw new InvalidOperationException("A-Rigator is not connected over Bluetooth.");
+        }
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            SetTransportState(ConnectionState.Connecting);
+            var service = await _connectedDevice.GetServiceAsync(RobotBleProtocol.ServiceUuid, cancellationToken);
+            var commandCharacteristic = await service.GetCharacteristicAsync(RobotBleProtocol.CommandCharacteristicUuid, cancellationToken);
+            var ackCharacteristic = await service.GetCharacteristicAsync(RobotBleProtocol.AcknowledgementCharacteristicUuid, cancellationToken);
+            if (commandCharacteristic is null || ackCharacteristic is null)
+                throw new InvalidOperationException("This firmware does not expose the BLE control protocol. Update the ESP32 firmware.");
+
+            await commandCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(envelope), cancellationToken);
+            using var document = JsonDocument.Parse(envelope);
+            var commandId = document.RootElement.GetProperty("commandId").GetString();
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(4);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(120, cancellationToken);
+                var read = await ackCharacteristic.ReadAsync(cancellationToken);
+                using var ackDocument = JsonDocument.Parse(Encoding.UTF8.GetString(read.data));
+                var root = ackDocument.RootElement;
+                var ackId = root.TryGetProperty("commandId", out var idElement) ? idElement.GetString() : null;
+                if (!string.Equals(commandId, ackId, StringComparison.Ordinal))
+                    continue;
+
+                var status = root.TryGetProperty("status", out var statusElement) ? statusElement.GetString() : null;
+                var message = root.TryGetProperty("message", out var messageElement) ? messageElement.GetString() : null;
+                if (!string.Equals(status, "executed", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(message ?? "A-Rigator rejected the Bluetooth command.");
+                SetTransportState(ConnectionState.Connected);
+                return;
+            }
+
+            throw new TimeoutException("A-Rigator did not acknowledge the Bluetooth command.");
+        }
+        catch
+        {
+            SetTransportState(ConnectionState.Disconnected);
+            throw;
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
+    }
+
+    private void SetTransportState(ConnectionState state)
+    {
+        if (_transportConnectionState == state) return;
+        _transportConnectionState = state;
+        ConnectionStateChanged?.Invoke(state);
+    }
+
 
     public event Action<RobotProvisioningState>? StateChanged;
 
@@ -427,6 +563,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService
         finally
         {
             _connectedDevice = null;
+            SetTransportState(ConnectionState.Disconnected);
             SetState(RobotProvisioningState.Idle);
         }
     }
