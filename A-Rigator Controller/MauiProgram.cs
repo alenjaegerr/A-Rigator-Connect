@@ -32,7 +32,9 @@ namespace A_Rigator_Controller
             });
 #endif
 
+            builder.Services.AddSingleton<IRemoteRobotConfigurationStore, RemoteRobotConfigurationStore>();
             builder.Services.AddSingleton<IRobotTransport, RobotHttpCommunicationService>();
+            builder.Services.AddSingleton<IRobotTransport, RobotMqttCommunicationService>();
             builder.Services.AddSingleton<IRobotCommunicationService, RobotConnectionManager>();
             builder.Services.AddSingleton<IRobotProvisioningService, RobotProvisioningService>();
             builder.Services.AddSingleton<FirmwareSourceUpdateService>();
