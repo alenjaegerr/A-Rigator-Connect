@@ -10,6 +10,7 @@
 #include <ESPmDNS.h>
 #include "RobotWifiConfig.h"
 #include "RobotMqttConfig.h"
+#include "RobotMqttManager.h"
 
 // ============================================================================
 // 1. WI-FI STATUS API
@@ -20,6 +21,11 @@ static const char* WIFI_SSID = "A-Rigator";
 String apPassword;
 RobotApConfigStore apConfigStore;
 bool apConfigStoreAvailable = false;
+RobotMqttConfigStore mqttConfigStore;
+RobotMqttConfig mqttConfig;
+RobotMqttManager mqttManager;
+bool mqttConfigStoreAvailable = false;
+bool mqttConfigured = false;
 static const IPAddress AP_IP(192, 168, 4, 1);
 static const IPAddress AP_GATEWAY(192, 168, 4, 1);
 static const IPAddress AP_SUBNET(255, 255, 255, 0);
@@ -730,7 +736,13 @@ void handleStatus() {
   json += String(BATTERY_LOW_WARNING_V, 2);
   json += ",\"batteryCriticalThresholdV\":";
   json += String(BATTERY_CRITICAL_V, 2);
-  json += ",\"emergencyStopLatched\":";
+  json += ",\"mqttConfigured\":";
+  json += mqttConfigured ? "true" : "false";
+  json += ",\"mqttConnected\":";
+  json += mqttManager.connected() ? "true" : "false";
+  json += ",\"robotId\":\"";
+  json += mqttConfigured ? escapeJsonString(mqttConfig.robotId) : "";
+  json += "\",\"emergencyStopLatched\":";
   json += emergencyStopLatched ? "true" : "false";
   json += ",\"physicalEmergencyStopEnabled\":";
   json += PHYSICAL_ESTOP_INPUT_ENABLED ? "true" : "false";
@@ -1973,6 +1985,21 @@ void setup() {
   }
   startWifiApi();
 
+  // MQTT is optional for local operation. Without a provisioned per-device
+  // profile, the local AP/HTTP API remains fully available.
+  if (mqttConfigStore.begin()) {
+    mqttConfigStoreAvailable = true;
+    mqttConfigured = mqttConfigStore.load(mqttConfig);
+    if (mqttConfigured && mqttManager.begin(mqttConfig)) {
+      Serial.println(">> Per-device MQTT configuration loaded. Waiting for station Wi-Fi.");
+    } else {
+      mqttConfigured = false;
+      Serial.println(">> MQTT is not provisioned. Local control remains available.");
+    }
+  } else {
+    Serial.println(">> MQTT NVS unavailable. Local control remains available.");
+  }
+
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(10000);
   delay(100);
@@ -1987,6 +2014,7 @@ void setup() {
 void loop() {
   readBatteryVoltage();
   server.handleClient();
+  mqttManager.loop();
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
