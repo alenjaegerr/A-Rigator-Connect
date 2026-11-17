@@ -34,6 +34,11 @@
             </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="FIRMWARE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Label Text="Installed version" FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                        <Label x:Name="InstalledFirmwareVersionLabel" Grid.Column="1" Text="Not connected" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    </Grid>
                     <Label Text="FIRMWARE SOURCE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="Check whether the firmware source file has changed on GitHub." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label x:Name="FirmwareSourceStatusLabel" Text="Not checked yet" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
