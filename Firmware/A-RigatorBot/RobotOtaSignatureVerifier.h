@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <string.h>
 #include <mbedtls/pk.h>
 #include <mbedtls/md.h>
 #include <mbedtls/base64.h>
@@ -52,19 +53,13 @@ public:
         sha256Hex.length() != 64 || firmwareSize == 0 ||
         signatureBase64.isEmpty()) return false;
 
+    String normalizedDigest = sha256Hex;
+    normalizedDigest.toLowerCase();
+
     String payload = "ARIGATOR-RELEASE-V1\n";
     payload += "product=A-Rigator\n";
     payload += "version=" + version + "\n";
     payload += "firmwareUrl=" + firmwareUrl + "\n";
-    payload += "sha256=" + sha256Hex;
-    payload.toLowerCase();
-    // Restore case-sensitive URL and version after normalizing only the digest.
-    payload = "ARIGATOR-RELEASE-V1\n";
-    payload += "product=A-Rigator\n";
-    payload += "version=" + version + "\n";
-    payload += "firmwareUrl=" + firmwareUrl + "\n";
-    String normalizedDigest = sha256Hex;
-    normalizedDigest.toLowerCase();
     payload += "sha256=" + normalizedDigest + "\n";
     payload += "firmwareSize=" + String((unsigned long)firmwareSize);
 
