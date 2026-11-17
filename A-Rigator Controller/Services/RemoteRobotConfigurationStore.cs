@@ -3,13 +3,12 @@ using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller.Services;
 
-/// <summary>Stores broker credentials in platform-backed encrypted storage.</summary>
+/// <summary>Stores broker endpoint and robot identity; demo MQTT credentials are temporary source constants.</summary>
 public sealed class RemoteRobotConfigurationStore : IRemoteRobotConfigurationStore
 {
     private const string HostKey = "arigator_mqtt_host";
     private const string PortKey = "arigator_mqtt_port";
     private const string RobotIdKey = "arigator_mqtt_robot_id";
-    private const string UsernameKey = "arigator_mqtt_username";
     // TEMPORARY — STI EXPO DEMONSTRATION ONLY.
     // Remove these hardcoded credentials after STI EXPO and restore secure
     // credential provisioning before any production release.
