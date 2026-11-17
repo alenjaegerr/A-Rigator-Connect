@@ -2,7 +2,6 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
-#include <esp_random.h>
 
 // Stores only A-Rigator's Wi-Fi credentials in its own NVS namespace.
 // Other robot settings (irrigation profiles, calibration, etc.) are untouched.
@@ -69,61 +68,5 @@ class RobotWifiCredentialStore {
   }
 
  private:
-  Preferences preferences;
-};
-
-
-// Stores the local AP password independently from the router Wi-Fi profile.
-// A unique password is generated on first boot and persisted in NVS. It can be
-// retrieved or changed through the encrypted BLE AP-settings characteristic.
-class RobotApConfigStore {
- public:
-  bool begin() {
-    return preferences.begin("arigator-ap", false);
-  }
-
-  String load() {
-    String password = preferences.getString("password", "");
-    if (password.length() >= 8 && password.length() <= 63) {
-      return password;
-    }
-
-    password = generatePassword();
-    if (!save(password)) {
-      // Keep this boot usable if NVS is temporarily unavailable. The caller
-      // must not print the password; BLE can disclose it to the paired app.
-      return password;
-    }
-    return password;
-  }
-
-  bool save(const String& password) {
-    if (password.length() < 8 || password.length() > 63) {
-      return false;
-    }
-
-    if (preferences.putString("password", password) == 0) {
-      return false;
-    }
-
-    return preferences.getString("password", "") == password;
-  }
-
-  void end() {
-    preferences.end();
-  }
-
- private:
-  String generatePassword() {
-    static const char alphabet[] =
-      "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-    String password;
-    password.reserve(14);
-    for (uint8_t i = 0; i < 14; ++i) {
-      password += alphabet[esp_random() % (sizeof(alphabet) - 1)];
-    }
-    return password;
-  }
-
   Preferences preferences;
 };
