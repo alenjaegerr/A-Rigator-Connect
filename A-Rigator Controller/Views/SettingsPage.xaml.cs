@@ -6,13 +6,16 @@ namespace A_Rigator_Controller.Views;
 public partial class SettingsPage : ContentPage
 {
     private readonly FirmwareSourceUpdateService _firmwareSourceUpdateService;
+    private readonly IRobotCommunicationService _robotCommunicationService;
     private string _firmwareCommitUrl = string.Empty;
 
-    public SettingsPage(DashboardViewModel viewModel, FirmwareSourceUpdateService firmwareSourceUpdateService)
+    public SettingsPage(DashboardViewModel viewModel, FirmwareSourceUpdateService firmwareSourceUpdateService, IRobotCommunicationService robotCommunicationService)
     {
         InitializeComponent();
         BindingContext = viewModel;
         _firmwareSourceUpdateService = firmwareSourceUpdateService;
+        _robotCommunicationService = robotCommunicationService;
+        Appearing += OnSettingsPageAppearing;
         Shell.SetTabBarIsVisible(this, true);
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
     }
@@ -34,6 +37,28 @@ public partial class SettingsPage : ContentPage
     private async void OnAccountClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("account");
+    }
+
+
+    private async void OnSettingsPageAppearing(object? sender, EventArgs e)
+    {
+        await RefreshInstalledFirmwareVersionAsync();
+    }
+
+    private async Task RefreshInstalledFirmwareVersionAsync()
+    {
+        InstalledFirmwareVersionLabel.Text = "Checking…";
+        try
+        {
+            var status = await _robotCommunicationService.GetStatusAsync();
+            InstalledFirmwareVersionLabel.Text = string.IsNullOrWhiteSpace(status?.FirmwareVersion)
+                ? "Unavailable"
+                : status.FirmwareVersion;
+        }
+        catch
+        {
+            InstalledFirmwareVersionLabel.Text = "Robot offline";
+        }
     }
 
     private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
