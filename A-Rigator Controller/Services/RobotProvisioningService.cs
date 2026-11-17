@@ -345,8 +345,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                 await Task.Delay(400, cancellationToken);
                 var readResult = await characteristic.ReadAsync(cancellationToken);
                 var response = Encoding.UTF8.GetString(readResult.data);
-                if (response == "ERROR")
-                    throw new InvalidOperationException("A-Rigator could not scan for nearby Wi-Fi networks.");
+                if (response.StartsWith("ERROR", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(
+                        $"A-Rigator could not scan for nearby Wi-Fi networks ({response}).");
                 if (response.StartsWith("DONE:", StringComparison.Ordinal) &&
                     int.TryParse(response.AsSpan(5), out totalLength) && totalLength >= 0)
                     break;
@@ -362,8 +363,14 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                 await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"GET:{offset}"), cancellationToken);
                 var readResult = await characteristic.ReadAsync(cancellationToken);
                 var chunk = readResult.data;
-                if (chunk.Length == 0)
-                    throw new InvalidOperationException("A-Rigator returned an incomplete Wi-Fi scan result.");
+                var expectedLength = Math.Min(18, totalLength - offset);
+                var chunkText = Encoding.UTF8.GetString(chunk);
+                if (chunkText.StartsWith("ERROR", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException(
+                        $"A-Rigator could not return Wi-Fi scan data ({chunkText}).");
+                if (chunk.Length != expectedLength)
+                    throw new InvalidOperationException(
+                        $"A-Rigator returned an incomplete Wi-Fi scan result at byte {offset} (expected {expectedLength}, received {chunk.Length}).");
                 payloadStream.Write(chunk, 0, chunk.Length);
             }
 
