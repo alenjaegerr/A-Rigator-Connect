@@ -7,6 +7,9 @@ public sealed class RobotStatusResponse
     [JsonPropertyName("success")]
     public bool Success { get; init; }
 
+    [JsonPropertyName("firmwareVersion")]
+    public string? FirmwareVersion { get; init; }
+
     [JsonPropertyName("state")]
     public string? State { get; init; }
 
