@@ -41,19 +41,27 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
     public ConnectionState ConnectionState => _transportConnectionState;
     public event Action<ConnectionState>? ConnectionStateChanged;
 
-    public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
+    public Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return _connectedDevice is not null && _connectedDevice.State == DeviceState.Connected;
+        // A previously paired device remains a reconnect candidate even when
+        // it temporarily leaves range. An explicit DisconnectAsync clears it.
+        return Task.FromResult(_connectedDevice is not null);
     }
 
-    public Task ConnectAsync(CancellationToken cancellationToken = default)
+    public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+        if (_connectedDevice is null)
             throw new InvalidOperationException("Discover and pair with A-Rigator over Bluetooth before using local control.");
+
+        if (_connectedDevice.State != DeviceState.Connected)
+        {
+            SetTransportState(ConnectionState.Connecting);
+            await _adapter.ConnectToDeviceAsync(_connectedDevice, cancellationToken: cancellationToken);
+        }
+
         SetTransportState(ConnectionState.Connected);
-        return Task.CompletedTask;
     }
 
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
