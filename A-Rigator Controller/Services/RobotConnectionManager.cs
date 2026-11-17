@@ -84,7 +84,15 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             if (local is not null)
             {
                 status = await local.GetStatusAsync(cancellationToken);
+                transport = local;
             }
+        }
+
+        if (status is not null)
+        {
+            status.ConnectionMode = transport.TransportKind == RobotTransportKind.Remote
+                ? RobotConnectionMode.IoT
+                : RobotConnectionMode.BLE;
         }
 
         return status;
