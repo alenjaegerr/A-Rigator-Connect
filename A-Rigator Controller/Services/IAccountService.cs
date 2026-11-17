@@ -8,6 +8,8 @@ public interface IAccountService
 
     string? DisplayName { get; }
 
+    string? RobotName { get; }
+
     string? Email { get; }
 
     string? AccessToken { get; }
