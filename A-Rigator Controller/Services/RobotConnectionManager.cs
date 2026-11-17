@@ -11,6 +11,8 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private readonly IReadOnlyList<IRobotTransport> _transports;
     private IRobotTransport? _activeTransport;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
+    private DateTimeOffset _lastRemotePromotionAttempt = DateTimeOffset.MinValue;
+    private static readonly TimeSpan RemotePromotionRetryInterval = TimeSpan.FromSeconds(10);
 
     public RobotConnectionManager(IEnumerable<IRobotTransport> transports)
     {
@@ -218,7 +220,48 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
     {
         if (_activeTransport is not null && _activeTransport.ConnectionState == ConnectionState.Connected)
+        {
+            // If the robot is currently being controlled over BLE, periodically
+            // check whether the preferred cloud path has recovered. Promote it
+            // only after fresh robot telemetry proves the ESP32 is reachable.
+            if (_activeTransport.TransportKind != RobotTransportKind.Remote &&
+                DateTimeOffset.UtcNow - _lastRemotePromotionAttempt >= RemotePromotionRetryInterval)
+            {
+                _lastRemotePromotionAttempt = DateTimeOffset.UtcNow;
+                var remote = _transports.FirstOrDefault(
+                    transport => transport.TransportKind == RobotTransportKind.Remote);
+                if (remote is not null)
+                {
+                    try
+                    {
+                        if (remote.ConnectionState != ConnectionState.Connected &&
+                            await remote.CheckAvailabilityAsync(cancellationToken))
+                        {
+                            await remote.ConnectAsync(cancellationToken);
+                        }
+
+                        if (remote.ConnectionState == ConnectionState.Connected &&
+                            await remote.GetStatusAsync(cancellationToken) is not null)
+                        {
+                            _activeTransport = remote;
+                            SetConnectionState(ConnectionState.Connected);
+                            return remote;
+                        }
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        // Keep the existing BLE session when cloud reachability
+                        // cannot be proven.
+                    }
+                }
+            }
+
             return _activeTransport;
+        }
 
         return await ConnectPreferredAvailableTransportAsync(cancellationToken);
     }
