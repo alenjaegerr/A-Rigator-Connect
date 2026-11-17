@@ -33,6 +33,8 @@ class RobotMqttConfigStore {
   }
 
   bool load(RobotMqttConfig& config) {
+    if (!preferences.getBool("configured", false)) return false;
+
     config.brokerHost = preferences.getString("host", "");
     config.brokerPort = preferences.getUShort("port", 8883);
     config.robotId = preferences.getString("robotId", "");
