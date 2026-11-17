@@ -403,7 +403,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         string password,
         CancellationToken cancellationToken = default)
     {
-        if (_connectedDevice is null)
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
             return new RobotProvisioningResult(false, "Connect to A-Rigator over Bluetooth first.");
 
         var ssidBytes = Encoding.UTF8.GetBytes(ssid);
@@ -454,11 +454,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                 var response = Encoding.UTF8.GetString(readResult.data).Trim('\0', ' ', '\r', '\n');
                 if (response.StartsWith("OK:", StringComparison.Ordinal))
                 {
-                    var address = response["OK:".Length..].Trim();
                     SetState(RobotProvisioningState.Completed);
                     return new RobotProvisioningResult(true,
-                        $"A-Rigator joined the Wi-Fi network. Local address: {address}",
-                        address);
+                        "A-Rigator joined the router Wi-Fi network. Bluetooth remains available for local control.");
                 }
                 if (response.StartsWith("ERROR:", StringComparison.Ordinal))
                 {
