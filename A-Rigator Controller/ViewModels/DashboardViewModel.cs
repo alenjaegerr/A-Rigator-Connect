@@ -173,9 +173,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         : _latestStatus.ConnectionMode == RobotConnectionMode.BLE
             ? (_latestStatus.WifiConnected == true
                 ? $"Local Bluetooth link active · Router Wi-Fi connected ({_latestStatus.WifiIp ?? "IP not reported"})"
-                : "Local Bluetooth link active · Router Wi-Fi is not connected")
+                : "Local Bluetooth link active · Router Wi-Fi is not connected; remote IoT unavailable")
             : _latestStatus.WifiConnected == true
-                ? $"IoT connection active · {_latestStatus.WifiIp ?? "IP not reported"} · Bluetooth available as local fallback"
+                ? $"IoT connection active · {_latestStatus.WifiIp ?? "IP not reported"} · Pair over Bluetooth for local fallback"
                 : "Robot is responding locally, but router Wi-Fi is not connected.";
 
     public bool IsApModeMobileDataWarningVisible =>
