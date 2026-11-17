@@ -114,6 +114,8 @@ void initializeAudio();
 void playAudioTrack(uint16_t trackNumber);
 void setLedOutput(bool enabled);
 void readBatteryVoltage();
+void triggerEmergencyStop(const char* source);
+bool resetEmergencyStop();
 
 // ============================================================================
 // BLE DISCOVERY + READ-ONLY WI-FI SCAN
@@ -581,6 +583,10 @@ int terrainPatternIndex = 0;
 unsigned long lastTerrainSteeringStep = 0;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
+// Software emergency-stop latch. Physical GPIO15 activation remains disabled
+// until the combined chassis button board is electrically verified.
+bool emergencyStopLatched = false;
+static const bool PHYSICAL_ESTOP_INPUT_ENABLED = false;
 bool nozzleSweepActive = false;
 bool manualTerrainModeActive = false;
 int manualTerrainSteeringAngle = STEER_LEFT;
@@ -724,6 +730,10 @@ void handleStatus() {
   json += String(BATTERY_LOW_WARNING_V, 2);
   json += ",\"batteryCriticalThresholdV\":";
   json += String(BATTERY_CRITICAL_V, 2);
+  json += ",\"emergencyStopLatched\":";
+  json += emergencyStopLatched ? "true" : "false";
+  json += ",\"physicalEmergencyStopEnabled\":";
+  json += PHYSICAL_ESTOP_INPUT_ENABLED ? "true" : "false";
   json += ",\"ledEnabled\":";
   json += ledOutputEnabled ? "true" : "false";
   json += ",\"audioAvailable\":";
@@ -788,6 +798,14 @@ void startWifiApi() {
   controlsEnabled = true;
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/api/network/forget", HTTP_POST, handleForgetWifi);
+  server.on("/api/safety/emergency-stop", HTTP_POST, []() {
+    triggerEmergencyStop("Wi-Fi API");
+    sendControlResponse("emergency_stop");
+  });
+  server.on("/api/safety/emergency-reset", HTTP_POST, []() {
+    if (resetEmergencyStop()) sendControlResponse("emergency_reset");
+    else server.send(409, "application/json", "{\"success\":false,\"message\":\"Emergency stop is not latched\"}");
+  });
   if (controlsEnabled) {
 	server.on("/api/control/forward", HTTP_POST, handleForward);
 	server.on("/api/control/reverse", HTTP_POST, handleReverse);
@@ -1032,8 +1050,48 @@ void readBatteryVoltage() {
 }
 
 void setPump(bool enable) {
+  if (enable && emergencyStopLatched) enable = false;
   pumpState = enable;
   digitalWrite(PUMP_RELAY_PIN, enable ? RELAY_ON : RELAY_OFF);
+}
+
+void triggerEmergencyStop(const char* source) {
+  emergencyStopLatched = true;
+  autonomousControlLeaseActive = false;
+  manualControlLeaseActive = false;
+  manualTerrainModeActive = false;
+  nozzleSweepActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationSequenceManual = false;
+  irrigationZoneLatched = false;
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  manualMotorDir = CMD_STOP;
+  setPump(false);
+  driveMotor(CMD_BRAKE, 0.0);
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+  setLedOutput(false);
+  playAudioTrack(7);
+  Serial.printf(">> [EMERGENCY STOP] Latched by %s. Explicit reset required.\\n", source);
+}
+
+bool resetEmergencyStop() {
+  if (!emergencyStopLatched) return false;
+  setPump(false);
+  driveMotor(CMD_BRAKE, 0.0);
+  manualMotorDir = CMD_STOP;
+  currentMode = MODE_MANUAL;
+  activeAutonomousMode = AUTO_NONE;
+  autonomousControlLeaseActive = false;
+  manualControlLeaseActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  emergencyStopLatched = false;
+  setLedOutput(true);
+  Serial.println(">> [SAFETY] Emergency stop reset. Robot remains stopped; start commands required.");
+  return true;
 }
 
 void refreshManualControlLease() {
@@ -1049,6 +1107,10 @@ void sendControlResponse(const char* command) {
 }
 
 void setManualMotorDirection(uint8_t direction, const char* command) {
+  if (emergencyStopLatched) {
+    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    return;
+  }
   if (currentMode == MODE_AUTONOMOUS) {
     autonomousControlLeaseActive = false;
     irrigationSequenceActive = false;
@@ -1231,6 +1293,10 @@ void handleStop() {
 }
 
 void handleAutonomousStart() {
+  if (emergencyStopLatched) {
+    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    return;
+  }
   manualTerrainModeActive = false;
   nozzleSweepActive = false;
   irrigationSequenceActive = false;
@@ -1359,6 +1425,10 @@ void runTerrainStep() {
 }
 
 void handlePumpOn() {
+  if (emergencyStopLatched) {
+    server.send(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    return;
+  }
 	if (currentMode == MODE_AUTONOMOUS) {
     autonomousControlLeaseActive = false;
     irrigationSequenceActive = false;
@@ -1682,6 +1752,14 @@ void printMenu() {
 void executeSerialLine(String line) {
   line.trim();
   line.toUpperCase();
+  if (line == "ESTOP" || line == "E-STOP") {
+    triggerEmergencyStop("Serial console");
+    return;
+  }
+  if (line == "RESET-ESTOP") {
+    if (!resetEmergencyStop()) Serial.println(">> [SAFETY] No emergency stop is currently latched.");
+    return;
+  }
   if (line == "STOP") {
     manualTerrainModeActive = false;
     irrigationSequenceActive = false;
