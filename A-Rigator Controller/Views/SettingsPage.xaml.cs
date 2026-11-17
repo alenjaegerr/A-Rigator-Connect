@@ -1,4 +1,5 @@
 using A_Rigator_Controller.ViewModels;
+using A_Rigator_Controller.Services;
 
 namespace A_Rigator_Controller.Views;
 
@@ -33,9 +34,7 @@ public partial class SettingsPage : ContentPage
     private async void OnAccountClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("account");
-    }
-}
-    private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
+    }    private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
     {
         CheckFirmwareSourceButton.IsEnabled = false;
         ViewFirmwareCommitButton.IsVisible = false;
@@ -92,3 +91,4 @@ public partial class SettingsPage : ContentPage
         if (Uri.TryCreate(_firmwareCommitUrl, UriKind.Absolute, out var uri))
             await Launcher.Default.OpenAsync(uri);
     }
+}
