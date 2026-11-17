@@ -86,7 +86,7 @@ public partial class AccountPage : ContentPage
             await DisplayAlert("Account deleted",
                 "Your A-Rigator account and associated cloud data have been deleted. You can continue using local features as a guest.",
                 "OK");
-            await Shell.Current.GoToAsync("//home");
+            await Shell.Current.GoToAsync("//main/home");
         }
         catch (Exception ex)
         {
@@ -98,17 +98,29 @@ public partial class AccountPage : ContentPage
 
     private static void ClearLocalAccountData()
     {
+        var avatarPaths = new[]
+        {
+            Preferences.Default.Get<string?>("arigator.account.avatar", null),
+            Preferences.Default.Get<string?>("arigator.robot.avatar", null)
+        };
+
+        foreach (var path in avatarPaths)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(path)) continue;
+                var fullPath = Path.GetFullPath(path);
+                var appDirectory = Path.GetFullPath(FileSystem.AppDataDirectory) + Path.DirectorySeparatorChar;
+                if (fullPath.StartsWith(appDirectory, StringComparison.OrdinalIgnoreCase) && File.Exists(fullPath))
+                    File.Delete(fullPath);
+            }
+            catch { }
+        }
+
         foreach (var key in new[]
         {
             "display_name", "arigator.robot.nickname",
             "arigator.account.avatar", "arigator.robot.avatar"
         })
             Preferences.Default.Remove(key);
-
-        foreach (var fileName in new[] { "account-avatar.jpg", "account-avatar.png", "robot-avatar.jpg", "robot-avatar.png" })
-        {
-            var path = Path.Combine(FileSystem.AppDataDirectory, fileName);
-            try { if (File.Exists(path)) File.Delete(path); } catch { }
-        }
-    }
-}
+    }}
