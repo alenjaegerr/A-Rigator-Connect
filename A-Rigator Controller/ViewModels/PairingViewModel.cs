@@ -28,7 +28,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private RobotWifiNetwork? _selectedWifiNetwork;
     private string _wifiPassword = string.Empty;
 
-    public PairingViewModel(IWifiStatusService wifiStatusService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService, IRobotCloudService robotCloudService, IAccountService accountService)
+    public PairingViewModel(IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService, IRobotCloudService robotCloudService, IAccountService accountService)
     {
         _robotCommunicationService = robotCommunicationService;
         _robotProvisioningService = robotProvisioningService;
@@ -237,7 +237,6 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         IsConnectionVerified = false;
-        RefreshWifiState();
         SetStage(PairingStage.DiscoverRobot);
     }
 
