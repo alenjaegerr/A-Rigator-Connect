@@ -11,15 +11,18 @@ public partial class AccountPage : ContentPage
     private readonly IrrigationProfileService _profiles;
     private readonly IAccountService _account;
     private readonly IRemoteRobotConfigurationStore _robotConfiguration;
+    private readonly IrrigationProfileSyncCoordinator _profileSync;
 
     public AccountPage(AccountViewModel viewModel, IrrigationProfileService profiles,
-        IAccountService account, IRemoteRobotConfigurationStore robotConfiguration)
+        IAccountService account, IRemoteRobotConfigurationStore robotConfiguration,
+        IrrigationProfileSyncCoordinator profileSync)
     {
         InitializeComponent();
         BindingContext = viewModel;
         _profiles = profiles;
         _account = account;
         _robotConfiguration = robotConfiguration;
+        _profileSync = profileSync;
     }
 
     private async void OnImportProfilesClicked(object sender, EventArgs e)
@@ -81,6 +84,7 @@ public partial class AccountPage : ContentPage
         {
             await _account.DeleteAccountAsync();
             _profiles.ResetForDeletedAccount();
+            _profileSync.ClearAccountSyncState();
             await _robotConfiguration.ClearAsync();
             ClearLocalAccountData();
             await DisplayAlert("Account deleted",
