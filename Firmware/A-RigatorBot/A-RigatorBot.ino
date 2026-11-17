@@ -1974,16 +1974,10 @@ void loop() {
     mqttClockSyncRequested = true;
   }
   if (stationConnected && !stationWasConnected) {
-    if (!mdnsStarted) {
-      mdnsStarted = MDNS.begin("arigator");
-      if (mdnsStarted) MDNS.addService("http", "tcp", 80);
-    }
-    Serial.printf(">> Wi-Fi connected. Robot network IP: %s (arigator.local)\\n",
+    Serial.printf(">> Router Wi-Fi connected. IP: %s\\n",
                   WiFi.localIP().toString().c_str());
   } else if (!stationConnected && stationWasConnected) {
-    if (mdnsStarted) MDNS.end();
-    mdnsStarted = false;
-    Serial.println(">> Saved Wi-Fi disconnected. ESP32 will attempt to reconnect.");
+    Serial.println(">> Router Wi-Fi disconnected. ESP32 will attempt to reconnect.");
   }
   stationWasConnected = stationConnected;
 
