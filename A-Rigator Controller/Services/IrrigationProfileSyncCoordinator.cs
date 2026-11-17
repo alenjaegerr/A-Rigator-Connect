@@ -1,4 +1,6 @@
 using Microsoft.Maui.Networking;
+using Microsoft.Maui.Storage;
+using System.Text.Json;
 
 namespace A_Rigator_Controller.Services;
 
@@ -10,6 +12,8 @@ public sealed class IrrigationProfileSyncCoordinator
     private readonly SemaphoreSlim _gate = new(1, 1);
     private bool _started;
     private bool _syncPending = true;
+    private const string KnownCloudIdsKey = "arigator.irrigation.cloud-profile-ids.v1";
+    private readonly HashSet<string> _knownCloudIds;
 
     public IrrigationProfileSyncCoordinator(IrrigationProfileService profiles,
         IIrrigationProfileCloudService cloud, IAccountService account)
@@ -17,6 +21,14 @@ public sealed class IrrigationProfileSyncCoordinator
         _profiles = profiles;
         _cloud = cloud;
         _account = account;
+        try
+        {
+            var savedIds = Preferences.Default.Get(KnownCloudIdsKey, "[]");
+            _knownCloudIds = (JsonSerializer.Deserialize<List<string>>(savedIds) ?? new())
+                .Where(id => Guid.TryParse(id, out _))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+        catch { _knownCloudIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase); }
     }
 
     public event EventHandler<string>? StatusChanged;
@@ -55,10 +67,24 @@ public sealed class IrrigationProfileSyncCoordinator
         {
             StatusChanged?.Invoke(this, "Loading irrigation profiles from your account…");
             var cloudProfiles = await _cloud.DownloadProfilesAsync(cancellationToken);
-            _profiles.MergeProfiles(cloudProfiles);
+
+            // Compare against the last successful sync so a profile intentionally
+            // deleted on this device is not downloaded again on the next sync.
+            var localIds = _profiles.Profiles.Select(profile => profile.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var deletedIds = _knownCloudIds.Except(localIds, StringComparer.OrdinalIgnoreCase).ToArray();
+            if (deletedIds.Length > 0)
+                await _cloud.DeleteProfilesAsync(deletedIds, cancellationToken);
+
+            var deletedSet = deletedIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            _profiles.MergeProfiles(cloudProfiles.Where(profile => !deletedSet.Contains(profile.Id)));
 
             StatusChanged?.Invoke(this, "Syncing irrigation profiles…");
-            await _cloud.SyncProfilesAsync(_profiles.Profiles.ToList(), cancellationToken);
+            var currentProfiles = _profiles.Profiles.ToList();
+            await _cloud.SyncProfilesAsync(currentProfiles, cancellationToken);
+            _knownCloudIds.Clear();
+            foreach (var profile in currentProfiles) _knownCloudIds.Add(profile.Id);
+            Preferences.Default.Set(KnownCloudIdsKey, JsonSerializer.Serialize(_knownCloudIds.ToArray()));
             _syncPending = false;
             StatusChanged?.Invoke(this, $"Irrigation profiles are synced to your account ({_profiles.Profiles.Count}).");
         }
