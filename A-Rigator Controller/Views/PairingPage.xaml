@@ -203,13 +203,6 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
-                        <Button Text="SKIP ROUTER — USE DIRECT HOTSPOT"
-                                Command="{Binding StartDirectWifiSetupCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                MinimumHeightRequest="46"
-                                CornerRadius="12"
-                                BackgroundColor="#EEF3EF"
-                                TextColor="#35443B" />
                         <Button Text="BACK"
                                 Command="{Binding StartOverCommand}"
                                 MinimumHeightRequest="44"
@@ -230,7 +223,7 @@
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#176B45" />
-                        <Label Text="Your robot has received the selected router credentials. Your phone can remain on mobile data for remote access."
+                        <Label Text="Your robot has received the selected router credentials. Bluetooth remains available for local control if IoT is unavailable."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Border Padding="14"
@@ -252,7 +245,7 @@
                                        TextColor="#52615A" />
                             </VerticalStackLayout>
                         </Border>
-                        <Label Text="Next, we'll check the remote-service setup. This does not require your phone to join the robot's Wi-Fi network."
+                        <Label Text="Next, we'll verify the robot through IoT first, then Bluetooth if needed."
                                FontSize="14"
                                TextColor="#35443B" />
                         <Button Text="CONTINUE"
@@ -278,11 +271,11 @@
                         Stroke="#D8E3DC"
                         StrokeShape="RoundRectangle 20">
                     <VerticalStackLayout Spacing="14">
-                        <Label Text="Remote setup is ready for verification"
+                        <Label Text="Verify your robot connection"
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="Your phone can stay on mobile data. A-Rigator must connect to the internet through the Wi-Fi network you selected."
+                        <Label Text="The app checks the IoT connection first. If the cloud path is unavailable, it checks the paired Bluetooth connection."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Border Padding="14"
@@ -347,7 +340,7 @@
                                FontAttributes="Bold"
                                TextColor="#176B45"
                                HorizontalTextAlignment="Center" />
-                        <Label Text="A-Rigator is connected and responding on your local network. You can now open the dashboard and start using your robot."
+                        <Label Text="A-Rigator is paired. IoT is preferred, and Bluetooth is available for local control when the cloud connection is unavailable."
                                FontSize="14"
                                TextColor="#35443B"
                                HorizontalTextAlignment="Center" />
@@ -367,82 +360,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- LEGACY DIRECT-HOTSPOT FALLBACK -->
-                <Border IsVisible="{Binding IsWifiInstructionsVisible}"
-                        Padding="20"
-                        BackgroundColor="White"
-                        Stroke="#D8E3DC"
-                        StrokeShape="RoundRectangle 20">
-                    <VerticalStackLayout Spacing="14">
-                        <Label Text="Direct hotspot setup"
-                               FontSize="21"
-                               FontAttributes="Bold"
-                               TextColor="#17231C" />
-                        <Label Text="Use this offline connection when the router or cloud path is unavailable. Pair over Bluetooth first to securely retrieve the robot's unique hotspot password."
-                               FontSize="14"
-                               TextColor="#52615A" />
-                        <Label Text="ROBOT WI-FI NETWORK"
-                               FontSize="11"
-                               FontAttributes="Bold"
-                               TextColor="#718078" />
-                        <Label Text="{Binding RobotAccessPointSsid}"
-                               FontSize="16"
-                               FontAttributes="Bold"
-                               TextColor="#17231C" />
-                        <Label Text="{Binding AccessPointPassword, StringFormat='{}Hotspot password: {0}'}"
-                               FontSize="14"
-                               TextColor="#176B45" />
-                        <Label Text="{Binding AccessPointStatusMessage}"
-                               FontSize="12"
-                               TextColor="#52615A" />
-                        <Label Text="CHANGE HOTSPOT PASSWORD"
-                               FontSize="11"
-                               FontAttributes="Bold"
-                               TextColor="#718078" />
-                        <Entry Text="{Binding NewAccessPointPassword}"
-                               Placeholder="New password (8–63 characters)"
-                               IsPassword="True"
-                               ClearButtonVisibility="WhileEditing"
-                               BackgroundColor="#F4F8F5"
-                               TextColor="#17231C" />
-                        <Button Text="UPDATE HOTSPOT PASSWORD"
-                                Command="{Binding ChangeAccessPointPasswordCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                MinimumHeightRequest="48"
-                                CornerRadius="12"
-                                BackgroundColor="#2879A8"
-                                TextColor="White" />
-                        <Label Text="{Binding WifiStatusMessage}"
-                               FontSize="13"
-                               TextColor="#52615A" />
-                        <Label Text="{Binding ErrorMessage}"
-                               FontSize="13"
-                               TextColor="#A23A32" />
-                        <Label Text="{Binding ResultMessage}"
-                               IsVisible="{Binding IsErrorVisible}"
-                               FontSize="13"
-                               TextColor="#A23A32" />
-                        <Button Text="OPEN WI-FI SETTINGS"
-                                Command="{Binding OpenWifiSettingsCommand}"
-                                MinimumHeightRequest="50"
-                                CornerRadius="13"
-                                BackgroundColor="#176B45"
-                                TextColor="White" />
-                        <Button Text="VERIFY ROBOT CONNECTION"
-                                Command="{Binding ConfirmWifiConnectionCommand}"
-                                IsEnabled="{Binding IsNotBusy}"
-                                MinimumHeightRequest="50"
-                                CornerRadius="13"
-                                BackgroundColor="#2879A8"
-                                TextColor="White" />
-                        <Button Text="BACK TO BLUETOOTH SETUP"
-                                Command="{Binding StartOverCommand}"
-                                MinimumHeightRequest="44"
-                                CornerRadius="12"
-                                BackgroundColor="#EEF3EF"
-                                TextColor="#35443B" />
-                    </VerticalStackLayout>
-                </Border>
+
 
             </VerticalStackLayout>
         </ScrollView>
