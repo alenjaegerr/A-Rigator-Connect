@@ -1,4 +1,6 @@
 #include <Wire.h>
+#include <HardwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
 #include <WiFi.h>
 #include <WebServer.h>
 #include <BLEDevice.h>
@@ -108,6 +110,10 @@ void handleResetShield();
 void serviceBleWifiProvisioning();
 void serviceBleApPasswordChange();
 float getObstacleDistanceCM();
+void initializeAudio();
+void playAudioTrack(uint16_t trackNumber);
+void setLedOutput(bool enabled);
+void readBatteryVoltage();
 
 // ============================================================================
 // BLE DISCOVERY + READ-ONLY WI-FI SCAN
@@ -508,7 +514,13 @@ void startBleDiscovery() {
 #define WATER_TRIG_PIN      25
 #define WATER_ECHO_PIN      26
 
-#define CHASSIS_BTN_PIN     15    // Twist Car Top Button (D15)
+#define CHASSIS_BTN_PIN     15    // Reserved; physical emergency-stop wiring to be verified
+
+// Added peripherals (ESP32-WROOM-32U)
+#define DFPLAYER_RX_PIN     16    // ESP32 RX2 <- DFPlayer TX
+#define DFPLAYER_TX_PIN     17    // ESP32 TX2 -> DFPlayer RX
+#define LED_MOSFET_PIN      32    // F5305S module signal input
+#define BATTERY_ADC_PIN     35    // Voltage sensor analog output (ADC1, input-only)
 
 // ============================================================================
 // 3. CONSTANTS & FULL-POWER SETTINGS
@@ -598,6 +610,18 @@ unsigned long lastManualControlRefresh = 0;
 bool manualControlLeaseActive = false;
 bool controlsEnabled = false;
 
+// Added peripherals: DFPlayer Mini, LED power switch, and battery telemetry.
+// Requires the "DFRobotDFPlayerMini" Arduino library.
+HardwareSerial audioSerial(2);
+DFRobotDFPlayerMini audioPlayer;
+bool audioAvailable = false;
+bool ledOutputEnabled = false;
+float batteryVoltage = 0.0f;
+bool batteryVoltageValid = false;
+unsigned long lastBatteryRead = 0;
+static const unsigned long BATTERY_SAMPLE_INTERVAL_MS = 1000;
+static const float BATTERY_DIVIDER_RATIO = 5.0f; // Standard 0-25V sensor module
+
 // Forget only the saved router profile. Preserve the A-Rigator AP password and
 // keep the local setup hotspot available so the app can provision another network.
 bool forgetSavedWifiNetwork(bool disconnectNow = true) {
@@ -675,6 +699,12 @@ void handleStatus() {
   }
   json += "\",\"pump\":";
   json += pumpState ? "true" : "false";
+  json += ",\"batteryVoltage\":";
+  json += batteryVoltageValid ? String(batteryVoltage, 2) : "null";
+  json += ",\"ledEnabled\":";
+  json += ledOutputEnabled ? "true" : "false";
+  json += ",\"audioAvailable\":";
+  json += audioAvailable ? "true" : "false";
 	json += ",\"controlsEnabled\":";
   json += controlsEnabled ? "true" : "false";
   json += ",\"wifiConnected\":";
@@ -877,6 +907,43 @@ void writeServo(int pin, int angle) {
     // so long nozzle sweeps cannot exceed the keep-alive interval.
     refreshMotorShieldKeepAlive();
   }
+}
+
+void initializeAudio() {
+  audioSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX_PIN, DFPLAYER_TX_PIN);
+  if (audioPlayer.begin(audioSerial, true, true)) {
+    audioAvailable = true;
+    audioPlayer.volume(22); // DFPlayer volume range: 0-30
+    Serial.println(">> DFPlayer Mini initialized.");
+  } else {
+    audioAvailable = false;
+    Serial.println(">> DFPlayer Mini not detected; robot will run without audio.");
+  }
+}
+
+void playAudioTrack(uint16_t trackNumber) {
+  if (!audioAvailable || trackNumber == 0) return;
+  audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
+}
+
+void setLedOutput(bool enabled) {
+  ledOutputEnabled = enabled;
+  digitalWrite(LED_MOSFET_PIN, enabled ? HIGH : LOW);
+}
+
+void readBatteryVoltage() {
+  const unsigned long now = millis();
+  if (now - lastBatteryRead < BATTERY_SAMPLE_INTERVAL_MS) return;
+  lastBatteryRead = now;
+
+  uint32_t totalMilliVolts = 0;
+  for (uint8_t i = 0; i < 10; ++i) {
+    totalMilliVolts += analogReadMilliVolts(BATTERY_ADC_PIN);
+  }
+
+  const float adcVoltage = (totalMilliVolts / 10.0f) / 1000.0f;
+  batteryVoltage = adcVoltage * BATTERY_DIVIDER_RATIO;
+  batteryVoltageValid = true;
 }
 
 void setPump(bool enable) {
@@ -1359,6 +1426,7 @@ void beginIrrigationPhase() {
     irrigationSequencesCompleted++;
     if (irrigationSequencesCompleted >= irrigationRepeatCount) {
       irrigationSequenceActive = false;
+      playAudioTrack(4); // Irrigation completed: /mp3/0004.mp3
       writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
       if (irrigationSequenceManual) {
         driveMotor(CMD_BRAKE, 0.0);
@@ -1399,6 +1467,7 @@ void beginIrrigationPhase() {
 
 void startIrrigationSequence(bool manual) {
   irrigationSequenceManual = manual;
+  playAudioTrack(3); // Irrigation started: /mp3/0003.mp3
   Serial.println(manual ? "\n>> [MANUAL] Running selected irrigation sweep..." : "\n>> [AUTO] Irrigation zone reached. Running selected profile...");
   driveMotor(CMD_BRAKE, 0.0);
   setPump(false);
@@ -1681,6 +1750,14 @@ void setup() {
   pinMode(PUMP_RELAY_PIN, OUTPUT);
   digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
 
+  pinMode(LED_MOSFET_PIN, OUTPUT);
+  digitalWrite(LED_MOSFET_PIN, LOW);
+  analogReadResolution(12);
+  analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
+  initializeAudio();
+  setLedOutput(true);
+  playAudioTrack(1); // Startup: /mp3/0001.mp3
+
   pinMode(STEER_SERVO_PIN, OUTPUT);
   pinMode(NOZZLE_SERVO_PIN, OUTPUT);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
@@ -1722,6 +1799,7 @@ void setup() {
 }
 
 void loop() {
+  readBatteryVoltage();
   server.handleClient();
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
