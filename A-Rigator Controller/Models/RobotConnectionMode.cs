@@ -4,6 +4,5 @@ public enum RobotConnectionMode
 {
     Unknown,
     IoT,
-    BLE,
-    AccessPoint
+    BLE
 }
