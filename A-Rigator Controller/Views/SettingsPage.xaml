@@ -34,6 +34,17 @@
             </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="FIRMWARE SOURCE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="Check whether the firmware source file has changed on GitHub." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label x:Name="FirmwareSourceStatusLabel" Text="Not checked yet" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label x:Name="FirmwareSourceDetailsLabel" Text="Checks A-RigatorBot.ino on the development branch." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <ActivityIndicator x:Name="FirmwareSourceActivity" IsVisible="False" IsRunning="False" Color="#176B45" />
+                    <Button x:Name="CheckFirmwareSourceButton" Text="CHECK FOR UPDATES" Clicked="OnCheckFirmwareSourceClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                    <Button x:Name="ViewFirmwareCommitButton" Text="VIEW SOURCE COMMIT" Clicked="OnViewFirmwareCommitClicked" IsVisible="False" BackgroundColor="#52615A" TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
                     <Label Text="LIVE SYSTEM DIAGNOSTICS" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
                         <Label Text="Connection" FontSize="13" />
