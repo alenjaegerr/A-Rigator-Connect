@@ -3,9 +3,8 @@ using A_Rigator_Controller.Models;
 namespace A_Rigator_Controller.Services;
 
 /// <summary>
-/// Coordinates local and remote communication paths. Local transports are
-/// preferred when reachable; remote transports are attempted when local
-/// connectivity is unavailable.
+/// Coordinates robot communication paths. Remote IoT is preferred; local
+/// transports (BLE after the AP migration) are used when IoT is unavailable.
 /// </summary>
 public sealed class RobotConnectionManager : IRobotCommunicationService
 {
@@ -16,7 +15,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     public RobotConnectionManager(IEnumerable<IRobotTransport> transports)
     {
         _transports = transports
-            .OrderBy(transport => transport.TransportKind == RobotTransportKind.Local ? 0 : 1)
+            .OrderBy(transport => transport.TransportKind == RobotTransportKind.Remote ? 0 : 1)
             .ToArray();
 
         foreach (var transport in _transports)
@@ -133,13 +132,12 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     public void SetRobotAddress(string address)
     {
+        // Address configuration belongs to a local transport. Remote IoT is
+        // addressed by the provisioned robot identity, not a LAN address.
         var localTransport = _transports.FirstOrDefault(
             transport => transport.TransportKind == RobotTransportKind.Local);
 
-        if (localTransport is null)
-            throw new InvalidOperationException("No local robot transport is registered.");
-
-        localTransport.SetRobotAddress(address);
+        localTransport?.SetRobotAddress(address);
     }
 
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
