@@ -6,4 +6,5 @@ public interface IIrrigationProfileCloudService
 {
     Task<IReadOnlyList<IrrigationProfile>> DownloadProfilesAsync(CancellationToken cancellationToken = default);
     Task SyncProfilesAsync(IEnumerable<IrrigationProfile> profiles, CancellationToken cancellationToken = default);
+    Task DeleteProfilesAsync(IEnumerable<string> profileIds, CancellationToken cancellationToken = default);
 }
