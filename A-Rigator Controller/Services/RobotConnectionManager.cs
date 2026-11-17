@@ -132,6 +132,13 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             status.ConnectionMode = transport.TransportKind == RobotTransportKind.Remote
                 ? RobotConnectionMode.IoT
                 : RobotConnectionMode.BLE;
+            SetConnectionState(ConnectionState.Connected);
+        }
+        else
+        {
+            // A broker session alone is not robot connectivity; BLE must also
+            // return fresh telemetry before the app reports the robot online.
+            SetConnectionState(ConnectionState.Disconnected);
         }
 
         return status;
