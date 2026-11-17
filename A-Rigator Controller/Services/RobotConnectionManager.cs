@@ -89,6 +89,43 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
                 transport = local;
             }
         }
+        else if (status is null && transport.TransportKind == RobotTransportKind.Local)
+        {
+            // BLE may have dropped while the MQTT session recovered. Re-check
+            // the preferred remote path before declaring the robot offline.
+            var remote = _transports.FirstOrDefault(
+                candidate => candidate.TransportKind == RobotTransportKind.Remote);
+            if (remote is not null)
+            {
+                try
+                {
+                    if (remote.ConnectionState != ConnectionState.Connected &&
+                        await remote.CheckAvailabilityAsync(cancellationToken))
+                    {
+                        await remote.ConnectAsync(cancellationToken);
+                    }
+
+                    var remoteStatus = remote.ConnectionState == ConnectionState.Connected
+                        ? await remote.GetStatusAsync(cancellationToken)
+                        : null;
+                    if (remoteStatus is not null)
+                    {
+                        status = remoteStatus;
+                        transport = remote;
+                        _activeTransport = remote;
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    // The current BLE status is already unavailable; keep the
+                    // result null rather than inventing reachability.
+                }
+            }
+        }
 
         if (status is not null)
         {
