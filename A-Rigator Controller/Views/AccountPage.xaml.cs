@@ -84,7 +84,7 @@ public partial class AccountPage : ContentPage
         {
             await _account.DeleteAccountAsync();
             _profiles.ResetForDeletedAccount();
-            _profileSync.ClearAccountSyncState();
+            await _profileSync.ClearAccountSyncStateAsync();
             await _robotConfiguration.ClearAsync();
             ClearLocalAccountData();
             await DisplayAlert("Account deleted",
