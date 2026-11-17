@@ -58,37 +58,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
-        SetConnectionState(ConnectionState.Connecting);
-        Exception? lastError = null;
-
-        foreach (var transport in _transports)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                if (!await transport.CheckAvailabilityAsync(cancellationToken))
-                    continue;
-
-                await transport.ConnectAsync(cancellationToken);
-                _activeTransport = transport;
-                SetConnectionState(ConnectionState.Connected);
-                return;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch (Exception error)
-            {
-                lastError = error;
-                _activeTransport = null;
-            }
-        }
-
-        SetConnectionState(ConnectionState.Disconnected);
-        throw new InvalidOperationException(
-            "A-Rigator could not be reached through any configured connection path.",
-            lastError);
+        await ConnectPreferredAvailableTransportAsync(cancellationToken);
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
@@ -143,17 +113,56 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
     {
         if (_activeTransport is not null && _activeTransport.ConnectionState == ConnectionState.Connected)
-            return _activeTransport!;
-
-        if (await CheckAvailabilityAsync(cancellationToken))
-        {
-            await _activeTransport!.ConnectAsync(cancellationToken);
-            SetConnectionState(ConnectionState.Connected);
             return _activeTransport;
+
+        return await ConnectPreferredAvailableTransportAsync(cancellationToken);
+    }
+
+    private async Task<IRobotTransport> ConnectPreferredAvailableTransportAsync(
+        CancellationToken cancellationToken)
+    {
+        SetConnectionState(ConnectionState.Connecting);
+        Exception? lastError = null;
+
+        // _transports are ordered IoT first, then local BLE fallback.
+        foreach (var transport in _transports)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (transport.ConnectionState == ConnectionState.Connected)
+                {
+                    _activeTransport = transport;
+                    SetConnectionState(ConnectionState.Connected);
+                    return transport;
+                }
+
+                if (!await transport.CheckAvailabilityAsync(cancellationToken))
+                    continue;
+
+                await transport.ConnectAsync(cancellationToken);
+                _activeTransport = transport;
+                SetConnectionState(ConnectionState.Connected);
+                return transport;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                SetConnectionState(ConnectionState.Disconnected);
+                throw;
+            }
+            catch (Exception error)
+            {
+                lastError = error;
+                if (ReferenceEquals(_activeTransport, transport))
+                    _activeTransport = null;
+                // A configured but unreachable IoT broker must not block BLE.
+            }
         }
 
         SetConnectionState(ConnectionState.Disconnected);
-        throw new InvalidOperationException("A-Rigator is not connected. Reconnect before sending commands.");
+        throw new InvalidOperationException(
+            "A-Rigator could not be reached over IoT or Bluetooth. Check the robot and try reconnecting.",
+            lastError);
     }
 
     private void OnTransportConnectionStateChanged(IRobotTransport transport, ConnectionState state)
