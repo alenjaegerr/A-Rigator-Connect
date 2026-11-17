@@ -34,10 +34,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         _robotProvisioningService = robotProvisioningService;
         _robotCloudService = robotCloudService;
         _accountService = accountService;
-        ContinueToVerifyCommand = new Command(() => SetStage(PairingStage.VerifyConnection));
         BackToWifiSetupCommand = new Command(() => SetStage(PairingStage.ConfigureWifi));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
-        FinishRemoteSetupCommand = new Command(FinishRemoteSetup, () => !IsBusy);
         ContinueWithBluetoothCommand = new Command(() => { WifiPassword = string.Empty; SetStage(PairingStage.VerifyConnection); }, () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
@@ -78,7 +76,6 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(IsNotBusy));
                 OnPropertyChanged(nameof(HasSelectedBleRobot));
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
-                (FinishRemoteSetupCommand as Command)?.ChangeCanExecute();
                 (ContinueWithBluetoothCommand as Command)?.ChangeCanExecute();
             }
         }
@@ -164,7 +161,6 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public ICommand ConfirmWifiConnectionCommand { get; }
 
-    public ICommand FinishRemoteSetupCommand { get; }
 
     public ICommand ContinueWithBluetoothCommand { get; }
 
@@ -227,7 +223,6 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         _ => 0.25
     };
 
-    public ICommand ContinueToVerifyCommand { get; }
     public ICommand BackToWifiSetupCommand { get; }
 
     public void StartNewPairingFlow(bool isRemoteSetup = false)
@@ -273,13 +268,6 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
-    }
-
-    private void FinishRemoteSetup()
-    {
-        if (IsBusy) return;
-        IsConnectionVerified = false;
-        SetStage(PairingStage.VerifyConnection);
     }
 
     private async Task ScanForBleRobotsAsync()
