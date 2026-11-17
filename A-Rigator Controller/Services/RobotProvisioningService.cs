@@ -7,6 +7,7 @@ using Microsoft.Maui.ApplicationModel;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace A_Rigator_Controller.Services;
 
@@ -75,8 +76,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                 throw new InvalidOperationException("This firmware does not expose BLE robot telemetry. Update the ESP32 firmware.");
             var result = await characteristic.ReadAsync(cancellationToken);
             var json = Encoding.UTF8.GetString(result.data);
-            var status = JsonSerializer.Deserialize<RobotStatus>(json,
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            var statusOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            statusOptions.Converters.Add(new JsonStringEnumConverter());
+            var status = JsonSerializer.Deserialize<RobotStatus>(json, statusOptions);
             SetTransportState(ConnectionState.Connected);
             return status;
         }
