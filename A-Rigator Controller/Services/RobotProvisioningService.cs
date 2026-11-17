@@ -132,7 +132,21 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
             if (commandCharacteristic is null || ackCharacteristic is null)
                 throw new InvalidOperationException("This firmware does not expose the BLE control protocol. Update the ESP32 firmware.");
 
-            await commandCharacteristic.WriteAsync(Encoding.UTF8.GetBytes(envelope), cancellationToken);
+            var commandBytes = Encoding.UTF8.GetBytes(envelope);
+            if (commandBytes.Length > 240)
+                throw new InvalidOperationException("The BLE command payload is too large.");
+
+            await commandCharacteristic.WriteAsync(
+                Encoding.ASCII.GetBytes($"BEGIN:{commandBytes.Length}"), cancellationToken);
+            for (var offset = 0; offset < commandBytes.Length; offset += 12)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = Encoding.ASCII.GetString(
+                    commandBytes, offset, Math.Min(12, commandBytes.Length - offset));
+                await commandCharacteristic.WriteAsync(
+                    Encoding.ASCII.GetBytes($"D{offset:D3}:{chunk}"), cancellationToken);
+            }
+            await commandCharacteristic.WriteAsync(Encoding.ASCII.GetBytes("COMMIT"), cancellationToken);
             using var document = JsonDocument.Parse(envelope);
             var commandId = document.RootElement.GetProperty("commandId").GetString();
             var deadline = DateTimeOffset.UtcNow.AddSeconds(4);
