@@ -119,13 +119,7 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
-                        <Button Text="USE DIRECT HOTSPOT SETUP INSTEAD"
-                                Command="{Binding StartDirectWifiSetupCommand}"
-                                MinimumHeightRequest="46"
-                                CornerRadius="12"
-                                BackgroundColor="#EEF3EF"
-                                TextColor="#35443B" />
-                    </VerticalStackLayout>
+                        </VerticalStackLayout>
                 </Border>
 
                 <!-- STEP 2: SELECT ROUTER AND SEND CREDENTIALS -->
@@ -203,6 +197,13 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
+                        <Button Text="CONTINUE WITH BLUETOOTH ONLY"
+                                Command="{Binding ContinueWithBluetoothCommand}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="48"
+                                CornerRadius="12"
+                                BackgroundColor="#EEF3EF"
+                                TextColor="#35443B" />
                         <Button Text="BACK"
                                 Command="{Binding StartOverCommand}"
                                 MinimumHeightRequest="44"
@@ -306,8 +307,8 @@
                                IsVisible="{Binding IsErrorVisible}"
                                FontSize="13"
                                TextColor="#A23A32" />
-                        <Button Text="FINISH SETUP"
-                                Command="{Binding FinishRemoteSetupCommand}"
+                        <Button Text="VERIFY &amp; FINISH SETUP"
+                                Command="{Binding ConfirmWifiConnectionCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="54"
                                 CornerRadius="14"
@@ -315,7 +316,7 @@
                                 BackgroundColor="#176B45"
                                 TextColor="White" />
                         <Button Text="BACK"
-                                Command="{Binding BackToPhoneNetworkCommand}"
+                                Command="{Binding BackToWifiSetupCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="44"
                                 CornerRadius="12"
