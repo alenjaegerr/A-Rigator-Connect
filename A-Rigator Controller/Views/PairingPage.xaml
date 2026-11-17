@@ -213,58 +213,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- STEP 3: REMOTE CONNECTION SETUP -->
-                <Border IsVisible="{Binding IsPhoneNetworkStage}"
-                        Padding="20"
-                        BackgroundColor="White"
-                        Stroke="#D8E3DC"
-                        StrokeShape="RoundRectangle 20">
-                    <VerticalStackLayout Spacing="14">
-                        <Label Text="A-Rigator is connected to Wi-Fi"
-                               FontSize="21"
-                               FontAttributes="Bold"
-                               TextColor="#176B45" />
-                        <Label Text="Your robot has received the selected router credentials. Bluetooth remains available for local control if IoT is unavailable."
-                               FontSize="14"
-                               TextColor="#52615A" />
-                        <Border Padding="14"
-                                BackgroundColor="#EAF5EE"
-                                Stroke="#C9E1D1"
-                                StrokeShape="RoundRectangle 14">
-                            <VerticalStackLayout Spacing="5">
-                                <Label Text="ROBOT WI-FI NETWORK"
-                                       FontSize="10"
-                                       FontAttributes="Bold"
-                                       CharacterSpacing="0.7"
-                                       TextColor="#64736B" />
-                                <Label Text="{Binding SelectedNetworkName}"
-                                       FontSize="16"
-                                       FontAttributes="Bold"
-                                       TextColor="#176B45" />
-                                <Label Text="{Binding RobotAddress, StringFormat='{}Robot network address: {0}'}"
-                                       FontSize="12"
-                                       TextColor="#52615A" />
-                            </VerticalStackLayout>
-                        </Border>
-                        <Label Text="Next, we'll verify the robot through IoT first, then Bluetooth if needed."
-                               FontSize="14"
-                               TextColor="#35443B" />
-                        <Button Text="CONTINUE"
-                                Command="{Binding ContinueToVerifyCommand}"
-                                MinimumHeightRequest="54"
-                                CornerRadius="14"
-                                FontAttributes="Bold"
-                                BackgroundColor="#176B45"
-                                TextColor="White" />
-                        <Button Text="BACK"
-                                Command="{Binding BackToWifiSetupCommand}"
-                                MinimumHeightRequest="44"
-                                CornerRadius="12"
-                                BackgroundColor="#EEF3EF"
-                                TextColor="#35443B" />
-                    </VerticalStackLayout>
-                </Border>
-
                 <!-- STEP 4: VERIFY REMOTE CONNECTION -->
                 <Border IsVisible="{Binding IsVerifyStage}"
                         Padding="20"
