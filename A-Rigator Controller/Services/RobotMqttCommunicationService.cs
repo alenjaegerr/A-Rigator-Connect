@@ -192,7 +192,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
     private Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
     {
         var topic = args.ApplicationMessage.Topic;
-        var payload = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment);
+        var payload = Encoding.UTF8.GetString(args.ApplicationMessage.PayloadSegment.AsSpan());
 
         if (topic == _ackTopic)
         {
@@ -237,7 +237,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
         try
         {
             if (_client.IsConnected)
-                await _client.DisconnectAsync();
+                await _client.DisconnectAsync(new MqttClientDisconnectOptionsBuilder().Build());
         }
         catch { }
         _client.Dispose();
