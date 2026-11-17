@@ -71,6 +71,43 @@ public sealed class IrrigationProfileService
         ProfilesChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public int ImportProfiles(IEnumerable<IrrigationProfile> incoming)
+    {
+        ArgumentNullException.ThrowIfNull(incoming);
+        var imported = incoming.Take(101).ToList();
+        if (imported.Count is < 1 or > 100)
+            throw new ArgumentException("A JSON file must contain between 1 and 100 irrigation profiles.");
+
+        foreach (var profile in imported)
+        {
+            if (profile is null) throw new ArgumentException("The JSON file contains an empty profile.");
+            if (!Guid.TryParse(profile.Id, out var id)) profile.Id = Guid.NewGuid().ToString("N");
+            else profile.Id = id.ToString("N");
+            profile.Name = profile.Name?.Trim() ?? string.Empty;
+            profile.UpdatedAt = DateTimeOffset.UtcNow;
+            profile.ApplyDirectionMode();
+            Validate(profile);
+        }
+
+        var before = Profiles.Count;
+        MergeProfiles(imported);
+        return Profiles.Count - before;
+    }
+
+    public void ResetForDeletedAccount()
+    {
+        Profiles.Clear();
+        var initial = new IrrigationProfile { Name = "Balanced watering" };
+        initial.ApplyDirectionMode();
+        Profiles.Add(initial);
+        SelectedProfile = initial;
+        Preferences.Default.Remove(SelectedProfileKey);
+        Persist();
+        Preferences.Default.Set(SelectedProfileKey, initial.Id);
+        ProfilesChanged?.Invoke(this, EventArgs.Empty);
+        SelectedProfileChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void DeleteProfile(string id)
     {
         var profile = Profiles.FirstOrDefault(item => item.Id == id);
