@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "product": "A-Rigator",
+  "channel": "stable",
+  "releaseAvailable": false,
+  "version": null,
+  "minimumFirmwareVersion": null,
+  "hardwareRevision": null,
+  "publishedAt": null,
+  "releaseNotes": [],
+  "firmware": {
+    "url": null,
+    "sha256": null,
+    "signature": null,
+    "signatureAlgorithm": "Ed25519"
+  },
+  "security": {
+    "requireHttps": true,
+    "requireSignature": true,
+    "requireSha256": true
+  }
+}
