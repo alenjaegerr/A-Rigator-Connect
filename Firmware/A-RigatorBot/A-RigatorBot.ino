@@ -93,6 +93,7 @@ static const unsigned long WIFI_PROVISIONING_TIMEOUT_MS = 25000;
 volatile bool bleWifiScanRequested = false;
 bool bleWifiScanRunning = false;
 String bleWifiScanJson = "{\"networks\":[]}";
+void sendHttpResponse(int code, const char* contentType, const String& body);
 void handleForward();
 void handleReverse();
 void handleSteerLeft();
