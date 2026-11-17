@@ -33,6 +33,7 @@ public sealed class AccountService : IAccountService
     public bool IsAuthenticated { get; private set; }
     public string? GoogleUserId { get; private set; }
     public string? DisplayName { get; private set; }
+    public string? RobotName { get; private set; }
     public string? Email { get; private set; }
     public string? AccessToken { get; private set; }
     public string? RefreshToken { get; private set; }
@@ -87,6 +88,7 @@ public sealed class AccountService : IAccountService
         DisplayName = user.name;
         Email = user.email;
         IsAuthenticated = true;
+        await LoadCloudAccountSettingsAsync(cancellationToken);
     }
 
     public async Task InitializeSessionAsync(
@@ -118,6 +120,7 @@ public sealed class AccountService : IAccountService
             DisplayName = user.name;
             Email = user.email;
             IsAuthenticated = true;
+            await LoadCloudAccountSettingsAsync(cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -209,6 +212,42 @@ public sealed class AccountService : IAccountService
         }
 
         DisplayName = displayName;
+        RobotName = robotName;
+    }
+
+    private async Task LoadCloudAccountSettingsAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(GoogleUserId) || string.IsNullOrWhiteSpace(AccessToken)) return;
+        var baseUrl = _supabaseConfigService.Url?.TrimEnd('/');
+        var anonKey = _supabaseConfigService.AnonKey;
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(anonKey)) return;
+
+        async Task<JsonDocument?> GetRowsAsync(string path)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}{path}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+            request.Headers.TryAddWithoutValidation("apikey", anonKey);
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode) return null;
+            return JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        }
+
+        try
+        {
+            using var profile = await GetRowsAsync($"/rest/v1/profiles?select=display_name&id=eq.{Uri.EscapeDataString(GoogleUserId)}&limit=1");
+            if (profile?.RootElement.ValueKind == JsonValueKind.Array && profile.RootElement.GetArrayLength() > 0 &&
+                profile.RootElement[0].TryGetProperty("display_name", out var displayName) &&
+                !string.IsNullOrWhiteSpace(displayName.GetString()))
+                DisplayName = displayName.GetString();
+
+            using var robot = await GetRowsAsync($"/rest/v1/robots?select=name&owner_id=eq.{Uri.EscapeDataString(GoogleUserId)}&limit=1");
+            if (robot?.RootElement.ValueKind == JsonValueKind.Array && robot.RootElement.GetArrayLength() > 0 &&
+                robot.RootElement[0].TryGetProperty("name", out var robotName) &&
+                !string.IsNullOrWhiteSpace(robotName.GetString()))
+                RobotName = robotName.GetString();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch { /* Keep OAuth sign-in available if profile restoration is temporarily unavailable. */ }
     }
 
     private void ClearAccountState()
@@ -216,6 +255,7 @@ public sealed class AccountService : IAccountService
         IsAuthenticated = false;
         GoogleUserId = null;
         DisplayName = null;
+        RobotName = null;
         Email = null;
         AccessToken = null;
         RefreshToken = null;
