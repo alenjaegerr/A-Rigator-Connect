@@ -78,7 +78,6 @@ static const unsigned long WIFI_PROVISIONING_TIMEOUT_MS = 25000;
 volatile bool bleWifiScanRequested = false;
 bool bleWifiScanRunning = false;
 String bleWifiScanJson = "{\"networks\":[]}";
-void sendHttpResponse(int code, const char* contentType, const String& body);
 void handleForward();
 void handleReverse();
 void handleSteerLeft();
@@ -91,65 +90,7 @@ void handleRightNozzleSweep();
 void handleFullNozzleSweep();
 void handleNozzleSweepStop();
 void configureManualNozzleSweep(int minimumAngle, int maximumAngle);
-void handleSetIrrigationProfile();
-void handleIrrigationStart();
-void handleIrrigationStop();
-void serviceNozzleSweep();
-void serviceIrrigationSequence();
-void startIrrigationSequence(bool manual = false);
-void beginIrrigationPhase();
-void handleStop();
-void handleAutonomousStart();
-void handleAutonomousStop();
-void handlePathwayStart();
-void handlePathwayStop();
-void handleTerrainStart();
-void handleTerrainBiasLeft();
-void handleTerrainBiasRight();
-void handleTerrainBiasCenter();
-void handleTerrainStop();
-void runTerrainStep();
-void handleManualTerrainStart();
-void handleManualTerrainStop();
-void serviceManualTerrainMode();
-void enforceAutonomousControlTimeout();
-void handlePumpOn();
-void handlePumpOff();
-void handleHeartbeat();
-void handleResetShield();
-void serviceBleWifiProvisioning();
-float getObstacleDistanceCM();
-void initializeAudio();
-void playAudioTrack(uint16_t trackNumber);
-void setLedOutput(bool enabled);
-void readBatteryVoltage();
-void triggerEmergencyStop(const char* source);
-bool resetEmergencyStop();
-void serviceMqttCommands();
-void publishMqttCommandAck(const String& commandId, const char* status, const char* code, const char* message);
-
-// ============================================================================
-// BLE DISCOVERY + READ-ONLY WI-FI SCAN
-// ============================================================================
-class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic* characteristic) override {
-    const String command = characteristic->getValue();
-    if (command == "SCAN") {
-      bleWifiScanRequested = true;
-      characteristic->setValue("SCANNING");
-    } else if (command.startsWith("GET:")) {
-      const int offset = command.substring(4).toInt();
-      if (offset < 0 || offset >= (int)bleWifiScanJson.length()) {
-        characteristic->setValue("");
-      } else {
-        const String chunk = bleWifiScanJson.substring(offset, offset + 18);
-        characteristic->setValue(chunk.c_str());
-      }
-    } else {
-      characteristic->setValue("ERROR");
-    }
-  }
-};
+;
 
 String bleControlAssembly;
 int bleControlExpectedLength = -1;
@@ -794,229 +735,6 @@ unsigned long warningAudioPriorityUntil = 0;
 
 // Forget only the saved router profile. Preserve the A-Rigator AP password and
 // keep the local setup hotspot available so the app can provision another network.
-bool forgetSavedWifiNetwork(bool disconnectNow = true) {
-  setPump(false);
-  autonomousControlLeaseActive = false;
-  irrigationSequenceActive = false;
-  irrigationSequenceSpraying = false;
-  irrigationZoneLatched = false;
-  currentMode = MODE_MANUAL;
-  activeAutonomousMode = AUTO_NONE;
-  manualMotorDir = CMD_STOP;
-  manualControlLeaseActive = false;
-  driveMotor(CMD_BRAKE, 0.0);
-
-  if (!wifiCredentialStore.clear()) {
-    savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
-    Serial.println(">> Failed to clear saved Wi-Fi credentials.");
-    return false;
-  }
-
-  savedWifiCredentials.ssid = "";
-  savedWifiCredentials.password = "";
-  savedWifiCredentialsAvailable = false;
-
-  if (mdnsStarted) {
-    MDNS.end();
-    mdnsStarted = false;
-  }
-
-  // Disconnect and erase the ESP32 station profile while leaving the AP
-  // interface running. The independent arigator-ap namespace is untouched.
-  WiFi.setAutoReconnect(false);
-  if (disconnectNow) {
-    WiFi.disconnect(false, true);
-  } else {
-    // Let the HTTP response reach the app before dropping the router link.
-    wifiForgetDisconnectPending = true;
-    wifiForgetDisconnectAt = millis() + 750;
-  }
-  Serial.println(">> Saved router Wi-Fi forgotten. A-Rigator setup AP remains available.");
-  return true;
-}
-
-void handleForgetWifi() {
-  const bool success = forgetSavedWifiNetwork(false);
-  if (success) {
-    sendHttpResponse(200, "application/json",
-                "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
-  } else {
-    sendHttpResponse(500, "application/json",
-                "{\"success\":false,\"message\":\"Could not clear saved router Wi-Fi\"}");
-  }
-}
-
-void handleStatus() {
-  const char* state = "Idle";
-  const char* mode = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
-
-  if (currentMode == MODE_AUTONOMOUS) {
-	state = pumpState ? "Watering" : "Automatic";
-  } else if (manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) {
-	state = "Manual";
-  }
-
-	String json = "{\"success\":true,\"firmwareVersion\":\"";
-  json += ARIGATOR_FIRMWARE_VERSION;
-  json += "\",\"state\":\"";
-  json += state;
-  json += "\",\"mode\":\"";
-  json += mode;
-  json += "\",\"autonomousMode\":\"";
-  switch (activeAutonomousMode) {
-    case AUTO_PATHWAY: json += "PATHWAY"; break;
-    case AUTO_TERRAIN: json += "TERRAIN"; break;
-    case AUTO_GENERIC: json += "GENERIC"; break;
-    default: json += "NONE"; break;
-  }
-  json += "\",\"pump\":";
-  json += pumpState ? "true" : "false";
-  json += ",\"batteryVoltage\":";
-  json += batteryVoltageValid ? String(batteryVoltage, 2) : "null";
-  json += ",\"batteryState\":\"";
-  if (!batteryVoltageValid) json += "UNKNOWN";
-  else if (batteryVoltage <= BATTERY_CRITICAL_V) json += "CRITICAL";
-  else if (batteryVoltage <= BATTERY_LOW_WARNING_V) json += "LOW";
-  else json += "NORMAL";
-  json += "\",\"batteryLowThresholdV\":";
-  json += String(BATTERY_LOW_WARNING_V, 2);
-  json += ",\"batteryCriticalThresholdV\":";
-  json += String(BATTERY_CRITICAL_V, 2);
-  json += ",\"mqttConfigured\":";
-  json += mqttConfigured ? "true" : "false";
-  json += ",\"mqttConnected\":";
-  json += mqttManager.connected() ? "true" : "false";
-  json += ",\"robotId\":\"";
-  json += mqttConfigured ? escapeJsonString(mqttConfig.robotId) : "";
-  json += "\",\"emergencyStopLatched\":";
-  json += emergencyStopLatched ? "true" : "false";
-  json += ",\"physicalEmergencyStopEnabled\":";
-  json += PHYSICAL_ESTOP_INPUT_ENABLED ? "true" : "false";
-  json += ",\"ledEnabled\":";
-  json += ledOutputEnabled ? "true" : "false";
-  json += ",\"audioAvailable\":";
-  json += audioAvailable ? "true" : "false";
-	json += ",\"controlsEnabled\":";
-  json += controlsEnabled ? "true" : "false";
-  json += ",\"wifiConnected\":";
-  json += WiFi.status() == WL_CONNECTED ? "true" : "false";
-  json += ",\"wifiIp\":\"";
-  json += WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
-  json += "\",\"hostname\":\"arigator.local\"";
-
-  // Live sensor telemetry: reservoir sonar pins are reserved but not yet installed.
-  const float obstacleDistanceCm = getObstacleDistanceCM();
-  json += ",\"obstacleDistanceCm\":";
-  json += String(obstacleDistanceCm, 1);
-  json += ",\"obstacleEchoDetected\":";
-  json += obstacleDistanceCm < 998.0 ? "true" : "false";
-  json += ",\"obstacleDetected\":";
-  json += obstacleDistanceCm < OBSTACLE_STOP_CM ? "true" : "false";
-  json += ",\"obstacleStopThresholdCm\":";
-  json += String(OBSTACLE_STOP_CM);
-  json += ",\"manualControlTimeoutMs\":";
-  json += String(MANUAL_CONTROL_TIMEOUT_MS);
-  json += ",\"lineGpio14\":";
-  json += digitalRead(14) == HIGH ? "true" : "false";
-  json += ",\"lineGpio27\":";
-  json += digitalRead(27) == HIGH ? "true" : "false";
-  json += "}";
-  sendHttpResponse(200, "application/json", json);
-}
-
-void handleNotFound() {
-  sendHttpResponse(404, "application/json", "{\"success\":false,\"message\":\"Not found\"}");
-}
-
-void startWifiApi() {
-  if (apPassword.length() < 8 || apPassword.length() > 63) {
-    Serial.println(">> AP password is unavailable or invalid. AP startup is blocked for safety.");
-    controlsEnabled = false;
-    return;
-  }
-
-  // Keep the local AP available while the ESP32 joins the configured router.
-  // The AP password is loaded from NVS and can be changed through encrypted BLE.
-  WiFi.mode(savedWifiCredentialsAvailable ? WIFI_AP_STA : WIFI_AP);
-  WiFi.softAPConfig(AP_IP, AP_GATEWAY, AP_SUBNET);
-
-  bool apStarted = false;
-  for (uint8_t attempt = 1; attempt <= WIFI_AP_START_RETRIES; ++attempt) {
-    apStarted = WiFi.softAP(WIFI_SSID, apPassword.c_str());
-    if (apStarted) break;
-    Serial.printf(">> Wi-Fi AP start attempt %u/%u failed. Retrying...\n", attempt, WIFI_AP_START_RETRIES);
-    delay(WIFI_AP_RETRY_DELAY_MS);
-  }
-
-  if (!apStarted) {
-    Serial.println(">> Wi-Fi AP failed to start; robot serial controls remain available.");
-    return;
-  }
-
-  controlsEnabled = true;
-  server.on("/api/status", HTTP_GET, handleStatus);
-  server.on("/api/network/forget", HTTP_POST, handleForgetWifi);
-  server.on("/api/safety/emergency-stop", HTTP_POST, []() {
-    triggerEmergencyStop("Wi-Fi API");
-    sendControlResponse("emergency_stop");
-  });
-  server.on("/api/safety/emergency-reset", HTTP_POST, []() {
-    if (resetEmergencyStop()) sendControlResponse("emergency_reset");
-    else sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Emergency stop is not latched\"}");
-  });
-  if (controlsEnabled) {
-	server.on("/api/control/forward", HTTP_POST, handleForward);
-	server.on("/api/control/reverse", HTTP_POST, handleReverse);
-	server.on("/api/control/steer/left", HTTP_POST, handleSteerLeft);
-	server.on("/api/control/steer/right", HTTP_POST, handleSteerRight);
-	server.on("/api/control/steer/center", HTTP_POST, handleSteerCenter);
-	server.on("/api/control/nozzle/sweep", HTTP_POST, handleNozzleSweep);
-    server.on("/api/control/nozzle/sweep/left", HTTP_POST, handleLeftNozzleSweep);
-    server.on("/api/control/nozzle/sweep/back", HTTP_POST, handleBackNozzleSweep);
-    server.on("/api/control/nozzle/sweep/right", HTTP_POST, handleRightNozzleSweep);
-    server.on("/api/control/nozzle/sweep/full", HTTP_POST, handleFullNozzleSweep);
-    server.on("/api/control/nozzle/sweep/stop", HTTP_POST, handleNozzleSweepStop);
-    server.on("/api/irrigation/profile", HTTP_POST, handleSetIrrigationProfile);
-    server.on("/api/irrigation/start", HTTP_POST, handleIrrigationStart);
-    server.on("/api/irrigation/stop", HTTP_POST, handleIrrigationStop);
-	server.on("/api/control/stop", HTTP_POST, handleStop);
-	server.on("/api/control/autonomous/start", HTTP_POST, handleAutonomousStart);
-	server.on("/api/control/autonomous/stop", HTTP_POST, handleAutonomousStop);
-	server.on("/api/control/pathway/start", HTTP_POST, handlePathwayStart);
-	server.on("/api/control/pathway/stop", HTTP_POST, handlePathwayStop);
-    server.on("/api/control/terrain/start", HTTP_POST, handleTerrainStart);
-    server.on("/api/control/terrain/bias/left", HTTP_POST, handleTerrainBiasLeft);
-    server.on("/api/control/terrain/bias/right", HTTP_POST, handleTerrainBiasRight);
-    server.on("/api/control/terrain/bias/center", HTTP_POST, handleTerrainBiasCenter);
-    server.on("/api/control/terrain/stop", HTTP_POST, handleTerrainStop);
-    server.on("/api/control/manual-terrain/start", HTTP_POST, handleManualTerrainStart);
-    server.on("/api/control/manual-terrain/stop", HTTP_POST, handleManualTerrainStop);
-	server.on("/api/control/pump/on", HTTP_POST, handlePumpOn);
-	server.on("/api/control/pump/off", HTTP_POST, handlePumpOff);
-	server.on("/api/control/heartbeat", HTTP_POST, handleHeartbeat);
-	server.on("/api/control/shield/reset", HTTP_POST, handleResetShield);
-  }
-  server.onNotFound(handleNotFound);
-  server.begin();
-
-  if (savedWifiCredentialsAvailable) {
-    WiFi.setAutoReconnect(true);
-    WiFi.begin(savedWifiCredentials.ssid.c_str(),
-               savedWifiCredentials.password.c_str());
-    Serial.println(">> Attempting to connect to the saved Wi-Fi network in the background.");
-  }
-
-  Serial.println(">> WPA2 AP and manual-control API ready.");
-  Serial.print(">> SSID: ");
-  Serial.println(WIFI_SSID);
-  Serial.print(">> Status URL: http://");
-  Serial.print(WiFi.softAPIP());
-  Serial.println("/api/status");
-  if (controlsEnabled) {
-	Serial.println(">> Manual commands require recurring app heartbeats; lease timeout stops motor and pump.");
-  }
-}
-
 // ============================================================================
 // 5. HARDWARE DRIVERS
 // ============================================================================
@@ -1258,14 +976,9 @@ void refreshManualControlLease() {
 }
 
 void sendHttpResponse(int code, const char* contentType, const String& body) {
-  // BLE command dispatch reuses the robot's established control handlers.
-  // Suppress their HTTP response side effects when no HTTP client initiated
-  // the command; the BLE acknowledgement characteristic carries the result.
-  if (bleCommandExecution) {
-    if (code >= 400) bleCommandRejected = true;
-    return;
-  }
-  server.send(code, contentType, body);
+  // BLE command dispatch reuses the established safety/state checks from the
+  // original HTTP handlers. The response is translated into a BLE ack.
+  if (bleCommandExecution && code >= 400) bleCommandRejected = true;
 }
 
 void sendControlResponse(const char* command) {
@@ -2236,31 +1949,28 @@ void setup() {
   pinMode(SHIELD_RST_PIN, OUTPUT);
   digitalWrite(SHIELD_RST_PIN, LOW);
 
-  if (apConfigStore.begin()) {
-    apConfigStoreAvailable = true;
-  } else {
-    Serial.println(">> Could not open AP settings storage. AP startup is blocked for safety.");
-  }
-
   if (wifiCredentialStore.begin()) {
     savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
     Serial.println(savedWifiCredentialsAvailable
       ? ">> Saved Wi-Fi credentials found in NVS."
-      : ">> No saved Wi-Fi credentials. Local setup AP only.");
+      : ">> No saved Wi-Fi credentials. Configure router Wi-Fi over BLE.");
   } else {
-    Serial.println(">> Could not open Wi-Fi credential storage. Continuing with local setup AP.");
+    Serial.println(">> Could not open Wi-Fi credential storage. BLE local control remains available.");
   }
 
 
   startBleDiscovery();
-  if (apConfigStoreAvailable) {
-    apPassword = apConfigStore.load();
-    Serial.println(">> AP password loaded from NVS or generated for this device.");
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  if (savedWifiCredentialsAvailable) {
+    WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
+    Serial.println(">> Attempting to connect to the saved router Wi-Fi network.");
+  } else {
+    Serial.println(">> No router configured. Provision Wi-Fi through BLE; local BLE control remains available.");
   }
-  startWifiApi();
+  controlsEnabled = true;
 
-  // MQTT is optional for local operation. Without a provisioned per-device
-  // profile, the local AP/HTTP API remains fully available.
+  // MQTT is optional. BLE remains the local control path when cloud access is unavailable.
   if (mqttConfigStore.begin()) {
     mqttConfigStoreAvailable = true;
     mqttConfigured = mqttConfigStore.load(mqttConfig);
@@ -2287,20 +1997,12 @@ void setup() {
 
 void loop() {
   readBatteryVoltage();
-  server.handleClient();
   mqttManager.loop();
   serviceMqttCommands();
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
-  serviceBleApPasswordChange();
   serviceBleControlCommands();
   publishBleTelemetryIfDue();
-
-  if (wifiForgetDisconnectPending &&
-      (int32_t)(millis() - wifiForgetDisconnectAt) >= 0) {
-    wifiForgetDisconnectPending = false;
-    WiFi.disconnect(false, true);
-  }
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
