@@ -164,19 +164,20 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public string ConnectionModeLabel => _latestStatus?.ConnectionMode switch
     {
         RobotConnectionMode.IoT => "IoT / Router Wi-Fi",
-        RobotConnectionMode.AccessPoint => "Direct AP",
+        RobotConnectionMode.BLE => "Bluetooth · Local fallback",
+        RobotConnectionMode.AccessPoint => "Legacy AP (deprecated)",
         _ => "Unknown / Searching"
     };
 
     public string ConnectionDetails => _latestStatus is null
         ? "No recent robot telemetry is available."
-        : _latestStatus.ConnectionMode == RobotConnectionMode.AccessPoint
+        : _latestStatus.ConnectionMode == RobotConnectionMode.BLE
             ? (_latestStatus.WifiConnected == true
-                ? $"Phone-to-robot link: Direct AP · Robot router link also active ({_latestStatus.WifiIp ?? "IP not reported"})"
-                : "Phone-to-robot link: Direct AP · Robot is not connected to a router")
+                ? $"Local Bluetooth link active · Router Wi-Fi connected ({_latestStatus.WifiIp ?? "IP not reported"})"
+                : "Local Bluetooth link active · Router Wi-Fi is not connected")
             : _latestStatus.WifiConnected == true
-                ? $"Phone-to-robot link: IoT Wi-Fi · {_latestStatus.WifiIp ?? "IP not reported"}"
-                : "Robot is not currently connected to its saved router. Its setup AP may still be available.";
+                ? $"IoT connection active · {_latestStatus.WifiIp ?? "IP not reported"} · Bluetooth available as local fallback"
+                : "Robot is responding locally, but router Wi-Fi is not connected.";
 
     public bool IsApModeMobileDataWarningVisible =>
         _latestStatus?.ConnectionMode == RobotConnectionMode.AccessPoint &&
@@ -193,9 +194,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string ConnectionRecoveryMessage => _latestStatus?.ConnectionMode switch
     {
-        RobotConnectionMode.IoT => "A-Rigator was last reached over IoT Wi-Fi. Search the local network again, or reconnect your phone to the A-Rigator setup hotspot.",
-        RobotConnectionMode.AccessPoint => "The direct connection was lost. Reconnect your phone to the A-Rigator Wi-Fi hotspot, then try again.",
-        _ => "A-Rigator is not responding. Check that the robot is powered on and that your phone is on the same network, or use the setup AP."
+        RobotConnectionMode.IoT => "The IoT path is unavailable. The app will try the paired Bluetooth connection automatically.",
+        RobotConnectionMode.BLE => "The Bluetooth connection was lost. Keep the robot nearby and reconnect over Bluetooth.",
+        RobotConnectionMode.AccessPoint => "This legacy connection mode is no longer supported. Pair with A-Rigator over Bluetooth.",
+        _ => "A-Rigator is not responding. Check that the robot is powered on, then retry IoT or Bluetooth connection."
     };
 
     public string Message
@@ -247,12 +249,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public bool IsControlWarningVisible => !CanControl;
 
     public string ControlAccessMessage => !IsConnected
-        ? "Connect to A-Rigator Wi-Fi to check control availability."
+        ? "Connect to A-Rigator through IoT or pair over Bluetooth for local control."
         : _latestStatus is null
             ? "Checking robot control availability..."
             : _latestStatus.ControlsEnabled
                 ? string.Empty
-                : "Setup Wi-Fi is open. Motor and pump stay disabled until WPA2 is configured in the firmware.";
+                : "Robot controls are currently disabled by firmware safety settings.";
 
     public ICommand ForwardCommand { get; }
 
@@ -660,7 +662,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         catch (Exception)
         {
             if (!quiet)
-                Message = "A-Rigator was not found. Check the network or connect directly to its setup AP.";
+                Message = "A-Rigator was not found. Check that it is powered on and nearby, then retry the IoT or Bluetooth connection.";
         }
 
         NotifyConnectionStateChanged();
