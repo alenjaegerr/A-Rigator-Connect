@@ -71,6 +71,7 @@ BLECharacteristic* bleControlAckCharacteristic = nullptr;
 BLECharacteristic* bleControlTelemetryCharacteristic = nullptr;
 String pendingBleControlCommand;
 volatile bool bleControlCommandPending = false;
+bool bleCommandExecution = false;
 unsigned long lastBleTelemetryAt = 0;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
@@ -287,6 +288,7 @@ void serviceBleControlCommands() {
   }
 
   bool supported = true;
+  bleCommandExecution = true;
   if (command == "irrigation_profile") {
     JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
     const int left = payload["left"] | -1;
@@ -297,6 +299,7 @@ void serviceBleControlCommands() {
         left < 0 || left > 60 || back < 0 || back > 60 ||
         right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
         (left == 0 && back == 0 && right == 0)) {
+      bleCommandExecution = false;
       publishBleControlAck(commandId, "rejected", "INVALID_PROFILE",
                            "Profile values are invalid or irrigation is currently active");
       return;
@@ -365,6 +368,7 @@ void serviceBleControlCommands() {
     supported = false;
   }
 
+  bleCommandExecution = false;
   if (supported) {
     publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
   } else {
@@ -943,7 +947,7 @@ bool forgetSavedWifiNetwork(bool disconnectNow = true) {
 void handleForgetWifi() {
   const bool success = forgetSavedWifiNetwork(false);
   if (success) {
-    server.send(200, "application/json",
+    sendHttpResponse(200, "application/json",
                 "{\"success\":true,\"message\":\"Saved router Wi-Fi forgotten; A-Rigator AP preserved\"}");
   } else {
     server.send(500, "application/json",
@@ -1360,6 +1364,13 @@ bool resetEmergencyStop() {
 void refreshManualControlLease() {
   lastManualControlRefresh = millis();
   manualControlLeaseActive = true;
+}
+
+void sendHttpResponse(int code, const char* contentType, const String& body) {
+  // BLE command dispatch reuses the robot's established control handlers.
+  // Suppress their HTTP response side effects when no HTTP client initiated
+  // the command; the BLE acknowledgement characteristic carries the result.
+  if (!bleCommandExecution) server.send(code, contentType, body);
 }
 
 void sendControlResponse(const char* command) {
