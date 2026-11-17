@@ -32,7 +32,8 @@ namespace A_Rigator_Controller
             });
 #endif
 
-            builder.Services.AddSingleton<IRobotCommunicationService, RobotHttpCommunicationService>();
+            builder.Services.AddSingleton<IRobotTransport, RobotHttpCommunicationService>();
+            builder.Services.AddSingleton<IRobotCommunicationService, RobotConnectionManager>();
             builder.Services.AddSingleton<IRobotProvisioningService, RobotProvisioningService>();
             builder.Services.AddSingleton<FirmwareSourceUpdateService>();
             builder.Services.AddSingleton<IWifiStatusService, WifiStatusService>();
