@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <string.h>
 #include <mbedtls/pk.h>
+#include <mbedtls/ecp.h>
 #include <mbedtls/md.h>
 #include <mbedtls/base64.h>
 
@@ -95,7 +96,8 @@ public:
     }
 
     bool valid = false;
-    if (mbedtls_pk_can_do(&key, MBEDTLS_PK_ECKEY)) {
+    if (mbedtls_pk_can_do(&key, MBEDTLS_PK_ECKEY) &&
+        mbedtls_pk_ec(key)->grp.id == MBEDTLS_ECP_DP_SECP256R1) {
       valid = mbedtls_pk_verify(
         &key, MBEDTLS_MD_SHA256, digest, sizeof(digest),
         signature, signatureLength) == 0;
