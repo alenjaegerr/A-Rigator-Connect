@@ -41,7 +41,7 @@ class RobotMqttManager {
     mqtt_.loop();
   }
 
-  bool connected() const {
+  bool connected() {
     return mqtt_.connected();
   }
 
