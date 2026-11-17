@@ -27,3 +27,12 @@ Install PubSubClient and DFRobotDFPlayerMini through the Arduino IDE Library Man
 ## Current implementation boundary
 
 The MQTT manager currently establishes the TLS MQTT session, subscribes to the robot command topic, publishes online/offline availability, and exposes methods for telemetry and command acknowledgements. Command JSON parsing and dispatch into the existing robot controllers are the next implementation step.
+
+
+## OTA module status
+
+`RobotOtaManager.h` contains the initial HTTPS download and inactive-partition installation engine. It uses ESP32 Arduino core facilities (`WiFiClientSecure`, `HTTPClient`, `Update`) and the ESP32 core's bundled mbedTLS SHA-256 implementation.
+
+The OTA engine is intentionally not included in the main sketch's startup or loop yet. It fails closed unless both a release-signature verifier and a robot safety interlock are supplied. The Ed25519 verifier, signed-manifest parser, safe-state integration, OTA partition-table selection, boot validation/rollback confirmation, and app workflow remain to be implemented before enabling updates.
+
+Do not call the installer from the motor-control loop: the download is synchronous and blocking. Integrate it through a dedicated maintenance/update task after the robot is safely stopped.
