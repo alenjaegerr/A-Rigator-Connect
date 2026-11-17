@@ -20,7 +20,7 @@ public sealed class RobotStatus
 
     public string? Hostname { get; init; }
 
-    public RobotConnectionMode ConnectionMode { get; init; } = RobotConnectionMode.Unknown;
+    public RobotConnectionMode ConnectionMode { get; set; } = RobotConnectionMode.Unknown;
 
     public float? ObstacleDistanceCm { get; init; }
 
