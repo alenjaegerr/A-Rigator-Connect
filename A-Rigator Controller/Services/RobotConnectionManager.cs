@@ -104,25 +104,63 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
                     "A-Rigator is not responding over IoT, and no local connection is available.");
         }
 
-        await transport.SendCommandAsync(command, cancellationToken);
+        try
+        {
+            await transport.SendCommandAsync(command, cancellationToken);
+        }
+        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
+        {
+            // Safe fallback: the remote transport rejected this command before
+            // publishing it, so retrying over BLE cannot duplicate a robot action.
+            var local = await TryConnectLocalTransportAsync(cancellationToken)
+                ?? throw new InvalidOperationException("This command is not available over IoT, and Bluetooth is not connected.");
+            await local.SendCommandAsync(command, cancellationToken);
+        }
     }
 
     public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
+        try
+        {
+            await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
+        }
+        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
+        {
+            var local = await TryConnectLocalTransportAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Irrigation profile setup is not available over IoT, and Bluetooth is not connected.");
+            await local.ApplyIrrigationProfileAsync(profile, cancellationToken);
+        }
     }
 
     public async Task StartManualIrrigationAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        await transport.StartManualIrrigationAsync(cancellationToken);
+        try
+        {
+            await transport.StartManualIrrigationAsync(cancellationToken);
+        }
+        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
+        {
+            var local = await TryConnectLocalTransportAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Manual irrigation is not available over IoT, and Bluetooth is not connected.");
+            await local.StartManualIrrigationAsync(cancellationToken);
+        }
     }
 
     public async Task StopManualIrrigationAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        await transport.StopManualIrrigationAsync(cancellationToken);
+        try
+        {
+            await transport.StopManualIrrigationAsync(cancellationToken);
+        }
+        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
+        {
+            var local = await TryConnectLocalTransportAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Stopping manual irrigation is not available over IoT, and Bluetooth is not connected.");
+            await local.StopManualIrrigationAsync(cancellationToken);
+        }
     }
 
     public void SetRobotAddress(string address)
