@@ -260,7 +260,6 @@ void publishBleControlAck(const String& commandId, const char* status,
   String payload;
   serializeJson(doc, payload);
   bleControlAckCharacteristic->setValue(payload.c_str());
-  bleControlAckCharacteristic->notify();
 }
 
 void serviceBleControlCommands() {
@@ -390,7 +389,6 @@ void publishBleTelemetryIfDue() {
   String payload;
   serializeJson(doc, payload);
   bleControlTelemetryCharacteristic->setValue(payload.c_str());
-  bleControlTelemetryCharacteristic->notify();
 }
 
 String escapeJsonString(const String& value) {
