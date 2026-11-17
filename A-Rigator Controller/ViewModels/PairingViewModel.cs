@@ -48,6 +48,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         BackToPhoneNetworkCommand = new Command(() => SetStage(PairingStage.PhoneNetwork));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
         FinishRemoteSetupCommand = new Command(FinishRemoteSetup, () => !IsBusy);
+        ContinueWithBluetoothCommand = new Command(() => { WifiPassword = string.Empty; SetStage(PairingStage.VerifyConnection); }, () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
@@ -90,6 +91,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(HasSelectedBleRobot));
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
                 (FinishRemoteSetupCommand as Command)?.ChangeCanExecute();
+                (ContinueWithBluetoothCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -172,6 +174,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(CanSubmitWifiCredentials));
                 OnPropertyChanged(nameof(IsWifiInstructionsVisible));
+                (ContinueWithBluetoothCommand as Command)?.ChangeCanExecute();
             }
         }
     }
@@ -195,6 +198,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand ConfirmWifiConnectionCommand { get; }
 
     public ICommand FinishRemoteSetupCommand { get; }
+
+    public ICommand ContinueWithBluetoothCommand { get; }
 
     public ICommand OpenDashboardPreviewCommand { get; }
 
@@ -340,12 +345,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     private void FinishRemoteSetup()
     {
-        if (IsBusy || !_isRemoteSetup)
-            return;
-
-        // This completes configuration only; it does not claim MQTT connectivity.
+        if (IsBusy) return;
         IsConnectionVerified = false;
-        SetStage(PairingStage.Result);
+        SetStage(PairingStage.VerifyConnection);
     }
 
     private async Task ScanForBleRobotsAsync()
