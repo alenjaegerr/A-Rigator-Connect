@@ -60,3 +60,24 @@ firmwareSize=<decimal byte count>
 ```
 
 The manifest's `firmware.size`, `firmware.url`, `firmware.sha256`, and `firmware.signature` values must be used to construct the signed payload. The signature is Base64-encoded ASN.1 DER ECDSA. Keep the firmware URL byte-for-byte identical between signing and verification.
+
+
+## Firmware-side modules
+
+- `RobotOtaReleaseClient.h` fetches the manifest over HTTPS, enforces the stable-channel security flags, and validates required fields.
+- `RobotOtaSignatureVerifier.h` verifies the canonical signed payload using an embedded P-256 public key.
+- `RobotOtaManager.h` downloads the binary, verifies its size and SHA-256, and writes it through the ESP32 Update API.
+- `RobotOtaBootValidation.h` exposes first-boot confirmation and rollback calls for an OTA image pending validation.
+- `tools/ota_sign_release.py` signs the canonical manifest payload with an offline P-256 private key.
+
+## Enablement gates (must be completed on the actual board)
+
+1. Confirm ESP32 module flash capacity and select a partition table with two application slots large enough for the final firmware binary.
+2. Enable the ESP-IDF rollback configuration required by the selected Arduino-ESP32 core and partition scheme.
+3. Generate a P-256 release key pair offline; embed the matching public PEM in firmware. Never commit the private key.
+4. Configure the release host's trusted root CA in firmware.
+5. Implement and verify the real robot safety interlock. It must prevent new motion/pump commands throughout the update and ensure the robot is stationary with the pump off.
+6. Run startup diagnostics and call `confirmHealthyBoot()` only after all required checks pass. Call `rejectAndRollback()` on failure.
+7. Build and test interruption, invalid signature, invalid digest, insufficient partition space, power-loss recovery, and failed first boot on the physical ESP32 before enabling the feature for users.
+
+The OTA code is not enabled by the main sketch yet. These board- and safety-dependent gates are deliberate: the repository cannot infer the actual flash size, partition layout, core configuration, release CA, or electrical safety state.
