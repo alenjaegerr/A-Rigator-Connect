@@ -39,3 +39,8 @@ All other `RobotControlCommand` values are explicitly rejected by the remote tra
 - Local HTTP remains preferred and the robot AP remains the local recovery path.
 - Remote credentials are not hard-coded in source or committed to the repository.
 - OTA remains out of scope until the connection architecture is verified.
+
+
+## Temporary STI EXPO MQTT credentials
+
+> **TEMPORARY — STI EXPO DEMONSTRATION ONLY.** The demo MQTT username and password are hardcoded in both the ESP32 firmware configuration and the MAUI app configuration so the single prototype can connect without automated broker-user provisioning. Remove these hardcoded values after STI EXPO and replace them with a secure provisioning flow before any production/public deployment. The demo broker account must not be an administrator account and must be restricted to the A-Rigator topic namespace.
