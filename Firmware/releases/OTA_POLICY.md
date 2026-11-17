@@ -17,10 +17,10 @@ The stable release manifest is published at `Firmware/releases/stable.json`. It 
 Before installation, the ESP32 must:
 1. Validate the HTTPS server certificate.
 2. Verify the binary SHA-256 digest against the manifest.
-3. Verify a digital signature over a canonical release payload using a public key embedded in firmware.
+3. Verify an ECDSA P-256 / SHA-256 signature over the canonical release payload using a public key embedded in firmware.
 4. Reject missing, malformed, expired (if expiry is added), or incompatible release metadata.
 
-SHA-256 detects accidental corruption; it does not prove who published the firmware. The digital signature is required for authenticity. The signing private key must never be stored in the repository or on the robot.
+SHA-256 detects accidental corruption; it does not prove who published the firmware. The digital signature is required for authenticity. The firmware verifier expects a Base64-encoded ASN.1 DER ECDSA signature over SHA-256 of the canonical payload documented in `RobotOtaSignatureVerifier.h`. The signing private key must remain offline and must never be stored in the repository or on the robot.
 
 ## Installation and recovery
 
@@ -43,4 +43,20 @@ A download completion or flash-write completion alone is not a successful update
 
 ## Current implementation status
 
-This repository currently has firmware version reporting and MQTT session connectivity, but does not yet implement the OTA downloader, signature verification, partition management, rollback validation, or release publishing pipeline. The manifest is intentionally unavailable until those pieces and a tested release artifact exist.
+The repository now contains an initial HTTPS OTA installer (`RobotOtaManager.h`) and an ECDSA signature verifier (`RobotOtaSignatureVerifier.h`). The installer requires both a signature verifier and a robot safety interlock and is not yet wired into the main sketch. The release manifest remains unavailable until a real key pair is generated, the public key is embedded in firmware, the release-signing process is implemented, OTA partitions and rollback validation are configured, and a tested firmware artifact exists.
+
+
+## Canonical signed payload
+
+The verifier signs these exact UTF-8 lines, with no trailing newline:
+
+```text
+ARIGATOR-RELEASE-V1
+product=A-Rigator
+version=<version>
+firmwareUrl=<https URL>
+sha256=<64 lowercase hex characters>
+firmwareSize=<decimal byte count>
+```
+
+The manifest's `firmware.size`, `firmware.url`, `firmware.sha256`, and `firmware.signature` values must be used to construct the signed payload. The signature is Base64-encoded ASN.1 DER ECDSA. Keep the firmware URL byte-for-byte identical between signing and verification.
