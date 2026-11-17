@@ -34,7 +34,9 @@ public partial class SettingsPage : ContentPage
     private async void OnAccountClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("account");
-    }    private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
+    }
+
+    private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
     {
         CheckFirmwareSourceButton.IsEnabled = false;
         ViewFirmwareCommitButton.IsVisible = false;
