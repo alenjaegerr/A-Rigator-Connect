@@ -134,6 +134,8 @@ public sealed class RobotHttpCommunicationService : IRobotTransport, IDisposable
         _baseAddress = new Uri("http://arigator.local/");
     }
 
+    public RobotTransportKind TransportKind => RobotTransportKind.Local;
+
     public ConnectionState ConnectionState => _connectionState;
 
     public RobotConnectionMode ActiveConnectionMode { get; private set; } = RobotConnectionMode.Unknown;
