@@ -36,3 +36,17 @@ The MQTT manager currently establishes the TLS MQTT session, subscribes to the r
 The OTA engine is intentionally not included in the main sketch's startup or loop yet. It fails closed unless both a release-signature verifier and a robot safety interlock are supplied. The Ed25519 verifier, signed-manifest parser, safe-state integration, OTA partition-table selection, boot validation/rollback confirmation, and app workflow remain to be implemented before enabling updates.
 
 Do not call the installer from the motor-control loop: the download is synchronous and blocking. Integrate it through a dedicated maintenance/update task after the robot is safely stopped.
+
+
+## Additional OTA files
+
+- `RobotOtaManager.h` — HTTPS download, SHA-256 verification, and inactive-slot write.
+- `RobotOtaSignatureVerifier.h` — ECDSA P-256 signature verification.
+- `RobotOtaReleaseClient.h` — HTTPS manifest retrieval and schema validation.
+- `RobotOtaBootValidation.h` — first-boot confirmation and rollback helper.
+- `Firmware/releases/OTA_POLICY.md` — signed payload contract and safety requirements.
+- `tools/ota_sign_release.py` — offline release-manifest signing tool (requires Python `cryptography`).
+
+Install **ArduinoJson 7** through Arduino IDE Library Manager for manifest parsing. The ESP32 Arduino core supplies HTTPClient, WiFiClientSecure, Update, ESP OTA APIs, and mbedTLS.
+
+The release signing tool expects a P-256 EC private PEM key outside the repository. Embed only its matching public SubjectPublicKeyInfo PEM in firmware. The example stable manifest stays disabled until a real release is signed and published.
