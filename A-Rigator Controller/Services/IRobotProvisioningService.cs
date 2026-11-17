@@ -32,12 +32,6 @@ public interface IRobotProvisioningService
         CancellationToken cancellationToken = default);
 
 
-    Task<string> GetAccessPointPasswordAsync(
-        CancellationToken cancellationToken = default);
-
-    Task<RobotProvisioningResult> SetAccessPointPasswordAsync(
-        string newPassword,
-        CancellationToken cancellationToken = default);
 
     Task<RobotProvisioningResult> ForgetSavedWifiAsync(
         CancellationToken cancellationToken = default);
