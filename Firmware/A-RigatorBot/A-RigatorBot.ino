@@ -633,6 +633,8 @@ unsigned long lastBatteryWarningAt = 0;
 bool obstacleWasDetected = false;
 unsigned long lastObstacleAlertAt = 0;
 static const unsigned long OBSTACLE_AUDIO_COOLDOWN_MS = 10000;
+static const unsigned long WARNING_AUDIO_PRIORITY_MS = 8000;
+unsigned long warningAudioPriorityUntil = 0;
 
 // Forget only the saved router profile. Preserve the A-Rigator AP password and
 // keep the local setup hotspot available so the app can provision another network.
@@ -713,6 +715,15 @@ void handleStatus() {
   json += pumpState ? "true" : "false";
   json += ",\"batteryVoltage\":";
   json += batteryVoltageValid ? String(batteryVoltage, 2) : "null";
+  json += ",\"batteryState\":\"";
+  if (!batteryVoltageValid) json += "UNKNOWN";
+  else if (batteryVoltage <= BATTERY_CRITICAL_V) json += "CRITICAL";
+  else if (batteryVoltage <= BATTERY_LOW_WARNING_V) json += "LOW";
+  else json += "NORMAL";
+  json += "\",\"batteryLowThresholdV\":";
+  json += String(BATTERY_LOW_WARNING_V, 2);
+  json += ",\"batteryCriticalThresholdV\":";
+  json += String(BATTERY_CRITICAL_V, 2);
   json += ",\"ledEnabled\":";
   json += ledOutputEnabled ? "true" : "false";
   json += ",\"audioAvailable\":";
@@ -935,8 +946,14 @@ void initializeAudio() {
 
 void playAudioTrack(uint16_t trackNumber) {
   if (!audioAvailable || trackNumber == 0) return;
-  // DFPlayer plays one track at a time; a warning replaces any ordinary
-  // announcement currently playing. Callers apply cooldowns to avoid repeats.
+  const bool isWarning = (trackNumber == 5 || trackNumber == 6 || trackNumber == 7);
+  const unsigned long now = millis();
+
+  // Warnings can interrupt ordinary announcements. Briefly suppress routine
+  // announcements afterward so they cannot immediately overwrite the warning.
+  if (!isWarning && (int32_t)(warningAudioPriorityUntil - now) > 0) return;
+  if (isWarning) warningAudioPriorityUntil = now + WARNING_AUDIO_PRIORITY_MS;
+
   audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
 }
 
