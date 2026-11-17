@@ -88,8 +88,16 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         RefreshCommands();
         if (IsAuthenticated)
         {
-            if (!string.IsNullOrWhiteSpace(_account.DisplayName)) DisplayName = _account.DisplayName!;
-            if (!string.IsNullOrWhiteSpace(_account.RobotName)) RobotName = _account.RobotName!;
+            if (!string.IsNullOrWhiteSpace(_account.DisplayName))
+            {
+                DisplayName = _account.DisplayName!;
+                _userProfile.SaveDisplayName(DisplayName);
+            }
+            if (!string.IsNullOrWhiteSpace(_account.RobotName))
+            {
+                RobotName = _account.RobotName!;
+                Preferences.Default.Set("arigator.robot.nickname", RobotName);
+            }
             await _sync.SyncNowAsync(force: true);
         }
     }
