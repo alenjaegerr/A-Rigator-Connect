@@ -421,7 +421,7 @@ void startBleDiscovery() {
     BLE_CONTROL_ACK_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
   );
   bleControlAckCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
-  bleControlAckCharacteristic->setValue("{\\"status\\":\\"ready\\"}");
+  bleControlAckCharacteristic->setValue("{\"status\":\"ready\"}");
 
   bleControlTelemetryCharacteristic = bleControlService->createCharacteristic(
     BLE_CONTROL_TELEMETRY_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
