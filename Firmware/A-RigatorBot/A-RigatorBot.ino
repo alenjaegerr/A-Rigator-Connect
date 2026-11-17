@@ -30,8 +30,6 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
-bool wifiForgetDisconnectPending = false;
-unsigned long wifiForgetDisconnectAt = 0;
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
 // not provide MITM protection; production pairing needs physical presence or
@@ -42,7 +40,6 @@ static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-
 static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
-static const char* BLE_AP_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_HARDWARE_ID_CHARACTERISTIC_UUID = "7a1c0008-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_CONTROL_SERVICE_UUID = "7a1c0009-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_CONTROL_COMMAND_UUID = "7a1c000a-8f2d-4b6a-9c31-4a5249474154";
@@ -63,10 +60,7 @@ BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 BLECharacteristic* bleWifiScanCharacteristic = nullptr;
 BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
 BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
-BLECharacteristic* bleApConfigCharacteristic = nullptr;
 BLECharacteristic* bleHardwareIdCharacteristic = nullptr;
-String pendingApPassword;
-volatile bool bleApPasswordChangeRequested = false;
 String bleCredentialHexBuffer;
 int bleCredentialExpectedHexLength = -1;
 volatile bool bleWifiConnectRequested = false;
@@ -1095,37 +1089,6 @@ void handleNozzleSweepStop() {
   nozzleSweepActive = false;
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   sendControlResponse("nozzle_sweep_stopped");
-}
-
-void handleSetIrrigationProfile() {
-  if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous irrigation before changing the profile\"}");
-    return;
-  }
-
-  if (!server.hasArg("left") || !server.hasArg("back") ||
-      !server.hasArg("right") || !server.hasArg("repeat")) {
-    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Missing irrigation profile values\"}");
-    return;
-  }
-
-  const int left = server.arg("left").toInt();
-  const int back = server.arg("back").toInt();
-  const int right = server.arg("right").toInt();
-  const int repeat = server.arg("repeat").toInt();
-
-  if (left < 0 || left > 60 || back < 0 || back > 60 ||
-      right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
-      (left == 0 && back == 0 && right == 0)) {
-    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Choose at least one direction; selected durations must be 1-60 seconds and unused directions must be 0\"}");
-    return;
-  }
-
-  irrigationLeftSeconds = left;
-  irrigationBackSeconds = back;
-  irrigationRightSeconds = right;
-  irrigationRepeatCount = repeat;
-  sendControlResponse("irrigation_profile_applied");
 }
 
 void handleIrrigationStart() {
