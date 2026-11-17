@@ -23,7 +23,7 @@ public sealed class IrrigationProfileCloudService : IIrrigationProfileCloudServi
     {
         EnsureAuthenticated();
         var url = _config.Url!.TrimEnd('/') +
-            "/rest/v1/irrigation_profiles?select=id,name,direction_mode,duration_seconds,left_duration_seconds,back_duration_seconds,right_duration_seconds,repeat_count&order=updated_at.desc";
+            "/rest/v1/irrigation_profiles?select=id,name,direction_mode,duration_seconds,left_duration_seconds,back_duration_seconds,right_duration_seconds,repeat_count,updated_at&order=updated_at.desc";
 
         using var request = CreateRequest(HttpMethod.Get, url);
         using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -44,7 +44,8 @@ public sealed class IrrigationProfileCloudService : IIrrigationProfileCloudServi
                 LeftDurationSeconds = Math.Clamp(x.LeftDurationSeconds, 0, 60),
                 BackDurationSeconds = Math.Clamp(x.BackDurationSeconds, 0, 60),
                 RightDurationSeconds = Math.Clamp(x.RightDurationSeconds, 0, 60),
-                RepeatCount = Math.Clamp(x.RepeatCount, 1, 20)
+                RepeatCount = Math.Clamp(x.RepeatCount, 1, 20),
+                UpdatedAt = x.UpdatedAt
             }).ToList();
     }
 
@@ -70,7 +71,7 @@ public sealed class IrrigationProfileCloudService : IIrrigationProfileCloudServi
                 RightDurationSeconds = profile.RightDurationSeconds,
                 RepeatCount = profile.RepeatCount,
                 IsPublic = false,
-                UpdatedAt = DateTimeOffset.UtcNow
+                UpdatedAt = profile.UpdatedAt
             };
         }).ToList();
 
@@ -112,6 +113,7 @@ public sealed class IrrigationProfileCloudService : IIrrigationProfileCloudServi
         [JsonPropertyName("back_duration_seconds")] public int BackDurationSeconds { get; set; } = 3;
         [JsonPropertyName("right_duration_seconds")] public int RightDurationSeconds { get; set; } = 3;
         [JsonPropertyName("repeat_count")] public int RepeatCount { get; set; } = 1;
+        [JsonPropertyName("updated_at")] public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     }
 
     private sealed class CloudProfileWriteRow
