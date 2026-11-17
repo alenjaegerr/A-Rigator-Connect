@@ -1,4 +1,6 @@
 #include <Wire.h>
+#include <ArduinoJson.h>
+#include <time.h>
 
 // Firmware version reported by the local status API.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
@@ -126,6 +128,8 @@ void setLedOutput(bool enabled);
 void readBatteryVoltage();
 void triggerEmergencyStop(const char* source);
 bool resetEmergencyStop();
+void serviceMqttCommands();
+void publishMqttCommandAck(const String& commandId, const char* status, const char* code, const char* message);
 
 // ============================================================================
 // BLE DISCOVERY + READ-ONLY WI-FI SCAN
@@ -1489,6 +1493,123 @@ void handleHeartbeat() {
   sendControlResponse("heartbeat");
 }
 
+
+// ============================================================================
+// MQTT COMMAND DISPATCHER
+// The MQTT callback only enqueues payloads. All parsing and hardware actions
+// happen here from loop(), preserving the ESP32 as the final safety authority.
+// Initial remote command set is intentionally conservative.
+static const uint8_t MQTT_RECENT_COMMAND_CAPACITY = 12;
+static const unsigned long MQTT_MAX_MOVEMENT_TTL_MS = 1500;
+static const unsigned long MQTT_MAX_STOP_TTL_MS = 5000;
+String mqttRecentCommandIds[MQTT_RECENT_COMMAND_CAPACITY];
+uint8_t mqttRecentCommandCursor = 0;
+bool mqttClockSyncRequested = false;
+
+bool mqttCommandWasProcessed(const String& commandId) {
+  for (uint8_t i = 0; i < MQTT_RECENT_COMMAND_CAPACITY; ++i) {
+    if (mqttRecentCommandIds[i] == commandId) return true;
+  }
+  return false;
+}
+
+void rememberMqttCommand(const String& commandId) {
+  mqttRecentCommandIds[mqttRecentCommandCursor] = commandId;
+  mqttRecentCommandCursor = (mqttRecentCommandCursor + 1) % MQTT_RECENT_COMMAND_CAPACITY;
+}
+
+void publishMqttCommandAck(const String& commandId, const char* status,
+                           const char* code, const char* message) {
+  if (!mqttManager.connected()) return;
+  StaticJsonDocument<384> ack;
+  ack["version"] = 1;
+  ack["commandId"] = commandId;
+  ack["robotId"] = mqttManager.robotId();
+  ack["status"] = status;
+  ack["code"] = code;
+  ack["message"] = message;
+  ack["timestamp"] = (uint32_t)time(nullptr);
+  String output;
+  serializeJson(ack, output);
+  mqttManager.publishAck(output);
+}
+
+void serviceMqttCommands() {
+  String raw;
+  if (!mqttManager.takeCommand(raw)) return;
+
+  StaticJsonDocument<768> document;
+  const DeserializationError parseError = deserializeJson(document, raw);
+  if (parseError || !document.is<JsonObject>()) {
+    publishMqttCommandAck("", "rejected", "INVALID_JSON", "Command JSON is invalid");
+    return;
+  }
+
+  const int version = document["version"] | 0;
+  const String commandId = document["commandId"] | "";
+  const String robotId = document["robotId"] | "";
+  const String command = document["command"] | "";
+  const uint32_t issuedAt = document["issuedAt"] | 0;
+  const uint32_t ttlMs = document["ttlMs"] | 0;
+
+  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 ||
+      robotId != mqttManager.robotId() || command.length() == 0) {
+    publishMqttCommandAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
+    return;
+  }
+
+  if (mqttCommandWasProcessed(commandId)) {
+    publishMqttCommandAck(commandId, "duplicate", "DUPLICATE_ID", "Command ID was already processed");
+    return;
+  }
+
+  const time_t nowEpoch = time(nullptr);
+  if (nowEpoch < 1700000000) {
+    publishMqttCommandAck(commandId, "rejected", "CLOCK_UNSYNCED", "Robot clock is not synchronized");
+    return;
+  }
+
+  const bool isStop = command == "stop" || command == "pump_off" ||
+                      command == "autonomous_stop" || command == "pathway_stop" ||
+                      command == "terrain_stop" || command == "irrigation_stop";
+  const uint32_t maxTtl = isStop ? MQTT_MAX_STOP_TTL_MS : MQTT_MAX_MOVEMENT_TTL_MS;
+  if (issuedAt == 0 || ttlMs == 0 || ttlMs > maxTtl ||
+      nowEpoch < issuedAt || (uint64_t)(nowEpoch - issuedAt) * 1000ULL > ttlMs) {
+    rememberMqttCommand(commandId);
+    publishMqttCommandAck(commandId, "expired", "COMMAND_EXPIRED", "Command has expired or has an invalid lifetime");
+    return;
+  }
+
+  // Mark before execution so QoS 1 redelivery cannot repeat a physical action.
+  rememberMqttCommand(commandId);
+
+  if (command == "stop") {
+    handleStop();
+  } else if (command == "forward" || command == "reverse") {
+    if (emergencyStopLatched) {
+      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+      return;
+    }
+    setManualMotorDirection(command == "forward" ? CMD_CW : CMD_CCW,
+                            command == "forward" ? "forward" : "reverse");
+  } else if (command == "pump_off") {
+    handlePumpOff();
+  } else if (command == "pump_on") {
+    if (emergencyStopLatched) {
+      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+      return;
+    }
+    handlePumpOn();
+  } else if (command == "heartbeat") {
+    handleHeartbeat();
+  } else {
+    publishMqttCommandAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled for remote execution yet");
+    return;
+  }
+
+  publishMqttCommandAck(commandId, "executed", "OK", "Command accepted by robot");
+}
+
 void enforceAutonomousControlTimeout() {
   if (autonomousControlLeaseActive && currentMode == MODE_AUTONOMOUS &&
       millis() - lastAutonomousHeartbeat > AUTONOMOUS_CONTROL_TIMEOUT_MS) {
@@ -2021,6 +2142,7 @@ void loop() {
   readBatteryVoltage();
   server.handleClient();
   mqttManager.loop();
+  serviceMqttCommands();
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
@@ -2033,6 +2155,10 @@ void loop() {
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
+  if (stationConnected && !mqttClockSyncRequested) {
+    configTime(0, 0, "pool.ntp.org", "time.google.com");
+    mqttClockSyncRequested = true;
+  }
   if (stationConnected && !stationWasConnected) {
     if (!mdnsStarted) {
       mdnsStarted = MDNS.begin("arigator");
