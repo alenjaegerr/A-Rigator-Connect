@@ -10,7 +10,9 @@ namespace A_Rigator_Controller.Services;
 
 /// <summary>
 /// Cloud MQTT transport. It publishes command envelopes and waits for the
-/// matching ESP32 acknowledgement; local HTTP remains the preferred path.
+/// matching ESP32 acknowledgement. Broker connectivity and robot reachability
+/// are exposed separately so the UI never mistakes a broker session for an
+/// online robot.
 /// </summary>
 public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDisposable
 {
@@ -21,7 +23,22 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private RemoteRobotConnectionOptions? _options;
     private RobotStatus? _latestStatus;
+    private DateTimeOffset? _lastTelemetryAt;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
+
+    // MQTT can be connected while the ESP32 is offline. Treat the robot as
+    // reachable only while fresh telemetry has been received.
+    private static readonly TimeSpan TelemetryFreshnessWindow = TimeSpan.FromSeconds(20);
+
+    public DateTimeOffset? LastTelemetryAt => _lastTelemetryAt;
+
+    public bool IsRobotResponsive =>
+        _client.IsConnected &&
+        _lastTelemetryAt is { } receivedAt &&
+        DateTimeOffset.UtcNow - receivedAt <= TelemetryFreshnessWindow;
+
+    public event Action<bool>? RobotReachabilityChanged;
+    private bool _lastReportedReachability;
     private string? _ackTopic;
     private string? _telemetryTopic;
 
@@ -209,7 +226,13 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
         {
             try
             {
-                _latestStatus = JsonSerializer.Deserialize<RobotStatus>(payload, JsonOptions);
+                var status = JsonSerializer.Deserialize<RobotStatus>(payload, JsonOptions);
+                if (status is not null)
+                {
+                    _latestStatus = status;
+                    _lastTelemetryAt = DateTimeOffset.UtcNow;
+                    ReportRobotReachability();
+                }
             }
             catch (JsonException) { }
         }
@@ -220,6 +243,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
     private Task HandleDisconnectedAsync(MqttClientDisconnectedEventArgs args)
     {
         SetConnectionState(ConnectionState.Disconnected);
+        ReportRobotReachability();
         foreach (var pending in _pendingAcks.Values)
             pending.TrySetException(new IOException("The MQTT connection was lost before the robot acknowledged the command."));
         return Task.CompletedTask;
@@ -230,6 +254,15 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
         if (_connectionState == state) return;
         _connectionState = state;
         ConnectionStateChanged?.Invoke(state);
+        ReportRobotReachability();
+    }
+
+    private void ReportRobotReachability()
+    {
+        var reachable = IsRobotResponsive;
+        if (_lastReportedReachability == reachable) return;
+        _lastReportedReachability = reachable;
+        RobotReachabilityChanged?.Invoke(reachable);
     }
 
     public async ValueTask DisposeAsync()
