@@ -20,8 +20,7 @@
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ConnectionRecoveryMessage}" FontSize="12" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Button Text="SEARCH FOR ROBOT" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="44" BackgroundColor="#176B45" TextColor="White" />
-                    <Button Text="CONNECT THROUGH A-RIGATOR AP" Command="{Binding ConnectViaApCommand}" MinimumHeightRequest="42" BackgroundColor="{AppThemeBinding Light=#72510D, Dark=#8B6B2D}" TextColor="White" />
-                </VerticalStackLayout>
+</VerticalStackLayout>
             </Border>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
