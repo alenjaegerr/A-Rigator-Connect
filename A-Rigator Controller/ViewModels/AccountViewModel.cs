@@ -31,7 +31,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         _sync = sync;
 
         _displayName = _userProfile.GetDisplayName() ?? _account.DisplayName ?? "A-Rigator User";
-        _robotName = Preferences.Default.Get("arigator.robot.nickname", "A-Rigator 01");
+        _robotName = _account.RobotName ?? Preferences.Default.Get("arigator.robot.nickname", "A-Rigator 01");
         _avatarPath = Preferences.Default.Get<string?>("arigator.account.avatar", null);
         _robotAvatarPath = Preferences.Default.Get<string?>("arigator.robot.avatar", null);
 
@@ -86,7 +86,12 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(AccountSummary));
         OnPropertyChanged(nameof(EmailAddress));
         RefreshCommands();
-        if (IsAuthenticated) await _sync.SyncNowAsync(force: true);
+        if (IsAuthenticated)
+        {
+            if (!string.IsNullOrWhiteSpace(_account.DisplayName)) DisplayName = _account.DisplayName!;
+            if (!string.IsNullOrWhiteSpace(_account.RobotName)) RobotName = _account.RobotName!;
+            await _sync.SyncNowAsync(force: true);
+        }
     }
 
     private async Task SignInAsync()
@@ -96,8 +101,8 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         try
         {
             await _account.SignInWithGoogleAsync();
-            if (string.IsNullOrWhiteSpace(_userProfile.GetDisplayName()) && !string.IsNullOrWhiteSpace(_account.DisplayName))
-                DisplayName = _account.DisplayName!;
+            if (!string.IsNullOrWhiteSpace(_account.DisplayName)) DisplayName = _account.DisplayName!;
+            if (!string.IsNullOrWhiteSpace(_account.RobotName)) RobotName = _account.RobotName!;
             await SaveAccountAsync();
             SyncStatus = "Signed in. Syncing your locally saved irrigation profiles…";
             OnPropertyChanged(nameof(IsAuthenticated));
