@@ -10,6 +10,9 @@
 // TLS certificate verification is mandatory; no insecure fallback is provided.
 class RobotMqttManager {
  public:
+  static const uint8_t COMMAND_QUEUE_CAPACITY = 4;
+  static const unsigned int MAX_COMMAND_BYTES = 768;
+
   bool begin(const RobotMqttConfig& config) {
     if (!config.isValid()) return false;
     config_ = config;
@@ -61,16 +64,27 @@ class RobotMqttManager {
            mqtt_.publish(ackTopic_.c_str(), json.c_str(), false);
   }
 
+  // Called from the main loop, never from PubSubClient's callback.
   bool takeCommand(String& payload) {
-    if (!commandPending_) return false;
-    payload = pendingCommand_;
-    pendingCommand_ = "";
-    commandPending_ = false;
+    if (queuedCommandCount_ == 0) return false;
+
+    payload = commandQueue_[commandQueueHead_];
+    commandQueue_[commandQueueHead_] = "";
+    commandQueueHead_ = (commandQueueHead_ + 1) % COMMAND_QUEUE_CAPACITY;
+    --queuedCommandCount_;
     return true;
   }
 
   const String& robotId() const {
     return config_.robotId;
+  }
+
+  uint8_t queuedCommandCount() const {
+    return queuedCommandCount_;
+  }
+
+  uint32_t droppedCommandCount() const {
+    return droppedCommandCount_;
   }
 
  private:
@@ -83,9 +97,12 @@ class RobotMqttManager {
   String ackTopic_;
   String telemetryTopic_;
   String availabilityTopic_;
-  String pendingCommand_;
+  String commandQueue_[COMMAND_QUEUE_CAPACITY];
+  uint8_t commandQueueHead_ = 0;
+  uint8_t commandQueueTail_ = 0;
+  uint8_t queuedCommandCount_ = 0;
+  uint32_t droppedCommandCount_ = 0;
   bool configured_ = false;
-  bool commandPending_ = false;
   unsigned long lastConnectAttempt_ = 0;
 
   void buildTopics() {
@@ -115,18 +132,31 @@ class RobotMqttManager {
   }
 
   void onMessage(char* topic, uint8_t* payload, unsigned int length) {
-    if (commandTopic_ != topic || length == 0 || length > 768) return;
+    if (commandTopic_ != topic || length == 0 || length > MAX_COMMAND_BYTES) {
+      ++droppedCommandCount_;
+      return;
+    }
 
-    // Keep callbacks short. The main loop consumes the copied payload and
-    // performs command parsing/validation outside the MQTT callback context.
+    // Never overwrite an earlier command. Queue overflow is observable and
+    // will be handled by the command protocol's publisher-side retry/expiry.
+    if (queuedCommandCount_ >= COMMAND_QUEUE_CAPACITY) {
+      ++droppedCommandCount_;
+      return;
+    }
+
     String message;
     message.reserve(length);
     for (unsigned int i = 0; i < length; ++i) {
-      if (payload[i] < 0x20 && payload[i] != '\\n' && payload[i] != '\\r' && payload[i] != '\\t') return;
+      if (payload[i] < 0x20 && payload[i] != '\\n' &&
+          payload[i] != '\\r' && payload[i] != '\\t') {
+        ++droppedCommandCount_;
+        return;
+      }
       message += (char)payload[i];
     }
 
-    pendingCommand_ = message;
-    commandPending_ = true;
+    commandQueue_[commandQueueTail_] = message;
+    commandQueueTail_ = (commandQueueTail_ + 1) % COMMAND_QUEUE_CAPACITY;
+    ++queuedCommandCount_;
   }
 };
