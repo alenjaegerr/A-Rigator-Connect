@@ -265,6 +265,26 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     {
         if (_activeTransport is not null && _activeTransport.ConnectionState == ConnectionState.Connected)
         {
+            if (_activeTransport.TransportKind == RobotTransportKind.Local)
+            {
+                try
+                {
+                    // ConnectAsync is idempotent for a live BLE link and
+                    // reconnects the last paired device after a range loss.
+                    await _activeTransport.ConnectAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch
+                {
+                    _activeTransport = null;
+                    SetConnectionState(ConnectionState.Disconnected);
+                    return await ConnectPreferredAvailableTransportAsync(cancellationToken);
+                }
+            }
+
             // If the robot is currently being controlled over BLE, periodically
             // check whether the preferred cloud path has recovered. Promote it
             // only after fresh robot telemetry proves the ESP32 is reachable.
