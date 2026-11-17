@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <string.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -75,8 +76,11 @@ public:
     if (document["schemaVersion"] != 1 ||
         document["product"] != "A-Rigator" ||
         document["channel"] != "stable" ||
-        document["releaseAvailable"] != true) {
-      error = "No stable A-Rigator release is currently available.";
+        document["releaseAvailable"] != true ||
+        document["security"]["requireHttps"] != true ||
+        document["security"]["requireSignature"] != true ||
+        document["security"]["requireSha256"] != true) {
+      error = "No compatible, security-enforced stable release is available.";
       return false;
     }
 
