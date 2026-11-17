@@ -28,6 +28,38 @@ public sealed class IrrigationProfileService
         ProfilesChanged?.Invoke(this, EventArgs.Empty);
     }
 
+    public void MergeProfiles(IEnumerable<IrrigationProfile> incoming)
+    {
+        var changed = false;
+        foreach (var profile in incoming)
+        {
+            if (string.IsNullOrWhiteSpace(profile.Id) || !Guid.TryParse(profile.Id, out _))
+                continue;
+
+            try { Validate(profile); }
+            catch { continue; }
+
+            profile.ApplyDirectionMode();
+            var existing = Profiles.FirstOrDefault(item =>
+                string.Equals(item.Id, profile.Id, StringComparison.OrdinalIgnoreCase));
+            if (existing is null)
+            {
+                Profiles.Add(profile);
+                changed = true;
+            }
+            else
+            {
+                // Keep local edits when the same profile ID exists on both devices.
+                // A future revision can use per-record updated_at timestamps to resolve conflicts.
+                continue;
+            }
+        }
+
+        if (!changed) return;
+        Persist();
+        ProfilesChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public void DeleteProfile(string id)
     {
         var profile = Profiles.FirstOrDefault(item => item.Id == id);
