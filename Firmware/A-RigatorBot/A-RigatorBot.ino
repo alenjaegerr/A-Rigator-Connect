@@ -60,7 +60,19 @@ static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_AP_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_HARDWARE_ID_CHARACTERISTIC_UUID = "7a1c0008-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_CONTROL_SERVICE_UUID = "7a1c0009-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_CONTROL_COMMAND_UUID = "7a1c000a-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_CONTROL_ACK_UUID = "7a1c000b-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_CONTROL_TELEMETRY_UUID = "7a1c000c-8f2d-4b6a-9c31-4a5249474154";
 BLEServer* bleServer = nullptr;
+BLEService* bleControlService = nullptr;
+BLECharacteristic* bleControlCommandCharacteristic = nullptr;
+BLECharacteristic* bleControlAckCharacteristic = nullptr;
+BLECharacteristic* bleControlTelemetryCharacteristic = nullptr;
+portMUX_TYPE bleControlMux = portMUX_INITIALIZER_UNLOCKED;
+String pendingBleControlCommand;
+volatile bool bleControlCommandPending = false;
+unsigned long lastBleTelemetryAt = 0;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 BLECharacteristic* bleWifiScanCharacteristic = nullptr;
@@ -185,6 +197,168 @@ class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
     characteristic->setValue("QUEUED");
   }
 };
+
+class BleControlCommandCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* characteristic) override {
+    const String incoming = characteristic->getValue();
+    if (incoming.length() == 0 || incoming.length() > 480) {
+      bleControlAckCharacteristic->setValue("{\\"status\\":\\"rejected\\",\\"code\\":\\"SIZE\\"}");
+      bleControlAckCharacteristic->notify();
+      return;
+    }
+
+    portENTER_CRITICAL(&bleControlMux);
+    if (!bleControlCommandPending) {
+      pendingBleControlCommand = incoming;
+      bleControlCommandPending = true;
+    }
+    portEXIT_CRITICAL(&bleControlMux);
+  }
+};
+
+void publishBleControlAck(const String& commandId, const char* status,
+                          const char* code, const char* message) {
+  if (bleControlAckCharacteristic == nullptr) return;
+  StaticJsonDocument<256> doc;
+  doc["commandId"] = commandId;
+  doc["status"] = status;
+  doc["code"] = code;
+  doc["message"] = message;
+  String payload;
+  serializeJson(doc, payload);
+  bleControlAckCharacteristic->setValue(payload.c_str());
+  bleControlAckCharacteristic->notify();
+}
+
+void serviceBleControlCommands() {
+  if (!bleControlCommandPending) return;
+
+  String raw;
+  portENTER_CRITICAL(&bleControlMux);
+  raw = pendingBleControlCommand;
+  pendingBleControlCommand = "";
+  bleControlCommandPending = false;
+  portEXIT_CRITICAL(&bleControlMux);
+
+  StaticJsonDocument<512> doc;
+  if (deserializeJson(doc, raw) || !doc.is<JsonObject>()) {
+    publishBleControlAck("", "rejected", "INVALID_JSON", "Command JSON is invalid");
+    return;
+  }
+
+  const int version = doc["version"] | 0;
+  const String commandId = doc["commandId"] | "";
+  const String command = doc["command"] | "";
+  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 || command.length() == 0) {
+    publishBleControlAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
+    return;
+  }
+
+  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
+    publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+    return;
+  }
+
+  bool supported = true;
+  if (command == "forward") {
+    setManualMotorDirection(CMD_CW, "forward");
+  } else if (command == "reverse") {
+    setManualMotorDirection(CMD_CCW, "reverse");
+  } else if (command == "stop") {
+    handleStop();
+  } else if (command == "pump_on") {
+    handlePumpOn();
+  } else if (command == "pump_off") {
+    handlePumpOff();
+  } else if (command == "heartbeat") {
+    handleHeartbeat();
+  } else if (command == "steer_left") {
+    handleSteerLeft();
+  } else if (command == "steer_right") {
+    handleSteerRight();
+  } else if (command == "steer_center") {
+    handleSteerCenter();
+  } else if (command == "nozzle_sweep" || command == "nozzle_sweep_full") {
+    handleFullNozzleSweep();
+  } else if (command == "nozzle_sweep_left") {
+    handleLeftNozzleSweep();
+  } else if (command == "nozzle_sweep_back") {
+    handleBackNozzleSweep();
+  } else if (command == "nozzle_sweep_right") {
+    handleRightNozzleSweep();
+  } else if (command == "nozzle_sweep_stop") {
+    handleNozzleSweepStop();
+  } else if (command == "irrigation_start") {
+    handleIrrigationStart();
+  } else if (command == "irrigation_stop") {
+    handleIrrigationStop();
+  } else if (command == "autonomous_start") {
+    handleAutonomousStart();
+  } else if (command == "autonomous_stop") {
+    handleAutonomousStop();
+  } else if (command == "pathway_start") {
+    handlePathwayStart();
+  } else if (command == "pathway_stop") {
+    handlePathwayStop();
+  } else if (command == "terrain_start") {
+    handleTerrainStart();
+  } else if (command == "terrain_bias_left") {
+    handleTerrainBiasLeft();
+  } else if (command == "terrain_bias_right") {
+    handleTerrainBiasRight();
+  } else if (command == "terrain_bias_center") {
+    handleTerrainBiasCenter();
+  } else if (command == "terrain_stop") {
+    handleTerrainStop();
+  } else if (command == "manual_terrain_start") {
+    handleManualTerrainStart();
+  } else if (command == "manual_terrain_stop") {
+    handleManualTerrainStop();
+  } else if (command == "reset_shield") {
+    handleResetShield();
+  } else {
+    supported = false;
+  }
+
+  if (supported) {
+    publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
+  } else {
+    publishBleControlAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled over BLE yet");
+  }
+}
+
+void publishBleTelemetryIfDue() {
+  if (bleControlTelemetryCharacteristic == nullptr ||
+      millis() - lastBleTelemetryAt < 1000) return;
+  lastBleTelemetryAt = millis();
+
+  StaticJsonDocument<768> doc;
+  doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
+  doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
+                 ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
+  doc["mode"] = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
+  switch (activeAutonomousMode) {
+    case AUTO_PATHWAY: doc["autonomousMode"] = "PATHWAY"; break;
+    case AUTO_TERRAIN: doc["autonomousMode"] = "TERRAIN"; break;
+    case AUTO_GENERIC: doc["autonomousMode"] = "GENERIC"; break;
+    default: doc["autonomousMode"] = "NONE"; break;
+  }
+  doc["pump"] = pumpState;
+  doc["controlsEnabled"] = controlsEnabled;
+  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
+  doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
+  doc["hostname"] = "A-Rigator";
+  doc["obstacleDistanceCm"] = getObstacleDistanceCM();
+  doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
+  doc["manualControlTimeoutMs"] = MANUAL_CONTROL_TIMEOUT_MS;
+  doc["lineGpio14"] = digitalRead(14) == HIGH;
+  doc["lineGpio27"] = digitalRead(27) == HIGH;
+  doc["connectionMode"] = "BLE";
+  String payload;
+  serializeJson(doc, payload);
+  bleControlTelemetryCharacteristic->setValue(payload.c_str());
+  bleControlTelemetryCharacteristic->notify();
+}
 
 String escapeJsonString(const String& value) {
   String escaped;
@@ -501,8 +675,31 @@ void startBleDiscovery() {
 
   bleProvisioningService->start();
 
+  // Separate control service keeps the existing Wi-Fi provisioning UUIDs
+  // stable while adding command, acknowledgement, and telemetry channels.
+  bleControlService = bleServer->createService(BLE_CONTROL_SERVICE_UUID);
+  bleControlCommandCharacteristic = bleControlService->createCharacteristic(
+    BLE_CONTROL_COMMAND_UUID, BLECharacteristic::PROPERTY_WRITE
+  );
+  bleControlCommandCharacteristic->setAccessPermissions(ESP_GATT_PERM_WRITE_ENCRYPTED);
+  bleControlCommandCharacteristic->setCallbacks(new BleControlCommandCallbacks());
+
+  bleControlAckCharacteristic = bleControlService->createCharacteristic(
+    BLE_CONTROL_ACK_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+  );
+  bleControlAckCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
+  bleControlAckCharacteristic->setValue("{\\"status\\":\\"ready\\"}");
+
+  bleControlTelemetryCharacteristic = bleControlService->createCharacteristic(
+    BLE_CONTROL_TELEMETRY_UUID, BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_NOTIFY
+  );
+  bleControlTelemetryCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
+  bleControlTelemetryCharacteristic->setValue("{}");
+  bleControlService->start();
+
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(BLE_PROVISIONING_SERVICE_UUID);
+  advertising->addServiceUUID(BLE_CONTROL_SERVICE_UUID);
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
   Serial.println(">> BLE discovery advertising started (A-Rigator).");
@@ -2146,6 +2343,8 @@ void loop() {
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
   serviceBleApPasswordChange();
+  serviceBleControlCommands();
+  publishBleTelemetryIfDue();
 
   if (wifiForgetDisconnectPending &&
       (int32_t)(millis() - wifiForgetDisconnectAt) >= 0) {
