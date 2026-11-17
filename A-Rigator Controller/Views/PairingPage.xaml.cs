@@ -54,9 +54,5 @@ public partial class PairingPage : ContentPage
         ((PairingViewModel)BindingContext).StartNewPairingFlow(isRemoteSetup);
     }
 
-    protected override void OnAppearing()
-    {
-        base.OnAppearing();
-        ((PairingViewModel)BindingContext).RefreshWifiState();
-    }
+
 }
