@@ -239,6 +239,7 @@ public sealed class RobotHttpCommunicationService : IRobotCommunicationService, 
 
             return new RobotStatus
             {
+                FirmwareVersion = statusResponse.FirmwareVersion,
                 State = state,
                 Mode = mode,
                 AutonomousMode = statusResponse.AutonomousMode,
