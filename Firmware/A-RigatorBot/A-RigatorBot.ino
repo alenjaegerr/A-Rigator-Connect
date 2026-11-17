@@ -292,7 +292,25 @@ void serviceBleControlCommands() {
   }
 
   bool supported = true;
-  if (command == "forward") {
+  if (command == "irrigation_profile") {
+    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
+    const int left = payload["left"] | -1;
+    const int back = payload["back"] | -1;
+    const int right = payload["right"] | -1;
+    const int repeat = payload["repeat"] | -1;
+    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive ||
+        left < 0 || left > 60 || back < 0 || back > 60 ||
+        right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
+        (left == 0 && back == 0 && right == 0)) {
+      publishBleControlAck(commandId, "rejected", "INVALID_PROFILE",
+                           "Profile values are invalid or irrigation is currently active");
+      return;
+    }
+    irrigationLeftSeconds = left;
+    irrigationBackSeconds = back;
+    irrigationRightSeconds = right;
+    irrigationRepeatCount = repeat;
+  } else if (command == "forward") {
     setManualMotorDirection(CMD_CW, "forward");
   } else if (command == "reverse") {
     setManualMotorDirection(CMD_CCW, "reverse");
