@@ -72,6 +72,7 @@ BLECharacteristic* bleControlTelemetryCharacteristic = nullptr;
 String pendingBleControlCommand;
 volatile bool bleControlCommandPending = false;
 bool bleCommandExecution = false;
+bool bleCommandRejected = false;
 unsigned long lastBleTelemetryAt = 0;
 BLEService* bleProvisioningService = nullptr;
 BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
@@ -289,6 +290,7 @@ void serviceBleControlCommands() {
   }
 
   bool supported = true;
+  bleCommandRejected = false;
   bleCommandExecution = true;
   if (command == "irrigation_profile") {
     JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
@@ -370,10 +372,12 @@ void serviceBleControlCommands() {
   }
 
   bleCommandExecution = false;
-  if (supported) {
-    publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
-  } else {
+  if (!supported) {
     publishBleControlAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled over BLE yet");
+  } else if (bleCommandRejected) {
+    publishBleControlAck(commandId, "rejected", "COMMAND_REJECTED", "Robot safety or operating-state checks rejected the command");
+  } else {
+    publishBleControlAck(commandId, "executed", "OK", "Command accepted by robot");
   }
 }
 
@@ -1371,7 +1375,11 @@ void sendHttpResponse(int code, const char* contentType, const String& body) {
   // BLE command dispatch reuses the robot's established control handlers.
   // Suppress their HTTP response side effects when no HTTP client initiated
   // the command; the BLE acknowledgement characteristic carries the result.
-  if (!bleCommandExecution) server.send(code, contentType, body);
+  if (bleCommandExecution) {
+    if (code >= 400) bleCommandRejected = true;
+    return;
+  }
+  server.send(code, contentType, body);
 }
 
 void sendControlResponse(const char* command) {
