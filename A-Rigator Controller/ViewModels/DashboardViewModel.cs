@@ -164,7 +164,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         RobotConnectionMode.IoT => "IoT / Router Wi-Fi",
         RobotConnectionMode.BLE => "Bluetooth · Local fallback",
-        RobotConnectionMode.AccessPoint => "Legacy AP (deprecated)",
         _ => "Unknown / Searching"
     };
 
@@ -178,13 +177,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 ? $"IoT connection active · {_latestStatus.WifiIp ?? "IP not reported"} · Pair over Bluetooth for local fallback"
                 : "Robot is responding locally, but router Wi-Fi is not connected.";
 
-    public bool IsApModeMobileDataWarningVisible =>
-        _latestStatus?.ConnectionMode == RobotConnectionMode.AccessPoint &&
-        Connectivity.Current.ConnectionProfiles.Contains(ConnectionProfile.Cellular);
-
-    public string ApModeMobileDataWarning =>
-        "Mobile data is enabled. Some Android phones restrict or deprioritize internet/mobile-data traffic while connected to a Wi-Fi access point without internet. This can interrupt the direct A-Rigator AP session. Turn mobile data off if the robot connection becomes unstable. IoT mode uses your router or hotspot network and does not require this AP-only workaround.";
-
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
     public string ConnectionNoticeTitle => _hasEverConnected
@@ -195,7 +187,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         RobotConnectionMode.IoT => "The IoT path is unavailable. The app will try the paired Bluetooth connection automatically.",
         RobotConnectionMode.BLE => "The Bluetooth connection was lost. Keep the robot nearby and reconnect over Bluetooth.",
-        RobotConnectionMode.AccessPoint => "This legacy connection mode is no longer supported. Pair with A-Rigator over Bluetooth.",
         _ => "A-Rigator is not responding. Check that the robot is powered on, then retry IoT or Bluetooth connection."
     };
 
@@ -706,8 +697,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ConnectionStatus));
         OnPropertyChanged(nameof(ConnectionModeLabel));
         OnPropertyChanged(nameof(ConnectionDetails));
-        OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
-        OnPropertyChanged(nameof(ApModeMobileDataWarning));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
@@ -744,8 +733,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(ConnectionModeLabel));
                 OnPropertyChanged(nameof(ConnectionDetails));
                 OnPropertyChanged(nameof(ConnectionRecoveryMessage));
-            OnPropertyChanged(nameof(IsApModeMobileDataWarningVisible));
-            OnPropertyChanged(nameof(ApModeMobileDataWarning));
                 OnPropertyChanged(nameof(IsAutonomous));
                 NotifyControlStateChanged();
             }
