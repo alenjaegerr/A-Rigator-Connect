@@ -198,21 +198,54 @@ class ApConfigCommandCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
+String bleControlAssembly;
+int bleControlExpectedLength = -1;
+
 class BleControlCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const String incoming = characteristic->getValue();
-    if (incoming.length() == 0 || incoming.length() > 480) {
-      bleControlAckCharacteristic->setValue("{\\"status\\":\\"rejected\\",\\"code\\":\\"SIZE\\"}");
-      bleControlAckCharacteristic->notify();
+    if (incoming.startsWith("BEGIN:")) {
+      const int expected = incoming.substring(6).toInt();
+      if (expected < 16 || expected > 240) {
+        bleControlExpectedLength = -1;
+        bleControlAssembly = "";
+        return;
+      }
+      bleControlExpectedLength = expected;
+      bleControlAssembly = "";
+      bleControlAssembly.reserve(expected);
+      return;
+    }
+
+    if (incoming.startsWith("D") && incoming.length() >= 6 && incoming[4] == ':') {
+      if (bleControlExpectedLength < 0) return;
+      const int offset = incoming.substring(1, 4).toInt();
+      const String chunk = incoming.substring(5);
+      if (offset != (int)bleControlAssembly.length() ||
+          bleControlAssembly.length() + chunk.length() > bleControlExpectedLength) {
+        bleControlExpectedLength = -1;
+        bleControlAssembly = "";
+        return;
+      }
+      bleControlAssembly += chunk;
+      return;
+    }
+
+    if (incoming != "COMMIT" || bleControlExpectedLength < 0 ||
+        bleControlAssembly.length() != bleControlExpectedLength) {
+      bleControlExpectedLength = -1;
+      bleControlAssembly = "";
       return;
     }
 
     portENTER_CRITICAL(&bleControlMux);
     if (!bleControlCommandPending) {
-      pendingBleControlCommand = incoming;
+      pendingBleControlCommand = bleControlAssembly;
       bleControlCommandPending = true;
     }
     portEXIT_CRITICAL(&bleControlMux);
+    bleControlExpectedLength = -1;
+    bleControlAssembly = "";
   }
 };
 
