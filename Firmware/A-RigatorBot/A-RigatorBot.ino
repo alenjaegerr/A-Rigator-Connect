@@ -89,6 +89,15 @@ void configureManualNozzleSweep(int minimumAngle, int maximumAngle);
 String bleControlAssembly;
 int bleControlExpectedLength = -1;
 
+class RobotBleServerCallbacks : public BLEServerCallbacks {
+  void onDisconnect(BLEServer* server) override {
+    // ESP32 BLE stops advertising while a central is connected. Restart so
+    // the app can reconnect after leaving range or closing the session.
+    BLEDevice::startAdvertising();
+    Serial.println(">> BLE client disconnected; advertising restarted.");
+  }
+};
+
 class BleControlCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const String incoming = characteristic->getValue();
@@ -506,6 +515,7 @@ class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
 void startBleDiscovery() {
   BLEDevice::init(BLE_DEVICE_NAME);
   bleServer = BLEDevice::createServer();
+  bleServer->setCallbacks(new RobotBleServerCallbacks());
   bleProvisioningService = bleServer->createService(BLE_PROVISIONING_SERVICE_UUID);
   bleDiscoveryCharacteristic = bleProvisioningService->createCharacteristic(
     BLE_DISCOVERY_CHARACTERISTIC_UUID,
