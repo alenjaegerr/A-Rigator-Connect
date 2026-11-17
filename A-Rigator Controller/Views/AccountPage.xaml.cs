@@ -123,4 +123,5 @@ public partial class AccountPage : ContentPage
             "arigator.account.avatar", "arigator.robot.avatar"
         })
             Preferences.Default.Remove(key);
-    }}
+    }
+}
