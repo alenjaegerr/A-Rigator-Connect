@@ -1974,7 +1974,7 @@ void loop() {
     mqttClockSyncRequested = true;
   }
   if (stationConnected && !stationWasConnected) {
-    Serial.printf(">> Router Wi-Fi connected. IP: %s\\n",
+    Serial.printf(">> Router Wi-Fi connected. IP: %s\n",
                   WiFi.localIP().toString().c_str());
   } else if (!stationConnected && stationWasConnected) {
     Serial.println(">> Router Wi-Fi disconnected. ESP32 will attempt to reconnect.");
