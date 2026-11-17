@@ -88,6 +88,24 @@ public sealed class IrrigationProfileCloudService : IIrrigationProfileCloudServi
             throw new HttpRequestException($"Profile sync failed ({(int)response.StatusCode}): {body}", null, response.StatusCode);
     }
 
+    public async Task DeleteProfilesAsync(IEnumerable<string> profileIds, CancellationToken cancellationToken = default)
+    {
+        EnsureAuthenticated();
+        var ids = profileIds.Where(id => Guid.TryParse(id, out _))
+            .Select(id => Guid.Parse(id).ToString())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (ids.Length == 0) return;
+
+        var filter = Uri.EscapeDataString($"({string.Join(",", ids)})");
+        var url = _config.Url!.TrimEnd('/') + $"/rest/v1/irrigation_profiles?id=in.{filter}";
+        using var request = CreateRequest(HttpMethod.Delete, url);
+        using var response = await _http.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Profile deletion sync failed ({(int)response.StatusCode}): {body}", null, response.StatusCode);
+    }
+
     private HttpRequestMessage CreateRequest(HttpMethod method, string url)
     {
         var request = new HttpRequestMessage(method, url);
