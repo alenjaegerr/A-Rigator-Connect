@@ -1,6 +1,7 @@
 
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Authentication;
 
@@ -135,6 +136,79 @@ public sealed class AccountService : IAccountService
     {
         ClearAccountState();
         await _secureSessionStorage.ClearAsync(cancellationToken);
+    }
+
+    public async Task SaveAccountSettingsAsync(
+        string displayName,
+        string robotName,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(AccessToken) ||
+            string.IsNullOrWhiteSpace(GoogleUserId) || string.IsNullOrWhiteSpace(Email))
+            throw new InvalidOperationException("Sign in before saving account settings.");
+
+        displayName = displayName.Trim();
+        robotName = robotName.Trim();
+        if (displayName.Length is < 1 or > 48)
+            throw new ArgumentException("Display name must contain 1–48 characters.", nameof(displayName));
+        if (robotName.Length is < 1 or > 32)
+            throw new ArgumentException("Robot name must contain 1–32 characters.", nameof(robotName));
+
+        var baseUrl = _supabaseConfigService.Url?.TrimEnd('/');
+        var anonKey = _supabaseConfigService.AnonKey;
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(anonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        async Task SendAsync(HttpMethod method, string endpoint, object payload, string? prefer = null)
+        {
+            using var request = new HttpRequestMessage(method, $"{baseUrl}{endpoint}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+            request.Headers.TryAddWithoutValidation("apikey", anonKey);
+            request.Headers.Accept.ParseAdd("application/json");
+            if (!string.IsNullOrWhiteSpace(prefer))
+                request.Headers.TryAddWithoutValidation("Prefer", prefer);
+            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException(
+                    $"Could not save account settings ({(int)response.StatusCode}): {body}",
+                    null, response.StatusCode);
+            }
+        }
+
+        // The profiles row is created by the existing auth.users trigger.
+        await SendAsync(HttpMethod.Post,
+            "/rest/v1/profiles?on_conflict=id",
+            new[] { new { id = GoogleUserId, email = Email, display_name = displayName } },
+            "resolution=merge-duplicates,return=minimal");
+
+        // A user may sign in before registering a robot. In that case, only the
+        // personal profile is updated; robot settings are saved after registration.
+        using (var check = new HttpRequestMessage(HttpMethod.Get,
+            $"{baseUrl}/rest/v1/robots?select=id&owner_id=eq.{Uri.EscapeDataString(GoogleUserId)}&limit=1"))
+        {
+            check.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+            check.Headers.TryAddWithoutValidation("apikey", anonKey);
+            using var response = await _httpClient.SendAsync(check, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                throw new HttpRequestException($"Could not check robot registration ({(int)response.StatusCode}): {body}", null, response.StatusCode);
+            }
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+            if (document.RootElement.ValueKind == JsonValueKind.Array && document.RootElement.GetArrayLength() > 0)
+            {
+                await SendAsync(HttpMethod.Patch,
+                    $"/rest/v1/robots?owner_id=eq.{Uri.EscapeDataString(GoogleUserId)}",
+                    new { name = robotName },
+                    "return=minimal");
+            }
+        }
+
+        DisplayName = displayName;
     }
 
     private void ClearAccountState()
