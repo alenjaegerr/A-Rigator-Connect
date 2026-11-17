@@ -1,4 +1,8 @@
 #include <Wire.h>
+
+// Firmware version reported by the local status API.
+#define ARIGATOR_FIRMWARE_VERSION "0.1.0"
+
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 #include <WiFi.h>
