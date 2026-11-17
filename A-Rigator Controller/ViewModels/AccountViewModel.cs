@@ -37,7 +37,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
 
         SignInCommand = new Command(async () => await SignInAsync(), () => !IsBusy);
         SignOutCommand = new Command(async () => await SignOutAsync(), () => !IsBusy);
-        SaveAccountCommand = new Command(SaveAccount);
+        SaveAccountCommand = new Command(async () => await SaveAccountAsync(), () => !IsBusy);
         SyncProfilesCommand = new Command(async () => await SyncProfilesAsync(), () => !IsBusy && IsAuthenticated);
         DownloadLocalProfilesCommand = new Command(async () => await DownloadLocalProfilesAsync(), () => !IsBusy);
         PickAvatarCommand = new Command(async () => await PickPhotoAsync(false));
@@ -74,6 +74,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         (SignOutCommand as Command)?.ChangeCanExecute();
         (SyncProfilesCommand as Command)?.ChangeCanExecute();
         (DownloadLocalProfilesCommand as Command)?.ChangeCanExecute();
+        (SaveAccountCommand as Command)?.ChangeCanExecute();
     }
 
     private async Task RestoreSessionAsync()
@@ -97,7 +98,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             await _account.SignInWithGoogleAsync();
             if (string.IsNullOrWhiteSpace(_userProfile.GetDisplayName()) && !string.IsNullOrWhiteSpace(_account.DisplayName))
                 DisplayName = _account.DisplayName!;
-            SaveAccount();
+            await SaveAccountAsync();
             SyncStatus = "Signed in. Syncing your locally saved irrigation profiles…";
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(IsGuest));
@@ -125,8 +126,9 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         }
     }
 
-    private void SaveAccount()
+    private async Task SaveAccountAsync()
     {
+        if (IsBusy) return;
         if (string.IsNullOrWhiteSpace(DisplayName) || DisplayName.Trim().Length > 48)
         {
             SyncStatus = "Display name must contain 1–48 characters.";
@@ -137,11 +139,31 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             SyncStatus = "Robot name must contain 1–32 characters.";
             return;
         }
-        _userProfile.SaveDisplayName(DisplayName.Trim());
-        Preferences.Default.Set("arigator.robot.nickname", RobotName.Trim());
-        DisplayName = DisplayName.Trim();
-        RobotName = RobotName.Trim();
-        SyncStatus = "Account and robot settings saved on this device.";
+
+        var displayName = DisplayName.Trim();
+        var robotName = RobotName.Trim();
+        _userProfile.SaveDisplayName(displayName);
+        Preferences.Default.Set("arigator.robot.nickname", robotName);
+        DisplayName = displayName;
+        RobotName = robotName;
+
+        if (!IsAuthenticated)
+        {
+            SyncStatus = "Saved on this device. Sign in to sync your account and robot names.";
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            await _account.SaveAccountSettingsAsync(displayName, robotName);
+            SyncStatus = "Account and robot settings synced to your account.";
+        }
+        catch (Exception ex)
+        {
+            SyncStatus = $"Saved on this device. Cloud sync pending — {ex.Message}";
+        }
+        finally { IsBusy = false; }
     }
 
     private async Task PickPhotoAsync(bool robotPhoto)
