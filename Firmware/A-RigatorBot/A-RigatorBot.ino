@@ -995,22 +995,19 @@ void refreshManualControlLease() {
   manualControlLeaseActive = true;
 }
 
-void sendHttpResponse(int code, const char* contentType, const String& body) {
-  // BLE command dispatch reuses the established safety/state checks from the
-  // original HTTP handlers. The response is translated into a BLE ack.
+void markBleCommandRejected(int code) {
   if (bleCommandExecution && code >= 400) bleCommandRejected = true;
 }
 
 void sendControlResponse(const char* command) {
-  String json = "{\"success\":true,\"command\":\"";
-  json += command;
-  json += "\"}";
-  sendHttpResponse(200, "application/json", json);
+  // Command handlers report success through their side effects. The BLE
+  // dispatcher publishes the matching command acknowledgement after return.
+  (void)command;
 }
 
 void setManualMotorDirection(uint8_t direction, const char* command) {
   if (emergencyStopLatched) {
-    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    markBleCommandRejected(423);
     return;
   }
   if (currentMode == MODE_AUTONOMOUS) {
@@ -1038,7 +1035,7 @@ void handleReverse() {
 
 void handleSteerLeft() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    markBleCommandRejected(409);
     return;
   }
   manualTerrainModeActive = false;
@@ -1048,7 +1045,7 @@ void handleSteerLeft() {
 
 void handleSteerRight() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    markBleCommandRejected(409);
     return;
   }
   manualTerrainModeActive = false;
@@ -1058,7 +1055,7 @@ void handleSteerRight() {
 
 void handleSteerCenter() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual steering\"}");
+    markBleCommandRejected(409);
     return;
   }
   manualTerrainModeActive = false;
@@ -1088,7 +1085,7 @@ void configureManualNozzleSweep(int minimumAngle, int maximumAngle) {
 
 void startManualNozzleSweep(int minimumAngle, int maximumAngle, const char* action) {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before manual nozzle sweep\"}");
+    markBleCommandRejected(409);
     return;
   }
   configureManualNozzleSweep(minimumAngle, maximumAngle);
@@ -1109,7 +1106,7 @@ void handleFullNozzleSweep() {
 }
 void handleNozzleSweepStop() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before stopping manual nozzle sweep\"}");
+    markBleCommandRejected(409);
     return;
   }
   nozzleSweepActive = false;
@@ -1119,11 +1116,11 @@ void handleNozzleSweepStop() {
 
 void handleIrrigationStart() {
   if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Manual irrigation requires idle Manual mode\"}");
+    markBleCommandRejected(409);
     return;
   }
   if (irrigationLeftSeconds == 0 && irrigationBackSeconds == 0 && irrigationRightSeconds == 0) {
-    sendHttpResponse(400, "application/json", "{\"success\":false,\"message\":\"Apply a valid irrigation profile first\"}");
+    markBleCommandRejected(400);
     return;
   }
   nozzleSweepActive = false;
@@ -1165,7 +1162,7 @@ void handleStop() {
 
 void handleAutonomousStart() {
   if (emergencyStopLatched) {
-    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    markBleCommandRejected(423);
     return;
   }
   manualTerrainModeActive = false;
@@ -1208,7 +1205,7 @@ void handleAutonomousStop() {
 
 void handlePathwayStart() {
   if (emergencyStopLatched) {
-    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    markBleCommandRejected(423);
     return;
   }
   handleAutonomousStart();
@@ -1223,7 +1220,7 @@ void handlePathwayStop() {
 
 void handleTerrainStart() {
   if (emergencyStopLatched) {
-    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    markBleCommandRejected(423);
     return;
   }
   handleAutonomousStart();
@@ -1237,7 +1234,7 @@ void handleTerrainStart() {
 
 void setTerrainBias(int bias, const char* response) {
   if (currentMode != MODE_AUTONOMOUS || activeAutonomousMode != AUTO_TERRAIN) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Terrain mode is not active\"}");
+    markBleCommandRejected(409);
     return;
   }
   terrainBias = constrain(bias, -1, 1);
@@ -1257,7 +1254,7 @@ void handleTerrainStop() {
 // It only oscillates the steering servo; propulsion remains user-controlled.
 void handleManualTerrainStart() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Stop autonomous mode before enabling manual terrain steering\"}");
+    markBleCommandRejected(409);
     return;
   }
   manualTerrainModeActive = true;
@@ -1273,7 +1270,7 @@ void handleManualTerrainStart() {
 
 void handleManualTerrainStop() {
   if (currentMode == MODE_AUTONOMOUS) {
-    sendHttpResponse(409, "application/json", "{\"success\":false,\"message\":\"Manual Terrain Mode cannot be stopped through manual controls while autonomous mode is active\"}");
+    markBleCommandRejected(409);
     return;
   }
   manualTerrainModeActive = false;
@@ -1305,7 +1302,7 @@ void runTerrainStep() {
 
 void handlePumpOn() {
   if (emergencyStopLatched) {
-    sendHttpResponse(423, "application/json", "{\"success\":false,\"message\":\"Emergency stop is latched\"}");
+    markBleCommandRejected(423);
     return;
   }
 	if (currentMode == MODE_AUTONOMOUS) {
