@@ -73,12 +73,37 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        return await transport.GetStatusAsync(cancellationToken);
+        var status = await transport.GetStatusAsync(cancellationToken);
+
+        // A connected MQTT broker is not proof that the ESP32 is alive.
+        // If the remote transport has no fresh robot telemetry, move to the
+        // local transport instead of reporting a stale/offline robot forever.
+        if (status is null && transport.TransportKind == RobotTransportKind.Remote)
+        {
+            var local = await TryConnectLocalTransportAsync(cancellationToken);
+            if (local is not null)
+            {
+                status = await local.GetStatusAsync(cancellationToken);
+            }
+        }
+
+        return status;
     }
 
     public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
+
+        // Check robot reachability before issuing a command over a broker
+        // session that may outlive the robot's connection to the internet.
+        if (transport.TransportKind == RobotTransportKind.Remote &&
+            await transport.GetStatusAsync(cancellationToken) is null)
+        {
+            transport = await TryConnectLocalTransportAsync(cancellationToken)
+                ?? throw new InvalidOperationException(
+                    "A-Rigator is not responding over IoT, and no local connection is available.");
+        }
+
         await transport.SendCommandAsync(command, cancellationToken);
     }
 
@@ -108,6 +133,40 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             transport => transport.TransportKind == RobotTransportKind.Local);
 
         localTransport?.SetRobotAddress(address);
+    }
+
+    private async Task<IRobotTransport?> TryConnectLocalTransportAsync(
+        CancellationToken cancellationToken)
+    {
+        var localTransport = _transports.FirstOrDefault(
+            transport => transport.TransportKind == RobotTransportKind.Local);
+        if (localTransport is null)
+            return null;
+
+        try
+        {
+            if (localTransport.ConnectionState != ConnectionState.Connected)
+            {
+                if (!await localTransport.CheckAvailabilityAsync(cancellationToken))
+                    return null;
+
+                await localTransport.ConnectAsync(cancellationToken);
+            }
+
+            _activeTransport = localTransport;
+            SetConnectionState(ConnectionState.Connected);
+            return localTransport;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            if (ReferenceEquals(_activeTransport, localTransport))
+                _activeTransport = null;
+            return null;
+        }
     }
 
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
