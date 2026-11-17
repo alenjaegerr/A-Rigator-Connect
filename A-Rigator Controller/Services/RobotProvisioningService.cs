@@ -28,9 +28,6 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         Guid.Parse("7a1c0004-8f2d-4b6a-9c31-4a5249474154");
     public static readonly Guid WifiStatusCharacteristicUuid =
         Guid.Parse("7a1c0005-8f2d-4b6a-9c31-4a5249474154");
-    public static readonly Guid ApConfigCharacteristicUuid =
-        Guid.Parse("7a1c0006-8f2d-4b6a-9c31-4a5249474154");
-
 
     private readonly Dictionary<string, IDevice> _discoveredDevices = new();
     private readonly SemaphoreSlim _gattLock = new(1, 1);
@@ -462,7 +459,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                     SetState(RobotProvisioningState.Failed);
                     var message = response switch
                     {
-                        "ERROR:CONNECT" => "A-Rigator could not join that network. Check the password and signal, then try again. Its hotspot remains available.",
+                        "ERROR:CONNECT" => "A-Rigator could not join that network. Check the password and signal, then try again. Bluetooth remains available for local control.",
                         "ERROR:SAVE" => "A-Rigator connected, but could not save the Wi-Fi profile.",
                         _ => $"A-Rigator rejected the Wi-Fi setup ({response})."
                     };
@@ -472,83 +469,12 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
 
             SetState(RobotProvisioningState.Failed);
             return new RobotProvisioningResult(false,
-                "A-Rigator did not confirm the connection in time. Its direct hotspot should still be available.");
+                "A-Rigator did not confirm the connection in time. Keep the robot nearby and retry over Bluetooth.");
         }
         catch
         {
             SetState(RobotProvisioningState.Failed);
             throw;
-        }
-        finally
-        {
-            _gattLock.Release();
-        }
-    }
-
-    public async Task<string> GetAccessPointPasswordAsync(
-        CancellationToken cancellationToken = default)
-    {
-        if (_connectedDevice is null)
-            throw new InvalidOperationException("Connect to A-Rigator over Bluetooth first.");
-
-        await _gattLock.WaitAsync(cancellationToken);
-        try
-        {
-            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
-            var characteristic = await service.GetCharacteristicAsync(ApConfigCharacteristicUuid, cancellationToken);
-            if (characteristic is null)
-                throw new InvalidOperationException("This firmware does not support AP credential recovery yet.");
-
-            await characteristic.WriteAsync(Encoding.UTF8.GetBytes("GET"), cancellationToken);
-            var read = await characteristic.ReadAsync(cancellationToken);
-            var response = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n');
-            const string prefix = "PASSWORD:";
-            if (!response.StartsWith(prefix, StringComparison.Ordinal))
-                throw new InvalidOperationException($"A-Rigator returned an unexpected AP credential response ({response}).");
-
-            var password = response[prefix.Length..];
-            if (password.Length < 8 || password.Length > 63)
-                throw new InvalidOperationException("A-Rigator returned an invalid AP password.");
-            return password;
-        }
-        finally
-        {
-            _gattLock.Release();
-        }
-    }
-
-    public async Task<RobotProvisioningResult> SetAccessPointPasswordAsync(
-        string newPassword,
-        CancellationToken cancellationToken = default)
-    {
-        if (_connectedDevice is null)
-            return new RobotProvisioningResult(false, "Connect to A-Rigator over Bluetooth first.");
-        if (Encoding.UTF8.GetByteCount(newPassword) is < 8 or > 63)
-            return new RobotProvisioningResult(false, "The AP password must be 8–63 UTF-8 bytes.");
-
-        await _gattLock.WaitAsync(cancellationToken);
-        try
-        {
-            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
-            var characteristic = await service.GetCharacteristicAsync(ApConfigCharacteristicUuid, cancellationToken);
-            if (characteristic is null)
-                return new RobotProvisioningResult(false, "This firmware does not support AP password changes yet.");
-
-            await characteristic.WriteAsync(Encoding.UTF8.GetBytes($"SET:{newPassword}"), cancellationToken);
-            var deadline = DateTimeOffset.UtcNow.AddSeconds(12);
-            while (DateTimeOffset.UtcNow < deadline)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(300, cancellationToken);
-                var read = await characteristic.ReadAsync(cancellationToken);
-                var response = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n');
-                if (response == "OK:AP_RESTARTED")
-                    return new RobotProvisioningResult(true, "AP password updated. Reconnect to A-Rigator using the new password.");
-                if (response.StartsWith("ERROR:", StringComparison.Ordinal))
-                    return new RobotProvisioningResult(false, $"A-Rigator could not change its AP password ({response}).");
-            }
-
-            return new RobotProvisioningResult(false, "A-Rigator did not confirm the AP restart. Keep the previous password until you reconnect and verify.");
         }
         finally
         {
