@@ -936,7 +936,7 @@ void playAudioTrack(uint16_t trackNumber) {
   if (!isWarning && (int32_t)(warningAudioPriorityUntil - now) > 0) return;
   if (isWarning) warningAudioPriorityUntil = now + WARNING_AUDIO_PRIORITY_MS;
 
-  audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
+  audioPlayer.play(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
 }
 
 void serviceObstacleAudioAlert(float distanceCm) {
@@ -1827,7 +1827,7 @@ void printMenu() {
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
   Serial.println("  LED ON / LED OFF          : Switch LED strips");
-  Serial.println("  AUDIO PLAY 1              : Play /mp3/0001.mp3");
+  Serial.println("  AUDIO PLAY 1              : Play root track 1 (0001.mp3)");
   Serial.println("  AUDIO VOL 0-30            : Set DFPlayer volume");
   Serial.println("  AUDIO STOP                : Stop audio playback");
   Serial.println("  AUDIO STATUS              : Show audio module status");
@@ -1884,7 +1884,7 @@ void executeSerialLine(String line) {
     return;
   }
   if (line == "AUDIO STATUS") {
-    Serial.printf(">> [AUDIO] DFPlayer: %s | Volume setting: %u/30 | Speaker: configured externally (8-ohm, 0.5W)\\n",
+    Serial.printf(">> [AUDIO] DFPlayer: %s | Volume setting: %u/30 | Speaker: configured externally (8-ohm, 0.5W)\n",
       audioAvailable ? "INITIALIZED" : "NOT DETECTED", audioVolume);
     return;
   }
@@ -1909,9 +1909,9 @@ void executeSerialLine(String line) {
       if (!audioAvailable) {
         Serial.println(">> [AUDIO] DFPlayer is not initialized; check 5V, GND, RX/TX, and SD card.");
       } else if (track < 1 || track > 99) {
-        Serial.println(">> [AUDIO] Track must be 1-99 (file path: /mp3/0001.mp3, etc.).");
+        Serial.println(">> [AUDIO] Track must be 1-99 (root file: 0001.mp3, etc.).");
       } else {
-        audioPlayer.playMp3Folder(track);
+        audioPlayer.play(track);
         Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\n", track);
       }
     } else if (action == "VOL") {
@@ -2076,7 +2076,7 @@ void setup() {
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
   initializeAudio();
-  playAudioTrack(1); // Startup: /mp3/0001.mp3
+  // Startup playback disabled during audio diagnostics; use AUDIO PLAY 1.
 
   pinMode(STEER_SERVO_PIN, OUTPUT);
   pinMode(NOZZLE_SERVO_PIN, OUTPUT);
@@ -2128,7 +2128,7 @@ void setup() {
 
   driveMotor(CMD_STOP, 0.0);
   setLedOutput(false); // Keep lighting off until explicitly tested from Serial Monitor.
-  playAudioTrack(2); // Ready: /mp3/0002.mp3
+  // Ready playback disabled during audio diagnostics; use AUDIO PLAY 2.
   printMenu();
 }
 
