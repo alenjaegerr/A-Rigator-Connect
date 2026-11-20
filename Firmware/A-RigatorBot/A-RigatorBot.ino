@@ -24,7 +24,10 @@ RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
 bool mqttConfigStoreAvailable = false;
 bool mqttConfigured = false;
-static const unsigned long MANUAL_CONTROL_TIMEOUT_MS = 750;
+// Manual actions persist until an explicit stop or a transport-loss safety stop.
+static const unsigned long MANUAL_CONTROL_TIMEOUT_MS = 0;
+volatile bool bleClientDisconnectedPending = false;
+bool manualControlViaMqtt = false;
 static const unsigned long BOOT_POWER_SETTLE_MS = 1500;
 RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
@@ -93,6 +96,7 @@ class RobotBleServerCallbacks : public BLEServerCallbacks {
   void onDisconnect(BLEServer* server) override {
     // ESP32 BLE stops advertising while a central is connected. Restart so
     // the app can reconnect after leaving range or closing the session.
+    bleClientDisconnectedPending = true;
     BLEDevice::startAdvertising();
     Serial.println(">> BLE client disconnected; advertising restarted.");
   }
@@ -658,6 +662,8 @@ void serviceBleControlCommands() {
     return;
   }
 
+  if (command != "heartbeat" && command != "irrigation_profile")
+    manualControlViaMqtt = false;
   bool supported = true;
   bleCommandRejected = false;
   bleCommandExecution = true;
@@ -1387,11 +1393,9 @@ void handlePumpOff() {
 }
 
 void handleHeartbeat() {
-  if (currentMode == MODE_MANUAL) {
-    refreshManualControlLease();
-  } else if (currentMode == MODE_AUTONOMOUS && autonomousControlLeaseActive) {
-    lastAutonomousHeartbeat = millis();
-  }
+  // Heartbeats no longer own the lifetime of a manual action or autonomous task.
+  // Manual actions end on explicit stop or transport loss; autonomous runs
+  // remain owned by the ESP32 until their own completion or safety stop.
   sendControlResponse("heartbeat");
 }
 
@@ -1484,6 +1488,7 @@ void serviceMqttCommands() {
 
   // Mark before execution so QoS 1 redelivery cannot repeat a physical action.
   rememberMqttCommand(commandId);
+  if (command != "heartbeat") manualControlViaMqtt = true;
 
   if (command == "stop") {
     handleStop();
@@ -1530,24 +1535,31 @@ void enforceAutonomousControlTimeout() {
   }
 }
 
-void enforceManualControlTimeout() {
-  if (manualControlLeaseActive && currentMode == MODE_MANUAL &&
-	  millis() - lastManualControlRefresh > MANUAL_CONTROL_TIMEOUT_MS) {
-	manualMotorDir = CMD_STOP;
-	driveMotor(CMD_BRAKE, 0.0);
-	setPump(false);
-    if (irrigationSequenceManual) {
-      irrigationSequenceActive = false;
-      irrigationSequenceSpraying = false;
-      irrigationSequenceManual = false;
-      writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
-    }
-    nozzleSweepActive = false;
-    writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
-	manualTerrainModeActive = false;
-    writeServo(STEER_SERVO_PIN, STEER_CENTER);
-	manualControlLeaseActive = false;
-	Serial.println(">> Manual control lease expired; motor, pump, and manual terrain steering stopped.");
+void stopManualOutputsForLinkLoss(const char* source) {
+  if (currentMode != MODE_MANUAL) return;
+  manualMotorDir = CMD_STOP;
+  manualControlLeaseActive = false;
+  manualTerrainModeActive = false;
+  nozzleSweepActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationSequenceManual = false;
+  driveMotor(CMD_BRAKE, 0.0);
+  setPump(false);
+  writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+  writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  Serial.printf(">> [SAFETY] Manual outputs stopped after %s connection loss.\\n", source);
+}
+
+void serviceControlLinkSafety() {
+  if (bleClientDisconnectedPending) {
+    bleClientDisconnectedPending = false;
+    if (!manualControlViaMqtt) stopManualOutputsForLinkLoss("Bluetooth");
+  }
+  if (manualControlViaMqtt && currentMode == MODE_MANUAL && mqttConfigured &&
+      !mqttManager.connected()) {
+    stopManualOutputsForLinkLoss("Remote IoT");
+    manualControlViaMqtt = false;
   }
 }
 
@@ -2060,8 +2072,7 @@ void loop() {
   }
   stationWasConnected = stationConnected;
 
-  enforceManualControlTimeout();
-  enforceAutonomousControlTimeout();
+  serviceControlLinkSafety();
   serviceNozzleSweep();
   serviceManualTerrainMode();
   if (irrigationSequenceActive && irrigationSequenceManual && currentMode == MODE_MANUAL)
