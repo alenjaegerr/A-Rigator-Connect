@@ -176,9 +176,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool IsRemoteModeSelected => PreferredConnectionMode == RobotConnectionMode.IoT;
 
-    public string ConnectionDetails => _latestStatus is null
-        ? "No recent robot telemetry is available."
-        : _latestStatus.ConnectionMode == RobotConnectionMode.BLE
+    public string ConnectionDetails => !IsConnected
+        ? $"Selected path: {ConnectionModeLabel}. Waiting for a connection."
+        : _latestStatus is null
+            ? "Connected, but waiting for fresh robot telemetry."
+            : _latestStatus.ConnectionMode == RobotConnectionMode.BLE
             ? (_latestStatus.WifiConnected == true
                 ? $"Local Bluetooth link active · Router Wi-Fi connected ({_latestStatus.WifiIp ?? "IP not reported"})"
                 : "Local Bluetooth link active · Router Wi-Fi is not connected; remote IoT unavailable")
