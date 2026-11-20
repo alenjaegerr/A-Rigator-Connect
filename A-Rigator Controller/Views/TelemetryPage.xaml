@@ -58,7 +58,11 @@
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="Battery level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                        <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Battery voltage" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        <Label Grid.Column="1" Text="{Binding BatteryVoltageStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="Front obstacle distance" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
@@ -84,7 +88,7 @@
                         <Label Text="Line sensor input · GPIO27" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                         <Label Grid.Column="1" Text="{Binding LineGpio27Status}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     </Grid>
-                    <Label Text="Reservoir level and battery remain unavailable because their sensor inputs are not yet installed or exposed by firmware." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="Reservoir level is not yet available. Battery percentage is a provisional voltage-based estimate and needs calibration." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
