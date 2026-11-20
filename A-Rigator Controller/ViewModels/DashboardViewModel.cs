@@ -73,6 +73,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
         StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
+        SelectBleModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.BLE));
+        SelectRemoteModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.IoT));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -160,12 +162,19 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _ => "UNAVAILABLE"
     };
 
-    public string ConnectionModeLabel => _latestStatus?.ConnectionMode switch
-    {
-        RobotConnectionMode.IoT => "IoT / Router Wi-Fi",
-        RobotConnectionMode.BLE => "Bluetooth · Local fallback",
-        _ => "Unknown / Searching"
-    };
+    public RobotConnectionMode PreferredConnectionMode => _communicationService.PreferredConnectionMode;
+
+    public string ConnectionModeLabel => PreferredConnectionMode == RobotConnectionMode.BLE
+        ? "BLE CONNECTION"
+        : "REMOTE CONNECTION";
+
+    public string ConnectionModeDescription => PreferredConnectionMode == RobotConnectionMode.BLE
+        ? "Bluetooth selected · Reconnect checks will look for the paired A-Rigator nearby."
+        : "Remote IoT selected · Reconnect checks will use the configured cloud connection only.";
+
+    public bool IsBleModeSelected => PreferredConnectionMode == RobotConnectionMode.BLE;
+
+    public bool IsRemoteModeSelected => PreferredConnectionMode == RobotConnectionMode.IoT;
 
     public string ConnectionDetails => _latestStatus is null
         ? "No recent robot telemetry is available."
@@ -291,6 +300,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public ICommand StopTerrainCommand { get; }
 
     public ICommand RetryConnectionCommand { get; }
+
+    public ICommand SelectBleModeCommand { get; }
+
+    public ICommand SelectRemoteModeCommand { get; }
 
 
     public void StartMonitoring()
@@ -591,13 +604,6 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 }
 
                 _reconnectTicks = 0;
-                var manualIntentActive = _activeMotorCommand is not null || _pumpRequested ||
-                    IsManualTerrainModeActive || _isNozzleSweepActive;
-                if ((IsAutonomous || manualIntentActive) && _latestStatus?.ControlsEnabled != false)
-                {
-                    await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
-                }
-
                 if (++statusCounter >= statusRefreshTicks)
                 {
                     statusCounter = 0;
@@ -610,12 +616,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
         catch (Exception)
         {
-            _activeMotorCommand = null;
-            _pumpRequested = false;
-            _isNozzleSweepActive = false;
-            IsManualTerrainModeActive = false;
-            Message = "Connection lost. The ESP32 manual-control timeout should stop manual outputs.";
-            NotifyControlStateChanged();
+            Message = "Connection monitor recovered from an unexpected error. Automatic reconnection will continue.";
+            NotifyConnectionStateChanged();
         }
     }
 
@@ -659,8 +661,33 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     private async Task SearchForRobotAsync()
     {
-        // Connection manager handles IoT-first discovery and BLE fallback.
         await RetryConnectionAsync();
+    }
+
+    private async Task SelectConnectionModeAsync(RobotConnectionMode mode)
+    {
+        if (PreferredConnectionMode == mode) return;
+        if (IsConnected)
+        {
+            try { await _communicationService.DisconnectAsync(); }
+            catch { /* Continue switching the selected path; reconnect will report any failure. */ }
+        }
+        _communicationService.PreferredConnectionMode = mode;
+        _latestStatus = null;
+        _activeMotorCommand = null;
+        _pumpRequested = false;
+        _isNozzleSweepActive = false;
+        IsManualTerrainModeActive = false;
+        Message = mode == RobotConnectionMode.BLE
+            ? "BLE selected. Searching for the paired robot nearby..."
+            : "Remote selected. Connecting through the configured IoT service...";
+        OnPropertyChanged(nameof(PreferredConnectionMode));
+        OnPropertyChanged(nameof(ConnectionModeLabel));
+        OnPropertyChanged(nameof(ConnectionModeDescription));
+        OnPropertyChanged(nameof(IsBleModeSelected));
+        OnPropertyChanged(nameof(IsRemoteModeSelected));
+        NotifyConnectionStateChanged();
+        await RetryConnectionAsync(quiet: true);
     }
 
     private void OnSelectedIrrigationProfileChanged(object? sender, EventArgs e)
@@ -696,6 +723,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(ConnectionStatus));
         OnPropertyChanged(nameof(ConnectionModeLabel));
+        OnPropertyChanged(nameof(ConnectionModeDescription));
+        OnPropertyChanged(nameof(PreferredConnectionMode));
+        OnPropertyChanged(nameof(IsBleModeSelected));
+        OnPropertyChanged(nameof(IsRemoteModeSelected));
         OnPropertyChanged(nameof(ConnectionDetails));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
