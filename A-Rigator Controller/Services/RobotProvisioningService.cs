@@ -102,7 +102,14 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
 
     public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
     {
-        await SendBleEnvelopeAsync(RobotBleProtocol.SerializeCommand(Guid.NewGuid().ToString("N"), command), cancellationToken);
+        // Heartbeats are safety-critical keepalives. The firmware executes them
+        // as soon as COMMIT is received, so waiting for a separate GATT
+        // acknowledgement only blocks the next heartbeat behind the GATT lock.
+        var isHeartbeat = command == RobotControlCommand.Heartbeat;
+        await SendBleEnvelopeAsync(
+            RobotBleProtocol.SerializeCommand(Guid.NewGuid().ToString("N"), command),
+            cancellationToken,
+            waitForAcknowledgement: !isHeartbeat);
     }
 
     public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
@@ -121,7 +128,10 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         // BLE identifies the robot by its connected GATT device, not a LAN address.
     }
 
-    private async Task SendBleEnvelopeAsync(string envelope, CancellationToken cancellationToken)
+    private async Task SendBleEnvelopeAsync(
+        string envelope,
+        CancellationToken cancellationToken,
+        bool waitForAcknowledgement = true)
     {
         if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
         {
@@ -132,11 +142,15 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         await _gattLock.WaitAsync(cancellationToken);
         try
         {
-            SetTransportState(ConnectionState.Connecting);
+            // A GATT operation is not a BLE reconnect. Keep the transport
+            // state Connected while commands are being written so the UI does
+            // not display its connection overlay for every manual-control press.
             var service = await _connectedDevice.GetServiceAsync(RobotBleProtocol.ServiceUuid, cancellationToken);
             var commandCharacteristic = await service.GetCharacteristicAsync(RobotBleProtocol.CommandCharacteristicUuid, cancellationToken);
-            var ackCharacteristic = await service.GetCharacteristicAsync(RobotBleProtocol.AcknowledgementCharacteristicUuid, cancellationToken);
-            if (commandCharacteristic is null || ackCharacteristic is null)
+            var ackCharacteristic = waitForAcknowledgement
+                ? await service.GetCharacteristicAsync(RobotBleProtocol.AcknowledgementCharacteristicUuid, cancellationToken)
+                : null;
+            if (commandCharacteristic is null || (waitForAcknowledgement && ackCharacteristic is null))
                 throw new InvalidOperationException("This firmware does not expose the BLE control protocol. Update the ESP32 firmware.");
 
             var commandBytes = Encoding.UTF8.GetBytes(envelope);
@@ -154,6 +168,17 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
                     Encoding.ASCII.GetBytes($"D{offset:D3}:{chunk}"), cancellationToken);
             }
             await commandCharacteristic.WriteAsync(Encoding.ASCII.GetBytes("COMMIT"), cancellationToken);
+
+            // The ESP32 processes the command synchronously on COMMIT. A
+            // heartbeat needs no user-facing acknowledgement; returning here
+            // releases the GATT lock quickly so the next keepalive is not held
+            // behind the normal four-second command-acknowledgement window.
+            if (!waitForAcknowledgement)
+            {
+                SetTransportState(ConnectionState.Connected);
+                return;
+            }
+
             using var document = JsonDocument.Parse(envelope);
             var commandId = document.RootElement.GetProperty("commandId").GetString();
             var deadline = DateTimeOffset.UtcNow.AddSeconds(4);
