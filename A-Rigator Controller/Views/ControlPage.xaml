@@ -23,7 +23,7 @@
                     <Label Text="{Binding ConnectionModeDescription}" FontSize="12" TextColor="{AppThemeBinding Light=#355B43, Dark=#B8DCC5}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Button Text="BLE" Command="{Binding SelectBleModeCommand}" MinimumHeightRequest="48"
-                                BackgroundColor="{Binding IsBleModeSelected, Converter={StaticResource BooleanToColorConverter}}"
+                                BackgroundColor="#176B45"
                                 TextColor="White" />
                         <Button Grid.Column="1" Text="REMOTE" Command="{Binding SelectRemoteModeCommand}" MinimumHeightRequest="48"
                                 BackgroundColor="#2879A8" TextColor="White" />
