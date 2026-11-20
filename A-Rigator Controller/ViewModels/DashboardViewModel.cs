@@ -121,7 +121,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string WaterStatus => "UNAVAILABLE";
 
-    public string BatteryStatus => "UNAVAILABLE";
+    private const float BatteryEmptyVoltage = 5.8f;
+    private const float BatteryFullVoltage = 7.2f;
+
+    public bool HasBatteryReading => _latestStatus?.BatteryVoltageValid == true && _latestStatus.BatteryVoltage is > 0;
+    public string BatteryVoltageStatus => HasBatteryReading ? $"{_latestStatus!.BatteryVoltage!.Value:0.00} V" : "Waiting for sensor";
+    // Provisional 2S LiFePO4 estimate; calibrate against the actual battery and a multimeter.
+    public int? BatteryPercentage => HasBatteryReading ? Math.Clamp((int)Math.Round((_latestStatus!.BatteryVoltage!.Value - BatteryEmptyVoltage) / (BatteryFullVoltage - BatteryEmptyVoltage) * 100), 0, 100) : null;
+    public double BatteryProgress => (BatteryPercentage ?? 0) / 100.0;
+    public string BatteryStatus => BatteryPercentage is int percentage ? $"{percentage}%" : "UNAVAILABLE";
+    public string BatteryIndicatorIcon => !HasBatteryReading ? "🔋" : BatteryPercentage <= 15 ? "🪫" : "🔋";
+    public string BatteryHealthLabel => !HasBatteryReading ? "NO READING" : BatteryPercentage <= 15 ? "LOW BATTERY" : BatteryPercentage <= 35 ? "BATTERY RESERVE" : "POWER GOOD";
+    public string BatteryEstimateNote => HasBatteryReading ? "Estimated from voltage · verify against your battery specification" : "Waiting for a valid voltage reading from the robot";
 
     public string ObstacleDistanceStatus => _latestStatus is
         { ObstacleEchoDetected: true, ObstacleDistanceCm: float distance }
@@ -772,6 +783,14 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(RobotStatus));
                 OnPropertyChanged(nameof(ModeStatus));
                 OnPropertyChanged(nameof(PumpStatus));
+                OnPropertyChanged(nameof(HasBatteryReading));
+                OnPropertyChanged(nameof(BatteryVoltageStatus));
+                OnPropertyChanged(nameof(BatteryPercentage));
+                OnPropertyChanged(nameof(BatteryProgress));
+                OnPropertyChanged(nameof(BatteryStatus));
+                OnPropertyChanged(nameof(BatteryIndicatorIcon));
+                OnPropertyChanged(nameof(BatteryHealthLabel));
+                OnPropertyChanged(nameof(BatteryEstimateNote));
                 OnPropertyChanged(nameof(ObstacleDistanceStatus));
                 OnPropertyChanged(nameof(ObstacleStatus));
                 OnPropertyChanged(nameof(ObstacleStopThresholdStatus));
