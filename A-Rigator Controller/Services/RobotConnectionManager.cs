@@ -1,4 +1,5 @@
 using A_Rigator_Controller.Models;
+using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller.Services;
 
@@ -11,8 +12,10 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private readonly IReadOnlyList<IRobotTransport> _transports;
     private IRobotTransport? _activeTransport;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
-    private DateTimeOffset _lastRemotePromotionAttempt = DateTimeOffset.MinValue;
-    private static readonly TimeSpan RemotePromotionRetryInterval = TimeSpan.FromSeconds(10);
+    private RobotConnectionMode _preferredConnectionMode =
+        Enum.TryParse<RobotConnectionMode>(Preferences.Get("arigator_preferred_connection_mode", "BLE"), true, out var savedMode)
+            ? savedMode
+            : RobotConnectionMode.BLE;
 
     public RobotConnectionManager(IEnumerable<IRobotTransport> transports)
     {
@@ -28,34 +31,36 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     public ConnectionState ConnectionState => _connectionState;
 
+    public RobotConnectionMode PreferredConnectionMode
+    {
+        get => _preferredConnectionMode;
+        set
+        {
+            if (value is not RobotConnectionMode.BLE and not RobotConnectionMode.IoT ||
+                _preferredConnectionMode == value) return;
+            _preferredConnectionMode = value;
+            Preferences.Set("arigator_preferred_connection_mode", value.ToString());
+            _activeTransport = null;
+            SetConnectionState(ConnectionState.Disconnected);
+        }
+    }
+
     public RobotTransportKind? ActiveTransportKind => _activeTransport?.TransportKind;
 
     public event Action<ConnectionState>? ConnectionStateChanged;
 
     public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var transport in _transports)
+        var transport = GetPreferredTransport();
+        if (transport is null) return false;
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                if (await transport.CheckAvailabilityAsync(cancellationToken))
-                {
-                    _activeTransport = transport;
-                    return true;
-                }
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                throw;
-            }
-            catch
-            {
-                // An unavailable path must not prevent trying the next transport.
-            }
+            var available = await transport.CheckAvailabilityAsync(cancellationToken);
+            if (available) _activeTransport = transport;
+            return available;
         }
-
-        return false;
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch { return false; }
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -76,145 +81,41 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
         var status = await transport.GetStatusAsync(cancellationToken);
-
-        // A connected MQTT broker is not proof that the ESP32 is alive.
-        // If the remote transport has no fresh robot telemetry, move to the
-        // local transport instead of reporting a stale/offline robot forever.
-        if (status is null && transport.TransportKind == RobotTransportKind.Remote)
-        {
-            var local = await TryConnectLocalTransportAsync(cancellationToken);
-            if (local is not null)
-            {
-                status = await local.GetStatusAsync(cancellationToken);
-                transport = local;
-            }
-        }
-        else if (status is null && transport.TransportKind == RobotTransportKind.Local)
-        {
-            // BLE may have dropped while the MQTT session recovered. Re-check
-            // the preferred remote path before declaring the robot offline.
-            var remote = _transports.FirstOrDefault(
-                candidate => candidate.TransportKind == RobotTransportKind.Remote);
-            if (remote is not null)
-            {
-                try
-                {
-                    if (remote.ConnectionState != ConnectionState.Connected &&
-                        await remote.CheckAvailabilityAsync(cancellationToken))
-                    {
-                        await remote.ConnectAsync(cancellationToken);
-                    }
-
-                    var remoteStatus = remote.ConnectionState == ConnectionState.Connected
-                        ? await remote.GetStatusAsync(cancellationToken)
-                        : null;
-                    if (remoteStatus is not null)
-                    {
-                        status = remoteStatus;
-                        transport = remote;
-                        _activeTransport = remote;
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch
-                {
-                    // The current BLE status is already unavailable; keep the
-                    // result null rather than inventing reachability.
-                }
-            }
-        }
-
         if (status is not null)
         {
-            status.ConnectionMode = transport.TransportKind == RobotTransportKind.Remote
-                ? RobotConnectionMode.IoT
-                : RobotConnectionMode.BLE;
+            status.ConnectionMode = PreferredConnectionMode;
             SetConnectionState(ConnectionState.Connected);
         }
         else
         {
-            // A broker session alone is not robot connectivity; BLE must also
-            // return fresh telemetry before the app reports the robot online.
+            _activeTransport = null;
             SetConnectionState(ConnectionState.Disconnected);
         }
-
         return status;
     }
 
     public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-
-        // Check robot reachability before issuing a command over a broker
-        // session that may outlive the robot's connection to the internet.
-        if (transport.TransportKind == RobotTransportKind.Remote &&
-            await transport.GetStatusAsync(cancellationToken) is null)
-        {
-            transport = await TryConnectLocalTransportAsync(cancellationToken)
-                ?? throw new InvalidOperationException(
-                    "A-Rigator is not responding over IoT, and no local connection is available.");
-        }
-
-        try
-        {
-            await transport.SendCommandAsync(command, cancellationToken);
-        }
-        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
-        {
-            // Safe fallback: the remote transport rejected this command before
-            // publishing it, so retrying over BLE cannot duplicate a robot action.
-            var local = await TryConnectLocalTransportAsync(cancellationToken)
-                ?? throw new InvalidOperationException("This command is not available over IoT, and Bluetooth is not connected.");
-            await local.SendCommandAsync(command, cancellationToken);
-        }
+        await transport.SendCommandAsync(command, cancellationToken);
     }
 
     public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        try
-        {
-            await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
-        }
-        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
-        {
-            var local = await TryConnectLocalTransportAsync(cancellationToken)
-                ?? throw new InvalidOperationException("Irrigation profile setup is not available over IoT, and Bluetooth is not connected.");
-            await local.ApplyIrrigationProfileAsync(profile, cancellationToken);
-        }
+        await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
     }
 
     public async Task StartManualIrrigationAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        try
-        {
-            await transport.StartManualIrrigationAsync(cancellationToken);
-        }
-        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
-        {
-            var local = await TryConnectLocalTransportAsync(cancellationToken)
-                ?? throw new InvalidOperationException("Manual irrigation is not available over IoT, and Bluetooth is not connected.");
-            await local.StartManualIrrigationAsync(cancellationToken);
-        }
+        await transport.StartManualIrrigationAsync(cancellationToken);
     }
 
     public async Task StopManualIrrigationAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
-        try
-        {
-            await transport.StopManualIrrigationAsync(cancellationToken);
-        }
-        catch (NotSupportedException) when (transport.TransportKind == RobotTransportKind.Remote)
-        {
-            var local = await TryConnectLocalTransportAsync(cancellationToken)
-                ?? throw new InvalidOperationException("Stopping manual irrigation is not available over IoT, and Bluetooth is not connected.");
-            await local.StopManualIrrigationAsync(cancellationToken);
-        }
+        await transport.StopManualIrrigationAsync(cancellationToken);
     }
 
     public void SetRobotAddress(string address)
@@ -263,118 +164,54 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
     {
-        if (_activeTransport is not null && _activeTransport.ConnectionState == ConnectionState.Connected)
+        var preferred = GetPreferredTransport();
+        if (preferred is null)
+            throw new InvalidOperationException("The selected connection mode is unavailable.");
+
+        if (_activeTransport == preferred && preferred.ConnectionState == ConnectionState.Connected)
         {
-            if (_activeTransport.TransportKind == RobotTransportKind.Local)
-            {
-                try
-                {
-                    // ConnectAsync is idempotent for a live BLE link and
-                    // reconnects the last paired device after a range loss.
-                    await _activeTransport.ConnectAsync(cancellationToken);
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch
-                {
-                    _activeTransport = null;
-                    SetConnectionState(ConnectionState.Disconnected);
-                    return await ConnectPreferredAvailableTransportAsync(cancellationToken);
-                }
-            }
-
-            // If the robot is currently being controlled over BLE, periodically
-            // check whether the preferred cloud path has recovered. Promote it
-            // only after fresh robot telemetry proves the ESP32 is reachable.
-            if (_activeTransport.TransportKind != RobotTransportKind.Remote &&
-                DateTimeOffset.UtcNow - _lastRemotePromotionAttempt >= RemotePromotionRetryInterval)
-            {
-                _lastRemotePromotionAttempt = DateTimeOffset.UtcNow;
-                var remote = _transports.FirstOrDefault(
-                    transport => transport.TransportKind == RobotTransportKind.Remote);
-                if (remote is not null)
-                {
-                    try
-                    {
-                        if (remote.ConnectionState != ConnectionState.Connected &&
-                            await remote.CheckAvailabilityAsync(cancellationToken))
-                        {
-                            await remote.ConnectAsync(cancellationToken);
-                        }
-
-                        if (remote.ConnectionState == ConnectionState.Connected &&
-                            await remote.GetStatusAsync(cancellationToken) is not null)
-                        {
-                            _activeTransport = remote;
-                            SetConnectionState(ConnectionState.Connected);
-                            return remote;
-                        }
-                    }
-                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                    {
-                        throw;
-                    }
-                    catch
-                    {
-                        // Keep the existing BLE session when cloud reachability
-                        // cannot be proven.
-                    }
-                }
-            }
-
-            return _activeTransport;
+            if (preferred.TransportKind == RobotTransportKind.Local)
+                await preferred.ConnectAsync(cancellationToken);
+            return preferred;
         }
 
         return await ConnectPreferredAvailableTransportAsync(cancellationToken);
     }
 
-    private async Task<IRobotTransport> ConnectPreferredAvailableTransportAsync(
-        CancellationToken cancellationToken)
+    private IRobotTransport? GetPreferredTransport() => _transports.FirstOrDefault(
+        transport => PreferredConnectionMode == RobotConnectionMode.IoT
+            ? transport.TransportKind == RobotTransportKind.Remote
+            : transport.TransportKind == RobotTransportKind.Local);
+
+    private async Task<IRobotTransport> ConnectPreferredAvailableTransportAsync(CancellationToken cancellationToken)
     {
         SetConnectionState(ConnectionState.Connecting);
-        Exception? lastError = null;
-
-        // _transports are ordered IoT first, then local BLE fallback.
-        foreach (var transport in _transports)
+        var transport = GetPreferredTransport();
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            try
-            {
-                if (transport.ConnectionState == ConnectionState.Connected)
-                {
-                    _activeTransport = transport;
-                    SetConnectionState(ConnectionState.Connected);
-                    return transport;
-                }
+            if (transport is null || !await transport.CheckAvailabilityAsync(cancellationToken))
+                throw new InvalidOperationException(PreferredConnectionMode == RobotConnectionMode.BLE
+                    ? "Bluetooth mode is selected. Pair with A-Rigator over Bluetooth first."
+                    : "Remote mode is selected, but no remote robot connection is configured.");
 
-                if (!await transport.CheckAvailabilityAsync(cancellationToken))
-                    continue;
-
+            if (transport.ConnectionState != ConnectionState.Connected)
                 await transport.ConnectAsync(cancellationToken);
-                _activeTransport = transport;
-                SetConnectionState(ConnectionState.Connected);
-                return transport;
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                SetConnectionState(ConnectionState.Disconnected);
-                throw;
-            }
-            catch (Exception error)
-            {
-                lastError = error;
-                if (ReferenceEquals(_activeTransport, transport))
-                    _activeTransport = null;
-                // A configured but unreachable IoT broker must not block BLE.
-            }
-        }
 
-        SetConnectionState(ConnectionState.Disconnected);
-        throw new InvalidOperationException(
-            "A-Rigator could not be reached over IoT or Bluetooth. Check the robot and try reconnecting.",
-            lastError);
+            _activeTransport = transport;
+            SetConnectionState(ConnectionState.Connected);
+            return transport;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
+        catch
+        {
+            _activeTransport = null;
+            SetConnectionState(ConnectionState.Disconnected);
+            throw;
+        }
     }
 
     private void OnTransportConnectionStateChanged(IRobotTransport transport, ConnectionState state)
