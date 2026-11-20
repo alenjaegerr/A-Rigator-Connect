@@ -130,8 +130,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public int? BatteryPercentage => HasBatteryReading ? Math.Clamp((int)Math.Round((_latestStatus!.BatteryVoltage!.Value - BatteryEmptyVoltage) / (BatteryFullVoltage - BatteryEmptyVoltage) * 100), 0, 100) : null;
     public double BatteryProgress => (BatteryPercentage ?? 0) / 100.0;
     public string BatteryStatus => BatteryPercentage is int percentage ? $"{percentage}%" : "UNAVAILABLE";
-    public string BatteryIndicatorIcon => !HasBatteryReading ? "🔋" : BatteryPercentage <= 15 ? "🪫" : "🔋";
-    public string BatteryHealthLabel => !HasBatteryReading ? "NO READING" : BatteryPercentage <= 15 ? "LOW BATTERY" : BatteryPercentage <= 35 ? "BATTERY RESERVE" : "POWER GOOD";
+    public string BatteryIndicatorIcon => BatteryPercentage is int percentage && percentage <= 15 ? "🪫" : "🔋";
+    public string BatteryHealthLabel => !HasBatteryReading ? "NO READING" : BatteryPercentage is int percentage && percentage <= 15 ? "LOW BATTERY" : BatteryPercentage is int reserve && reserve <= 35 ? "BATTERY RESERVE" : "POWER GOOD";
     public string BatteryEstimateNote => HasBatteryReading ? "Estimated from voltage · verify against your battery specification" : "Waiting for a valid voltage reading from the robot";
 
     public string ObstacleDistanceStatus => _latestStatus is
