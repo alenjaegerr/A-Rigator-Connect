@@ -498,8 +498,6 @@ void startBleDiscovery() {
 #define WATER_TRIG_PIN      25
 #define WATER_ECHO_PIN      26
 
-#define CHASSIS_BTN_PIN     15    // Reserved; physical emergency-stop wiring to be verified
-
 // Added peripherals (ESP32-WROOM-32U)
 #define DFPLAYER_RX_PIN     16    // ESP32 RX2 <- DFPlayer TX
 #define DFPLAYER_TX_PIN     17    // ESP32 TX2 -> DFPlayer RX
@@ -565,10 +563,9 @@ int terrainPatternIndex = 0;
 unsigned long lastTerrainSteeringStep = 0;
 uint8_t manualMotorDir = CMD_STOP;
 bool pumpState = false;
-// Software emergency-stop latch. Physical GPIO15 activation remains disabled
-// until the combined chassis button board is electrically verified.
+// Emergency-stop latch is controlled by firmware commands; the chassis reset
+// buttons are wired directly to ESP32 EN and do not consume a GPIO.
 bool emergencyStopLatched = false;
-static const bool PHYSICAL_ESTOP_INPUT_ENABLED = false;
 bool nozzleSweepActive = false;
 bool manualTerrainModeActive = false;
 int manualTerrainSteeringAngle = STEER_LEFT;
