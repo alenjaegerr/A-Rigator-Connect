@@ -24,8 +24,10 @@ RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
 bool mqttConfigStoreAvailable = false;
 bool mqttConfigured = false;
-// Manual actions persist until an explicit stop or a transport-loss safety stop.
+// BLE manual actions persist until stop or BLE disconnect. Remote manual control
+// uses a short session lease because the ESP32's broker connection can outlive the phone.
 static const unsigned long MANUAL_CONTROL_TIMEOUT_MS = 0;
+static const unsigned long REMOTE_MANUAL_CONTROL_TIMEOUT_MS = 1500;
 volatile bool bleClientDisconnectedPending = false;
 bool manualControlViaMqtt = false;
 static const unsigned long BOOT_POWER_SETTLE_MS = 1500;
@@ -1393,9 +1395,10 @@ void handlePumpOff() {
 }
 
 void handleHeartbeat() {
-  // Heartbeats no longer own the lifetime of a manual action or autonomous task.
-  // Manual actions end on explicit stop or transport loss; autonomous runs
-  // remain owned by the ESP32 until their own completion or safety stop.
+  // BLE actions are event-driven and do not need heartbeats. Remote manual
+  // control uses heartbeats as a phone-session lease; autonomous work never does.
+  if (currentMode == MODE_MANUAL && manualControlViaMqtt)
+    refreshManualControlLease();
   sendControlResponse("heartbeat");
 }
 
@@ -1557,9 +1560,19 @@ void serviceControlLinkSafety() {
     if (!manualControlViaMqtt) stopManualOutputsForLinkLoss("Bluetooth");
   }
   if (manualControlViaMqtt && currentMode == MODE_MANUAL && mqttConfigured &&
-      !mqttManager.connected()) {
+      (WiFi.status() != WL_CONNECTED || !mqttManager.connected())) {
     stopManualOutputsForLinkLoss("Remote IoT");
     manualControlViaMqtt = false;
+  }
+}
+
+void enforceRemoteManualControlTimeout() {
+  if (manualControlViaMqtt && manualControlLeaseActive &&
+      currentMode == MODE_MANUAL &&
+      millis() - lastManualControlRefresh > REMOTE_MANUAL_CONTROL_TIMEOUT_MS) {
+    stopManualOutputsForLinkLoss("Remote control session");
+    manualControlViaMqtt = false;
+    Serial.println(">> [SAFETY] Remote manual-control session expired; phone heartbeat was lost.");
   }
 }
 
@@ -2073,6 +2086,7 @@ void loop() {
   stationWasConnected = stationConnected;
 
   serviceControlLinkSafety();
+  enforceRemoteManualControlTimeout();
   serviceNozzleSweep();
   serviceManualTerrainMode();
   if (irrigationSequenceActive && irrigationSequenceManual && currentMode == MODE_MANUAL)
