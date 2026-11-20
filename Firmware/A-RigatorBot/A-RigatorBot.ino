@@ -762,7 +762,7 @@ void publishBleTelemetryIfDue() {
       millis() - lastBleTelemetryAt < 1000) return;
   lastBleTelemetryAt = millis();
 
-  StaticJsonDocument<768> doc;
+  StaticJsonDocument<896> doc;
   doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
   doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
                  ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
@@ -774,6 +774,8 @@ void publishBleTelemetryIfDue() {
     default: doc["autonomousMode"] = "NONE"; break;
   }
   doc["pumpIsOn"] = pumpState;
+  doc["batteryVoltage"] = batteryVoltageValid ? batteryVoltage : 0.0f;
+  doc["batteryVoltageValid"] = batteryVoltageValid;
   doc["controlsEnabled"] = controlsEnabled;
   doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
   doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
@@ -787,6 +789,8 @@ void publishBleTelemetryIfDue() {
   String payload;
   serializeJson(doc, payload);
   bleControlTelemetryCharacteristic->setValue(payload.c_str());
+  // Keep BLE and Remote IoT dashboards on the same telemetry contract.
+  if (mqttManager.connected()) mqttManager.publishTelemetry(payload);
 }
 
 
