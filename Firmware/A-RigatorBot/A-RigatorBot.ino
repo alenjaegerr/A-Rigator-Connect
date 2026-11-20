@@ -26,7 +26,6 @@ bool mqttConfigStoreAvailable = false;
 bool mqttConfigured = false;
 // BLE manual actions persist until stop or BLE disconnect. Remote manual control
 // uses a short session lease because the ESP32's broker connection can outlive the phone.
-static const unsigned long MANUAL_CONTROL_TIMEOUT_MS = 0;
 static const unsigned long REMOTE_MANUAL_CONTROL_TIMEOUT_MS = 1500;
 volatile bool bleClientDisconnectedPending = false;
 bool manualControlViaMqtt = false;
@@ -781,7 +780,7 @@ void publishBleTelemetryIfDue() {
   doc["hostname"] = "A-Rigator";
   doc["obstacleDistanceCm"] = getObstacleDistanceCM();
   doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
-  doc["manualControlTimeoutMs"] = MANUAL_CONTROL_TIMEOUT_MS;
+  doc["manualControlTimeoutMs"] = REMOTE_MANUAL_CONTROL_TIMEOUT_MS;
   doc["lineGpio14"] = digitalRead(14) == HIGH;
   doc["lineGpio27"] = digitalRead(27) == HIGH;
   doc["connectionMode"] = "BLE";
