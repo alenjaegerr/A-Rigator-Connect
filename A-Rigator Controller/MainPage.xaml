@@ -72,11 +72,25 @@
                         <Label Text="Water level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                         <Label Grid.Column="1" Text="{Binding WaterStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     </Grid>
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Battery" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                        <Label Grid.Column="1" Text="{Binding BatteryStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                    </Grid>
-                    <Label Text="Water and battery readings will appear when the firmware reports those measurements." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#F1F7F2, Dark=#26372C}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#3B5142}" StrokeShape="RoundRectangle 16">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding BatteryIndicatorIcon}" FontSize="30" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="BATTERY" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                                    <Label Text="{Binding BatteryHealthLabel}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="{Binding BatteryStatus}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" VerticalOptions="Center" />
+                            </Grid>
+                            <ProgressBar Progress="{Binding BatteryProgress}" ProgressColor="#39A96B" BackgroundColor="{AppThemeBinding Light=#DCE6DF, Dark=#405447}" HeightRequest="10" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding BatteryVoltageStatus}" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                                <Label Grid.Column="1" Text="LIVE VOLTAGE" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
+                            </Grid>
+                            <Label Text="{Binding BatteryEstimateNote}" FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Label Text="Water level will appear when its sensor is installed and calibrated." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
