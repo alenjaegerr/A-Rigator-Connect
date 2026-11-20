@@ -1912,7 +1912,7 @@ void executeSerialLine(String line) {
         Serial.println(">> [AUDIO] Track must be 1-99 (file path: /mp3/0001.mp3, etc.).");
       } else {
         audioPlayer.playMp3Folder(track);
-        Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\\n", track);
+        Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\n", track);
       }
     } else if (action == "VOL") {
       const int requestedVolume = value.toInt();
@@ -1923,7 +1923,7 @@ void executeSerialLine(String line) {
       } else {
         audioVolume = (uint8_t)requestedVolume;
         audioPlayer.volume(audioVolume);
-        Serial.printf(">> [AUDIO] Volume set to %u/30.\\n", audioVolume);
+        Serial.printf(">> [AUDIO] Volume set to %u/30.\n", audioVolume);
       }
     } else {
       Serial.println(">> [AUDIO] Use AUDIO PLAY <track>, AUDIO VOL <0-30>, AUDIO STOP, or AUDIO STATUS.");
