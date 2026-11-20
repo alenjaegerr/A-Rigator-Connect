@@ -6,6 +6,8 @@ public sealed class UnavailableRobotCommunicationService : IRobotCommunicationSe
 {
     public ConnectionState ConnectionState => ConnectionState.Disconnected;
 
+    public RobotConnectionMode PreferredConnectionMode { get; set; } = RobotConnectionMode.BLE;
+
     public event Action<ConnectionState>? ConnectionStateChanged;
 
     public Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
