@@ -1,5 +1,6 @@
 using A_Rigator_Controller.Models;
 using Microsoft.Maui.Storage;
+using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller.Services;
 
@@ -30,6 +31,20 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     }
 
     public ConnectionState ConnectionState => _connectionState;
+
+    public RobotConnectionMode PreferredConnectionMode
+    {
+        get => _preferredConnectionMode;
+        set
+        {
+            if (value is not RobotConnectionMode.BLE and not RobotConnectionMode.IoT ||
+                _preferredConnectionMode == value) return;
+            _preferredConnectionMode = value;
+            Preferences.Set("arigator_preferred_connection_mode", value.ToString());
+            _activeTransport = null;
+            SetConnectionState(ConnectionState.Disconnected);
+        }
+    }
 
     public RobotConnectionMode PreferredConnectionMode
     {
@@ -177,6 +192,11 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
         return await ConnectPreferredAvailableTransportAsync(cancellationToken);
     }
+
+    private IRobotTransport? GetPreferredTransport() => _transports.FirstOrDefault(
+        transport => PreferredConnectionMode == RobotConnectionMode.IoT
+            ? transport.TransportKind == RobotTransportKind.Remote
+            : transport.TransportKind == RobotTransportKind.Local);
 
     private IRobotTransport? GetPreferredTransport() => _transports.FirstOrDefault(
         transport => PreferredConnectionMode == RobotConnectionMode.IoT
