@@ -12,6 +12,10 @@ public sealed class RobotStatus
 
     public bool PumpIsOn { get; init; }
 
+    public float? BatteryVoltage { get; init; }
+
+    public bool BatteryVoltageValid { get; init; }
+
     public bool ControlsEnabled { get; init; }
 
     public bool? WifiConnected { get; init; }
