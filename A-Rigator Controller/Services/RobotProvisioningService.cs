@@ -186,7 +186,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 await Task.Delay(120, cancellationToken);
-                var read = await ackCharacteristic.ReadAsync(cancellationToken);
+                var read = await ackCharacteristic!.ReadAsync(cancellationToken);
                 using var ackDocument = JsonDocument.Parse(Encoding.UTF8.GetString(read.data));
                 var root = ackDocument.RootElement;
                 var ackId = root.TryGetProperty("commandId", out var idElement) ? idElement.GetString() : null;
