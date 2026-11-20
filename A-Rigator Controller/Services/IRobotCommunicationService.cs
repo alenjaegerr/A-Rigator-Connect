@@ -6,6 +6,8 @@ public interface IRobotCommunicationService
 {
     ConnectionState ConnectionState { get; }
 
+    RobotConnectionMode PreferredConnectionMode { get; set; }
+
     event Action<ConnectionState>? ConnectionStateChanged;
 
     Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default);
