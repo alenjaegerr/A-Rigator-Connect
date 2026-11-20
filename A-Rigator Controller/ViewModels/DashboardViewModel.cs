@@ -192,11 +192,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         ? "ROBOT CONNECTION LOST"
         : "ROBOT NOT CONNECTED";
 
-    public string ConnectionRecoveryMessage => _latestStatus?.ConnectionMode switch
+    public string ConnectionRecoveryMessage => PreferredConnectionMode switch
     {
-        RobotConnectionMode.IoT => "The IoT path is unavailable. The app will try the paired Bluetooth connection automatically.",
-        RobotConnectionMode.BLE => "The Bluetooth connection was lost. Keep the robot nearby and reconnect over Bluetooth.",
-        _ => "A-Rigator is not responding. Check that the robot is powered on, then retry IoT or Bluetooth connection."
+        RobotConnectionMode.IoT => "REMOTE is selected. The app will keep retrying the configured IoT connection and will not switch to Bluetooth.",
+        RobotConnectionMode.BLE => "BLE is selected. The app will keep searching for the paired robot nearby and will not switch to Remote.",
+        _ => "Select BLE or Remote to choose which connection path the app should retry."
     };
 
     public string Message
@@ -633,7 +633,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
         _hasAttemptedConnection = true;
         if (!quiet)
-            Message = "Searching for A-Rigator on the last known network and setup AP...";
+            Message = PreferredConnectionMode == RobotConnectionMode.BLE
+                ? "Searching for the paired A-Rigator over Bluetooth..."
+                : "Connecting to A-Rigator through the configured Remote IoT service...";
 
         NotifyConnectionStateChanged();
         try
@@ -653,7 +655,9 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         catch (Exception)
         {
             if (!quiet)
-                Message = "A-Rigator was not found. Check that it is powered on and nearby, then retry the IoT or Bluetooth connection.";
+                Message = PreferredConnectionMode == RobotConnectionMode.BLE
+                    ? "A-Rigator was not found over Bluetooth. Check that it is powered on and nearby."
+                    : "A-Rigator is not reachable through Remote IoT. Check its router connection and cloud configuration.";
         }
 
         NotifyConnectionStateChanged();
