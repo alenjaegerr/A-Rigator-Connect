@@ -1,12 +1,11 @@
 using A_Rigator_Controller.Models;
 using Microsoft.Maui.Storage;
-using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller.Services;
 
 /// <summary>
-/// Coordinates robot communication paths. Remote IoT is preferred; local
-/// transports (BLE after the AP migration) are used when IoT is unavailable.
+/// Coordinates the selected robot communication path. BLE and Remote IoT are
+/// explicit user choices; this manager never silently switches transports.
 /// </summary>
 public sealed class RobotConnectionManager : IRobotCommunicationService
 {
@@ -14,20 +13,18 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private IRobotTransport? _activeTransport;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
     private RobotConnectionMode _preferredConnectionMode =
-        Enum.TryParse<RobotConnectionMode>(Preferences.Get("arigator_preferred_connection_mode", "BLE"), true, out var savedMode)
-            ? savedMode
-            : RobotConnectionMode.BLE;
+        Enum.TryParse<RobotConnectionMode>(
+            Preferences.Get("arigator_preferred_connection_mode", "BLE"),
+            true,
+            out var savedMode) && savedMode is RobotConnectionMode.BLE or RobotConnectionMode.IoT
+                ? savedMode
+                : RobotConnectionMode.BLE;
 
     public RobotConnectionManager(IEnumerable<IRobotTransport> transports)
     {
-        _transports = transports
-            .OrderBy(transport => transport.TransportKind == RobotTransportKind.Remote ? 0 : 1)
-            .ToArray();
-
+        _transports = transports.ToArray();
         foreach (var transport in _transports)
-        {
             transport.ConnectionStateChanged += state => OnTransportConnectionStateChanged(transport, state);
-        }
     }
 
     public ConnectionState ConnectionState => _connectionState;
@@ -38,29 +35,15 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
         set
         {
             if (value is not RobotConnectionMode.BLE and not RobotConnectionMode.IoT ||
-                _preferredConnectionMode == value) return;
+                _preferredConnectionMode == value)
+                return;
+
             _preferredConnectionMode = value;
             Preferences.Set("arigator_preferred_connection_mode", value.ToString());
             _activeTransport = null;
             SetConnectionState(ConnectionState.Disconnected);
         }
     }
-
-    public RobotConnectionMode PreferredConnectionMode
-    {
-        get => _preferredConnectionMode;
-        set
-        {
-            if (value is not RobotConnectionMode.BLE and not RobotConnectionMode.IoT ||
-                _preferredConnectionMode == value) return;
-            _preferredConnectionMode = value;
-            Preferences.Set("arigator_preferred_connection_mode", value.ToString());
-            _activeTransport = null;
-            SetConnectionState(ConnectionState.Disconnected);
-        }
-    }
-
-    public RobotTransportKind? ActiveTransportKind => _activeTransport?.TransportKind;
 
     public event Action<ConnectionState>? ConnectionStateChanged;
 
@@ -68,20 +51,25 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     {
         var transport = GetPreferredTransport();
         if (transport is null) return false;
+
         try
         {
             var available = await transport.CheckAvailabilityAsync(cancellationToken);
             if (available) _activeTransport = transport;
             return available;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch { return false; }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
-    public async Task ConnectAsync(CancellationToken cancellationToken = default)
-    {
-        await ConnectPreferredAvailableTransportAsync(cancellationToken);
-    }
+    public Task ConnectAsync(CancellationToken cancellationToken = default) =>
+        ConnectPreferredTransportAsync(cancellationToken);
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
@@ -96,26 +84,29 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
         var status = await transport.GetStatusAsync(cancellationToken);
-        if (status is not null)
-        {
-            status.ConnectionMode = PreferredConnectionMode;
-            SetConnectionState(ConnectionState.Connected);
-        }
-        else
+        if (status is null)
         {
             _activeTransport = null;
             SetConnectionState(ConnectionState.Disconnected);
+            return null;
         }
+
+        status.ConnectionMode = PreferredConnectionMode;
+        SetConnectionState(ConnectionState.Connected);
         return status;
     }
 
-    public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
+    public async Task SendCommandAsync(
+        RobotControlCommand command,
+        CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
         await transport.SendCommandAsync(command, cancellationToken);
     }
 
-    public async Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
+    public async Task ApplyIrrigationProfileAsync(
+        IrrigationProfile profile,
+        CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
         await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
@@ -135,47 +126,15 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     public void SetRobotAddress(string address)
     {
-        // Address configuration belongs to a local transport. Remote IoT is
-        // addressed by the provisioned robot identity, not a LAN address.
-        var localTransport = _transports.FirstOrDefault(
-            transport => transport.TransportKind == RobotTransportKind.Local);
-
-        localTransport?.SetRobotAddress(address);
+        _transports.FirstOrDefault(transport => transport.TransportKind == RobotTransportKind.Local)
+            ?.SetRobotAddress(address);
     }
 
-    private async Task<IRobotTransport?> TryConnectLocalTransportAsync(
-        CancellationToken cancellationToken)
-    {
-        var localTransport = _transports.FirstOrDefault(
-            transport => transport.TransportKind == RobotTransportKind.Local);
-        if (localTransport is null)
-            return null;
-
-        try
-        {
-            if (localTransport.ConnectionState != ConnectionState.Connected)
-            {
-                if (!await localTransport.CheckAvailabilityAsync(cancellationToken))
-                    return null;
-
-                await localTransport.ConnectAsync(cancellationToken);
-            }
-
-            _activeTransport = localTransport;
-            SetConnectionState(ConnectionState.Connected);
-            return localTransport;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            if (ReferenceEquals(_activeTransport, localTransport))
-                _activeTransport = null;
-            return null;
-        }
-    }
+    private IRobotTransport? GetPreferredTransport() =>
+        _transports.FirstOrDefault(transport =>
+            PreferredConnectionMode == RobotConnectionMode.IoT
+                ? transport.TransportKind == RobotTransportKind.Remote
+                : transport.TransportKind == RobotTransportKind.Local);
 
     private async Task<IRobotTransport> GetActiveTransportAsync(CancellationToken cancellationToken)
     {
@@ -183,36 +142,32 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
         if (preferred is null)
             throw new InvalidOperationException("The selected connection mode is unavailable.");
 
-        if (_activeTransport == preferred && preferred.ConnectionState == ConnectionState.Connected)
+        if (ReferenceEquals(_activeTransport, preferred) &&
+            preferred.ConnectionState == ConnectionState.Connected)
         {
             if (preferred.TransportKind == RobotTransportKind.Local)
                 await preferred.ConnectAsync(cancellationToken);
+
             return preferred;
         }
 
-        return await ConnectPreferredAvailableTransportAsync(cancellationToken);
+        return await ConnectPreferredTransportAsync(cancellationToken);
     }
 
-    private IRobotTransport? GetPreferredTransport() => _transports.FirstOrDefault(
-        transport => PreferredConnectionMode == RobotConnectionMode.IoT
-            ? transport.TransportKind == RobotTransportKind.Remote
-            : transport.TransportKind == RobotTransportKind.Local);
-
-    private IRobotTransport? GetPreferredTransport() => _transports.FirstOrDefault(
-        transport => PreferredConnectionMode == RobotConnectionMode.IoT
-            ? transport.TransportKind == RobotTransportKind.Remote
-            : transport.TransportKind == RobotTransportKind.Local);
-
-    private async Task<IRobotTransport> ConnectPreferredAvailableTransportAsync(CancellationToken cancellationToken)
+    private async Task<IRobotTransport> ConnectPreferredTransportAsync(CancellationToken cancellationToken)
     {
         SetConnectionState(ConnectionState.Connecting);
         var transport = GetPreferredTransport();
+
         try
         {
             if (transport is null || !await transport.CheckAvailabilityAsync(cancellationToken))
-                throw new InvalidOperationException(PreferredConnectionMode == RobotConnectionMode.BLE
-                    ? "Bluetooth mode is selected. Pair with A-Rigator over Bluetooth first."
-                    : "Remote mode is selected, but no remote robot connection is configured.");
+            {
+                throw new InvalidOperationException(
+                    PreferredConnectionMode == RobotConnectionMode.BLE
+                        ? "BLE mode is selected. Pair with A-Rigator over Bluetooth first, then keep the robot nearby."
+                        : "Remote mode is selected, but the configured IoT connection is not available.");
+            }
 
             if (transport.ConnectionState != ConnectionState.Connected)
                 await transport.ConnectAsync(cancellationToken);
@@ -242,9 +197,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     private void SetConnectionState(ConnectionState state)
     {
-        if (_connectionState == state)
-            return;
-
+        if (_connectionState == state) return;
         _connectionState = state;
         ConnectionStateChanged?.Invoke(state);
     }
