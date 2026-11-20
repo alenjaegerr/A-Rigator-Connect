@@ -360,7 +360,7 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
 
     if (command == "SCAN" || command == "scan") {
       // Start a fresh scan and clear any previous payload.
-      bleWifiScanJson = "{\\"networks\\":[]}";
+      bleWifiScanJson = "{\"networks\":[]}";
       bleWifiScanRequested = true;
       characteristic->setValue("SCANNING");
       return;
