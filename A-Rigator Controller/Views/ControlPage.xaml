@@ -16,6 +16,22 @@
                 <ActivityIndicator IsRunning="{Binding IsCommandRunning}" IsVisible="{Binding IsCommandRunning}" Color="#238653" HorizontalOptions="Start" />
             </VerticalStackLayout>
 
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=#E7F4EB, Dark=#203A2B}" Stroke="{AppThemeBinding Light=#176B45, Dark=#4E9D70}" StrokeThickness="2" StrokeShape="RoundRectangle 18">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ACTIVE CONNECTION MODE" FontSize="11" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                    <Label Text="{Binding ConnectionModeLabel}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#123D28, Dark=#DDF5E5}" />
+                    <Label Text="{Binding ConnectionModeDescription}" FontSize="12" TextColor="{AppThemeBinding Light=#355B43, Dark=#B8DCC5}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="BLE" Command="{Binding SelectBleModeCommand}" MinimumHeightRequest="48"
+                                BackgroundColor="{Binding IsBleModeSelected, Converter={StaticResource BooleanToColorConverter}}"
+                                TextColor="White" />
+                        <Button Grid.Column="1" Text="REMOTE" Command="{Binding SelectRemoteModeCommand}" MinimumHeightRequest="48"
+                                BackgroundColor="#2879A8" TextColor="White" />
+                    </Grid>
+                    <Label Text="Reconnect checks follow this selection. The app will not silently switch connection paths." FontSize="11" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="14" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 14">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
