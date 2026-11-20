@@ -603,6 +603,7 @@ bool controlsEnabled = false;
 HardwareSerial audioSerial(2);
 DFRobotDFPlayerMini audioPlayer;
 bool audioAvailable = false;
+uint8_t audioVolume = 15;
 bool ledOutputEnabled = false;
 float batteryVoltage = 0.0f;
 bool batteryVoltageValid = false;
@@ -1825,6 +1826,11 @@ void printMenu() {
   Serial.println("  p : Toggle Water Pump     |  r : Reset Motor Shield");
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
+  Serial.println("  LED ON / LED OFF          : Switch LED strips");
+  Serial.println("  AUDIO PLAY 1              : Play /mp3/0001.mp3");
+  Serial.println("  AUDIO VOL 0-30            : Set DFPlayer volume");
+  Serial.println("  AUDIO STOP                : Stop audio playback");
+  Serial.println("  AUDIO STATUS              : Show audio module status");
   Serial.println("  L 5 : Left sweep, 5 sec   |  R 5 : Right sweep, 5 sec");
   Serial.println("  B 5 : Back sweep, 5 sec   |  D 5 : Both sides, 5 sec each");
   Serial.println("  F 5 2 : Full sweep, 5 sec each, repeat twice");
@@ -1861,6 +1867,67 @@ void executeSerialLine(String line) {
       currentMode == MODE_AUTONOMOUS ? "AUTONOMOUS" : "MANUAL", pumpState ? "ON" : "OFF",
       irrigationSequenceActive ? "RUNNING" : "IDLE", WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED",
       WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString().c_str() : "none");
+    return;
+  }
+  if (line == "LED ON") {
+    if (emergencyStopLatched) {
+      Serial.println(">> [LED] Rejected: emergency stop is latched.");
+    } else {
+      setLedOutput(true);
+      Serial.println(">> [LED] Output ON. Check strip supply voltage and wiring.");
+    }
+    return;
+  }
+  if (line == "LED OFF") {
+    setLedOutput(false);
+    Serial.println(">> [LED] Output OFF.");
+    return;
+  }
+  if (line == "AUDIO STATUS") {
+    Serial.printf(">> [AUDIO] DFPlayer: %s | Volume setting: %u/30 | Speaker: configured externally (8-ohm, 0.5W)\\n",
+      audioAvailable ? "INITIALIZED" : "NOT DETECTED", audioVolume);
+    return;
+  }
+  if (line == "AUDIO STOP") {
+    if (!audioAvailable) {
+      Serial.println(">> [AUDIO] DFPlayer is not initialized.");
+    } else {
+      audioPlayer.stop();
+      Serial.println(">> [AUDIO] Stop command sent.");
+    }
+    return;
+  }
+  if (line.startsWith("AUDIO ")) {
+    String args = line.substring(6);
+    args.trim();
+    const int separator = args.indexOf(' ');
+    const String action = separator < 0 ? args : args.substring(0, separator);
+    String value = separator < 0 ? "" : args.substring(separator + 1);
+    value.trim();
+    if (action == "PLAY") {
+      const int track = value.toInt();
+      if (!audioAvailable) {
+        Serial.println(">> [AUDIO] DFPlayer is not initialized; check 5V, GND, RX/TX, and SD card.");
+      } else if (track < 1 || track > 99) {
+        Serial.println(">> [AUDIO] Track must be 1-99 (file path: /mp3/0001.mp3, etc.).");
+      } else {
+        audioPlayer.playMp3Folder(track);
+        Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\\n", track);
+      }
+    } else if (action == "VOL") {
+      const int requestedVolume = value.toInt();
+      if (value.length() == 0 || requestedVolume < 0 || requestedVolume > 30) {
+        Serial.println(">> [AUDIO] Volume must be between 0 and 30.");
+      } else if (!audioAvailable) {
+        Serial.println(">> [AUDIO] DFPlayer is not initialized.");
+      } else {
+        audioVolume = (uint8_t)requestedVolume;
+        audioPlayer.volume(audioVolume);
+        Serial.printf(">> [AUDIO] Volume set to %u/30.\\n", audioVolume);
+      }
+    } else {
+      Serial.println(">> [AUDIO] Use AUDIO PLAY <track>, AUDIO VOL <0-30>, AUDIO STOP, or AUDIO STATUS.");
+    }
     return;
   }
   const int split = line.indexOf(' ');
@@ -2060,7 +2127,7 @@ void setup() {
   initializeMotorShield();
 
   driveMotor(CMD_STOP, 0.0);
-  setLedOutput(true);
+  setLedOutput(false); // Keep lighting off until explicitly tested from Serial Monitor.
   playAudioTrack(2); // Ready: /mp3/0002.mp3
   printMenu();
 }
