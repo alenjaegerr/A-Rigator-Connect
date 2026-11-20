@@ -551,7 +551,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         _activeMotorCommand = null;
         _pumpRequested = false;
-        Message = "Stop requested. The ESP32 also stops outputs if its manual-control lease expires.";
+        Message = "Stop requested. The robot will stop outputs if the selected control connection is lost.";
         NotifyControlStateChanged();
         if (await SendCommandAsync(RobotControlCommand.Stop, CancellationToken.None))
         {
@@ -604,6 +604,17 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 }
 
                 _reconnectTicks = 0;
+
+                // Only Remote mode needs a phone-session heartbeat. BLE manual
+                // actions are event-driven and the ESP32 detects BLE disconnects.
+                var manualIntentActive = _activeMotorCommand is not null || _pumpRequested ||
+                    IsManualTerrainModeActive || _isNozzleSweepActive;
+                if (PreferredConnectionMode == RobotConnectionMode.IoT &&
+                    manualIntentActive && _latestStatus?.ControlsEnabled != false)
+                {
+                    await SendCommandAsync(RobotControlCommand.Heartbeat, cancellationToken);
+                }
+
                 if (++statusCounter >= statusRefreshTicks)
                 {
                     statusCounter = 0;
@@ -798,7 +809,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         {
             if (command is not RobotControlCommand.Stop and not RobotControlCommand.PumpOff and not RobotControlCommand.Heartbeat)
             {
-                Message = "Robot disconnected. The ESP32 timeout should stop manual outputs.";
+                Message = "Robot disconnected. The robot's connection-loss safety shutdown will stop manual outputs.";
             }
             return false;
         }
