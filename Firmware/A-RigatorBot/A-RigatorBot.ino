@@ -481,11 +481,11 @@ void startBleDiscovery() {
 // ============================================================================
 #define SDA_PIN             21    // WeMos Shield D2 (SDA)
 #define SCL_PIN             22    // WeMos Shield D1 (SCL)
-#define SHIELD_RST_PIN      5     // WeMos Shield RST (D5 on ESP32)
+#define SHIELD_RST_PIN      23    // WeMos Shield RST (moved off boot-strapping GPIO5)
 
 #define PUMP_RELAY_PIN      4     // Relay IN (D4 on ESP32)
 #define STEER_SERVO_PIN     13    // MG996R Steering Servo (D13 on ESP32)
-#define NOZZLE_SERVO_PIN    12    // Nozzle Sweep Servo (D12 on ESP32)
+#define NOZZLE_SERVO_PIN    33    // Nozzle Sweep Servo (moved off boot-strapping GPIO12)
 
 #define LINE_LEFT_PIN       14    // TCRT5000 Left Digital (D14)
 #define LINE_RIGHT_PIN      27    // TCRT5000 Right Digital (D27)
