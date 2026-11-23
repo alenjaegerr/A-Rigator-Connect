@@ -159,8 +159,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
             {
                 version = 1,
                 commandId,
-                robotId = _options!.RobotId,
-                command = commandName,
+                                command = commandName,
                 issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 ttlMs,
                 payload = new { }
@@ -214,7 +213,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
             throw new InvalidOperationException("The remote MQTT connection could not be established.");
     }
 
-    private string Topic(string leaf) => $"arigator/v1/{_options!.RobotId}/{leaf}";
+    private static string Topic(string leaf) => $"arigator/v1/{leaf}";
 
     private Task HandleMessageAsync(MqttApplicationMessageReceivedEventArgs args)
     {
