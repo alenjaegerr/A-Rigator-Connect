@@ -1470,7 +1470,6 @@ void publishMqttCommandAck(const String& commandId, const char* status,
   StaticJsonDocument<384> ack;
   ack["version"] = 1;
   ack["commandId"] = commandId;
-  ack["robotId"] = mqttManager.robotId();
   ack["status"] = status;
   ack["code"] = code;
   ack["message"] = message;
@@ -1493,13 +1492,12 @@ void serviceMqttCommands() {
 
   const int version = document["version"] | 0;
   const String commandId = document["commandId"] | "";
-  const String robotId = document["robotId"] | "";
   const String command = document["command"] | "";
   const uint32_t issuedAt = document["issuedAt"] | 0;
   const uint32_t ttlMs = document["ttlMs"] | 0;
 
   if (version != 1 || commandId.length() < 8 || commandId.length() > 64 ||
-      robotId != mqttManager.robotId() || command.length() == 0) {
+      command.length() == 0) {
     publishMqttCommandAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
     return;
   }
