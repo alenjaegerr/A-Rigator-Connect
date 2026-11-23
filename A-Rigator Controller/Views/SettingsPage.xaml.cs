@@ -48,14 +48,21 @@ public partial class SettingsPage : ContentPage
 
         try
         {
-            var devices = await _robotProvisioningService.ScanForRobotsAsync();
-            if (devices.Count == 0)
+            var alreadyKnown = await _robotProvisioningService.CheckAvailabilityAsync();
+            if (alreadyKnown)
             {
-                await DisplayAlert("A-Rigator not found", "Bring A-Rigator nearby and turn it on, then try again.", "OK");
-                return;
+                await _robotProvisioningService.ConnectAsync();
             }
-
-            await _robotProvisioningService.ConnectToRobotAsync(devices[0].Id);
+            else
+            {
+                var devices = await _robotProvisioningService.ScanForRobotsAsync();
+                if (devices.Count == 0)
+                {
+                    await DisplayAlert("A-Rigator not found", "Bring A-Rigator nearby and turn it on, then try again.", "OK");
+                    return;
+                }
+                await _robotProvisioningService.ConnectToRobotAsync(devices[0].Id);
+            }
             var result = await _robotProvisioningService.ForgetSavedWifiAsync();
             await DisplayAlert(result.Success ? "Wi-Fi forgotten" : "Couldn't forget Wi-Fi", result.Message, "OK");
         }
