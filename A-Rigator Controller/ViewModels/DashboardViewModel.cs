@@ -75,9 +75,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
         SelectBleModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.BLE));
         SelectRemoteModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.IoT));
+        ChangeWifiNetworkCommand = new Command(() => RemoteWifiSetupRequested?.Invoke(this, EventArgs.Empty));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler? RemoteWifiSetupRequested;
 
     public ObservableCollection<IrrigationProfile> IrrigationProfiles => _irrigationProfileService.Profiles;
 
@@ -207,6 +209,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
+    public bool IsRemoteDisconnected => PreferredConnectionMode == RobotConnectionMode.IoT && IsDisconnectedNoticeVisible;
+
     public string ConnectionNoticeTitle => _hasEverConnected
         ? "A-Rigator connection lost"
         : "A-Rigator isn't connected yet";
@@ -326,6 +330,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public ICommand SelectRemoteModeCommand { get; }
 
+    public ICommand ChangeWifiNetworkCommand { get; }
 
     public void StartMonitoring()
     {
@@ -769,6 +774,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RemoteModeButtonText));
         OnPropertyChanged(nameof(ConnectionDetails));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
+        OnPropertyChanged(nameof(IsRemoteDisconnected));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
         OnPropertyChanged(nameof(IsConnected));
