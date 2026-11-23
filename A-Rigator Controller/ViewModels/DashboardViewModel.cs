@@ -193,6 +193,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public bool IsRemoteModeSelected => PreferredConnectionMode == RobotConnectionMode.IoT;
 
+    public string LocalModeButtonText => IsBleModeSelected ? "Local · Selected" : "Local";
+
+    public string RemoteModeButtonText => IsRemoteModeSelected ? "Remote · Selected" : "Remote";
+
     public string ConnectionDetails => !IsConnected
         ? "Waiting to connect to A-Rigator."
         : _latestStatus is null
@@ -718,6 +722,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ConnectionModeDescription));
         OnPropertyChanged(nameof(IsBleModeSelected));
         OnPropertyChanged(nameof(IsRemoteModeSelected));
+        OnPropertyChanged(nameof(LocalModeButtonText));
+        OnPropertyChanged(nameof(RemoteModeButtonText));
         NotifyConnectionStateChanged();
         await RetryConnectionAsync(quiet: true);
     }
@@ -759,6 +765,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PreferredConnectionMode));
         OnPropertyChanged(nameof(IsBleModeSelected));
         OnPropertyChanged(nameof(IsRemoteModeSelected));
+        OnPropertyChanged(nameof(LocalModeButtonText));
+        OnPropertyChanged(nameof(RemoteModeButtonText));
         OnPropertyChanged(nameof(ConnectionDetails));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
