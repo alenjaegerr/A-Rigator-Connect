@@ -27,9 +27,9 @@
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="ROBOT CONNECTIVITY" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Label Text="Wi-Fi provisioning" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
-                    <Label Text="Connect A-Rigator to a Wi-Fi network through robot setup. The app can then communicate with the robot over the configured network, without requiring your phone to remain connected to the robot's setup access point." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                    <Button Text="OPEN ROBOT SETUP" Clicked="OnRobotSetupClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                    <Label Text="Connection mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label Text="Choose whether to control A-Rigator nearby or over the internet. You can change this whenever you need." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Button Text="CHANGE CONNECTION" Clicked="OnRobotSetupClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
