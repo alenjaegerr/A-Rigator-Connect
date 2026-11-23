@@ -41,6 +41,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             WifiPassword = string.Empty;
             _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
+            OnPropertyChanged(nameof(SuccessfulResultMessage));
             SetStage(PairingStage.VerifyConnection);
         }, () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
