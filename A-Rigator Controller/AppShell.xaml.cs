@@ -1,3 +1,4 @@
+using A_Rigator_Controller.Models;
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
