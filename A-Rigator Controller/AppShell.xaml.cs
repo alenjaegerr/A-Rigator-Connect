@@ -34,7 +34,7 @@ public partial class AppShell : Shell
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
         if (hasDisplayName && !hasCompletedSetup)
-            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
+            pairingPage.StartNewPairingFlow();
 
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
@@ -130,11 +130,18 @@ public partial class AppShell : Shell
 
         welcomePage.DisplayNameSaved += async (_, _) =>
         {
-            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
+            pairingPage.StartNewPairingFlow();
             await GoToAsync("//setup/pairing");
         };
 
-        pairingPage.DashboardPreviewRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
+        pairingPage.DashboardPreviewRequested += async (_, _) =>
+        {
+            var pairingViewModel = pairingPage.BindingContext as PairingViewModel;
+            if (pairingViewModel?.IsRemoteSetup == true)
+                await ShowDashboardAsync();
+            else
+                await ShowRemoteAccessInfoAsync();
+        };
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
         remoteWifiSetupPage.RemoteSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
