@@ -224,7 +224,7 @@
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="The app checks the IoT connection first. If the cloud path is unavailable, it checks the paired Bluetooth connection."
+                        <Label Text="Let's make sure A-Rigator is ready to connect."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Border Padding="14"
@@ -246,9 +246,6 @@
                                 <Label Text="✓ Router credentials sent to A-Rigator"
                                        FontSize="14"
                                        TextColor="#176B45" />
-                                <Label Text="• Live MQTT connection and remote command test are not yet available in this app build."
-                                       FontSize="13"
-                                       TextColor="#8A5A18" />
                             </VerticalStackLayout>
                         </Border>
                         <Label Text="{Binding ResultMessage}"
@@ -289,18 +286,18 @@
                                FontAttributes="Bold"
                                TextColor="#176B45"
                                HorizontalTextAlignment="Center" />
-                        <Label Text="A-Rigator is paired. IoT is preferred, and Bluetooth is available for local control when the cloud connection is unavailable."
+                        <Label Text="A-Rigator is ready. Choose how you'd like to connect."
                                FontSize="14"
                                TextColor="#35443B"
                                HorizontalTextAlignment="Center" />
-                        <Button Text="OPEN DASHBOARD"
+                        <Button Text="CONTINUE"
                                 Command="{Binding OpenDashboardPreviewCommand}"
                                 MinimumHeightRequest="54"
                                 CornerRadius="14"
                                 FontAttributes="Bold"
                                 BackgroundColor="#176B45"
                                 TextColor="White" />
-                        <Button Text="SET UP ANOTHER CONNECTION"
+                        <Button Text="CHOOSE CONNECTION"
                                 Command="{Binding OpenRemoteWifiSetupCommand}"
                                 MinimumHeightRequest="46"
                                 CornerRadius="12"
