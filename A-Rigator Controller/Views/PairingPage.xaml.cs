@@ -54,5 +54,10 @@ public partial class PairingPage : ContentPage
         ((PairingViewModel)BindingContext).StartNewPairingFlow(isRemoteSetup);
     }
 
+    public Task BeginDiscoveryFlowAsync(bool isRemoteSetup)
+    {
+        return ((PairingViewModel)BindingContext).BeginDiscoveryFlowAsync(isRemoteSetup);
+    }
+
 
 }
