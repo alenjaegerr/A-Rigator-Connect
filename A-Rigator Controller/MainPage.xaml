@@ -66,12 +66,54 @@
             </Grid>
 
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}" StrokeShape="RoundRectangle 18">
-                <VerticalStackLayout Spacing="9">
-                    <Label Text="ROBOT HEALTH" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                <VerticalStackLayout Spacing="14">
                     <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="Water level" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                        <Label Grid.Column="1" Text="{Binding WaterStatus}" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="WATER RESERVOIR" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="Tank level monitoring" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" Padding="9,6" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" StrokeThickness="0" StrokeShape="RoundRectangle 10" VerticalOptions="Center">
+                            <Label Text="SENSOR PENDING" FontSize="9" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
+                        </Border>
                     </Grid>
+
+                    <Grid ColumnDefinitions="124,*" ColumnSpacing="16">
+                        <!-- Conceptual reservoir graphic. No level or capacity is fabricated. -->
+                        <Grid Grid.Column="0" WidthRequest="116" HeightRequest="176" HorizontalOptions="Center">
+                            <Grid RowDefinitions="22,*,12" RowSpacing="0">
+                                <Border Grid.Row="0" WidthRequest="48" HeightRequest="13" HorizontalOptions="Center" BackgroundColor="{AppThemeBinding Light=#52615A, Dark=#91A49A}" StrokeThickness="0" StrokeShape="RoundRectangle 4" />
+                                <Grid Grid.Row="1" Margin="8,0">
+                                    <Border Stroke="{AppThemeBinding Light=#8DA99A, Dark=#647F70}" StrokeThickness="2.5" BackgroundColor="{AppThemeBinding Light=#F1F7F2, Dark=#202E25}" StrokeShape="RoundRectangle 13">
+                                        <Grid Padding="9" RowDefinitions="*,*,*">
+                                            <BoxView Grid.Row="0" HeightRequest="1" VerticalOptions="End" Color="{AppThemeBinding Light=#D5E1D9, Dark=#405447}" />
+                                            <BoxView Grid.Row="1" HeightRequest="1" VerticalOptions="End" Color="{AppThemeBinding Light=#D5E1D9, Dark=#405447}" />
+                                            <Label Grid.Row="2" Text="TANK" FontSize="10" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" TextColor="{AppThemeBinding Light=#8A9B91, Dark=#70877A}" />
+                                        </Grid>
+                                    </Border>
+                                    <BoxView WidthRequest="2" HeightRequest="35" VerticalOptions="Start" HorizontalOptions="Center" Margin="0,0,0,0" Color="{AppThemeBinding Light=#8DB5C7, Dark=#5E91A8}" Opacity="0.9" />
+                                    <BoxView WidthRequest="42" HeightRequest="2" VerticalOptions="Start" HorizontalOptions="Center" Margin="0,34,0,0" Color="{AppThemeBinding Light=#8DB5C7, Dark=#5E91A8}" Opacity="0.75" />
+                                </Grid>
+                                <Label Grid.Row="2" Text="RESERVOIR" FontSize="8" CharacterSpacing="1" HorizontalOptions="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            </Grid>
+                        </Grid>
+
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="8">
+                            <Label Text="WATER LEVEL" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Label Text="{Binding WaterStatus}" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                            <Label Text="Waiting for the ultrasonic sensor to be installed and calibrated." FontSize="12" LineBreakMode="WordWrap" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <Border Padding="9,7" BackgroundColor="{AppThemeBinding Light=#EAF3EE, Dark=#26372C}" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                                <Label Text="Capacity and mounting position not configured" FontSize="10" TextColor="{AppThemeBinding Light=#426451, Dark=#B8D7C3}" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <BoxView HeightRequest="1" Color="{AppThemeBinding Light=#E4EBE6, Dark=#34443A}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="LEVEL SENSOR" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                        <Label Grid.Column="1" Text="NOT INSTALLED" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#A16A16, Dark=#F4D58D}" />
+                    </Grid>
+                    <Label Text="The tank graphic is ready for live readings. The fill animation, percentage and estimated volume will activate after sensor placement and empty/full calibration." FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+
                     <Border Padding="14" BackgroundColor="{AppThemeBinding Light=#F1F7F2, Dark=#26372C}" Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#3B5142}" StrokeShape="RoundRectangle 16">
                         <VerticalStackLayout Spacing="10">
                             <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
@@ -90,7 +132,6 @@
                             <Label Text="{Binding BatteryEstimateNote}" FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                         </VerticalStackLayout>
                     </Border>
-                    <Label Text="Water level will appear when its sensor is installed and calibrated." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                 </VerticalStackLayout>
             </Border>
 
