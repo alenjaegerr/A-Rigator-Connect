@@ -13,7 +13,7 @@ public sealed class RemoteRobotConfigurationStore : IRemoteRobotConfigurationSto
     // Remove these hardcoded credentials after STI EXPO and restore secure
     // credential provisioning before any production release.
     private const string DemoMqttUsername = "a-rigator-demo";
-    private const string DemoMqttPassword = "69420";
+    private const string DemoMqttPassword = "12345678";
 
     public async Task<RemoteRobotConnectionOptions?> LoadAsync(CancellationToken cancellationToken = default)
     {
