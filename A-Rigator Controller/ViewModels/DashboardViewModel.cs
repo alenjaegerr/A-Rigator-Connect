@@ -253,13 +253,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? $"Wi-Fi signal: {GetWifiSignalQuality(rssi)} ({rssi} dBm)"
             : "Wi-Fi signal strength unavailable";
 
-    public string LastRemoteUpdateStatus => _communicationService.LastRemoteTelemetryAt is not DateTimeOffset updatedAt
-        ? "No robot updates received yet"
-        : (DateTimeOffset.UtcNow - updatedAt).TotalSeconds < 2
+    public string LastRemoteUpdateStatus => _communicationService.LastRemoteTelemetryAt is DateTimeOffset updatedAt
+        ? (DateTimeOffset.UtcNow - updatedAt).TotalSeconds < 2
             ? "Last robot update: just now"
             : (DateTimeOffset.UtcNow - updatedAt).TotalMinutes >= 1
                 ? $"Last robot update: {(int)(DateTimeOffset.UtcNow - updatedAt).TotalMinutes} min ago"
-                : $"Last robot update: {(int)(DateTimeOffset.UtcNow - updatedAt).TotalSeconds} sec ago";
+                : $"Last robot update: {(int)(DateTimeOffset.UtcNow - updatedAt).TotalSeconds} sec ago"
+        : "No robot updates received yet";
 
     private static string GetWifiSignalQuality(int rssi) => rssi switch
     {
