@@ -193,7 +193,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         private set => SetField(ref _errorMessage, value);
     }
 
-    public string SuccessfulResultMessage => "A-Rigator is ready. Choose how you'd like to connect.";
+    public string SuccessfulResultMessage => IsRemoteSetup
+        ? "A-Rigator is ready for remote access."
+        : "A-Rigator is ready. Choose how you'd like to connect.";
+
+    public string CompletionButtonText => IsRemoteSetup
+        ? "Continue to Dashboard"
+        : "Choose connection";
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
@@ -235,6 +241,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         _isRemoteSetup = isRemoteSetup;
         OnPropertyChanged(nameof(IsRemoteSetup));
+        OnPropertyChanged(nameof(SuccessfulResultMessage));
+        OnPropertyChanged(nameof(CompletionButtonText));
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         IsConnectionVerified = false;
@@ -324,7 +332,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             IsBleConnected = true;
             BleStatusMessage = $"Connected to {SelectedBleRobot.Name}.";
 
-            if (_isRemoteSetup)
+            if (_accountService.IsAuthenticated)
             {
                 var hardwareId = await _robotProvisioningService.GetConnectedRobotHardwareIdAsync();
                 var registration = await _robotCloudService.RegisterRobotAsync(hardwareId, "A-Rigator");
