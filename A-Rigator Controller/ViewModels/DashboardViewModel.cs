@@ -73,8 +73,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
         StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
-        RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
-        SelectBleModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.BLE));
+        RetryConnectionCommand = new Command(() => ReconnectRequested?.Invoke(this, EventArgs.Empty), () => !IsConnecting);
+        SelectBleModeCommand = new Command(() => LocalModeSelectionRequested?.Invoke(this, EventArgs.Empty));
         SelectRemoteModeCommand = new Command(() => RemoteModeSelectionRequested?.Invoke(this, EventArgs.Empty));
         ChangeWifiNetworkCommand = new Command(() => RemoteWifiSetupRequested?.Invoke(this, EventArgs.Empty));
     }
@@ -82,6 +82,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? RemoteWifiSetupRequested;
     public event EventHandler? RemoteModeSelectionRequested;
+    public event EventHandler? LocalModeSelectionRequested;
+    public event EventHandler? ReconnectRequested;
 
     public ObservableCollection<IrrigationProfile> IrrigationProfiles => _irrigationProfileService.Profiles;
 
