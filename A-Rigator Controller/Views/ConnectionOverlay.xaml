@@ -22,7 +22,7 @@
                        FontAttributes="Bold"
                        HorizontalTextAlignment="Center"
                        TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                <Label Text="Establishing a local robot connection…"
+                <Label Text="Looking for your A-Rigator nearby…"
                        FontSize="13"
                        HorizontalTextAlignment="Center"
                        TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
