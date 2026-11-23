@@ -844,12 +844,11 @@ void sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
 }
 
 void driveMotor(uint8_t dir, float speed_percent) {
-  // Remember the actual output so the keep-alive repeats the current command,
-  // whether the robot is moving, coasting, or braking.
+  // A-Rigator has one physical drive motor connected to channel A only.
+  // Channel B is intentionally left unused.
   lastShieldMotorDirection = dir;
   lastShieldMotorSpeed = speed_percent;
   sendRawPacket(MOTOR_A, dir, speed_percent);
-  sendRawPacket(MOTOR_B, dir, speed_percent);
   lastShieldKeepAlive = millis();
 }
 
@@ -859,10 +858,9 @@ void refreshMotorShieldKeepAlive() {
     return;
   }
 
-  // Send the last motor state to both channels. Do not use driveMotor()
+  // Refresh only the connected drive channel. Do not use driveMotor()
   // here because this is a refresh, not a new motor-state change.
   sendRawPacket(MOTOR_A, lastShieldMotorDirection, lastShieldMotorSpeed);
-  sendRawPacket(MOTOR_B, lastShieldMotorDirection, lastShieldMotorSpeed);
   lastShieldKeepAlive = millis();
 }
 
