@@ -50,16 +50,14 @@
                     <Label Text="CONNECTION MODE" FontSize="11" FontAttributes="Bold"
                            TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Local"
+                        <Button Text="{Binding LocalModeButtonText}"
                                 Command="{Binding SelectBleModeCommand}"
-                                IsEnabled="{Binding IsRemoteModeSelected}"
                                 MinimumHeightRequest="46"
                                 BackgroundColor="#238653"
                                 TextColor="White" />
                         <Button Grid.Column="1"
-                                Text="Remote"
+                                Text="{Binding RemoteModeButtonText}"
                                 Command="{Binding SelectRemoteModeCommand}"
-                                IsEnabled="{Binding IsBleModeSelected}"
                                 MinimumHeightRequest="46"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
