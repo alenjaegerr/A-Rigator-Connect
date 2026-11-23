@@ -10,6 +10,14 @@ public interface IRobotCommunicationService
 
     event Action<ConnectionState>? ConnectionStateChanged;
 
+    bool IsRemoteBrokerConnected { get; }
+
+    bool IsRemoteRobotResponsive { get; }
+
+    DateTimeOffset? LastRemoteTelemetryAt { get; }
+
+    event Action? RemoteHealthChanged;
+
     Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default);
 
     Task ConnectAsync(CancellationToken cancellationToken = default);
