@@ -193,9 +193,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         private set => SetField(ref _errorMessage, value);
     }
 
-    public string SuccessfulResultMessage => IsRemoteSetup
-        ? "A-Rigator is ready for remote access."
-        : "A-Rigator is ready. Choose how you'd like to connect.";
+    public string SuccessfulResultMessage => !IsRemoteSetup
+        ? "A-Rigator is ready. Choose how you'd like to connect."
+        : _robotCommunicationService.PreferredConnectionMode == RobotConnectionMode.IoT
+            ? "A-Rigator is ready for remote access."
+            : "A-Rigator is ready for local control.";
 
     public string CompletionButtonText => IsRemoteSetup
         ? "Continue to Dashboard"
