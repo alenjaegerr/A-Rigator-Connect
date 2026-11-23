@@ -144,6 +144,14 @@
                                FontSize="14"
                                FontAttributes="Bold"
                                TextColor="#176B45" />
+                        <Button Text="Keep saved network"
+                                Command="{Binding KeepSavedWifiCommand}"
+                                IsVisible="{Binding HasSavedWifiNetwork}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="44"
+                                CornerRadius="12"
+                                BackgroundColor="#E7F2EA"
+                                TextColor="#176B45" />
                         <Button Text="Forget saved Wi-Fi network"
                                 Command="{Binding ForgetSavedWifiCommand}"
                                 IsVisible="{Binding HasSavedWifiNetwork}"
