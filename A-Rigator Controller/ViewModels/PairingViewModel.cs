@@ -469,6 +469,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 WifiPassword = string.Empty;
+                SavedWifiNetwork = SelectedWifiNetwork.Ssid;
+                SavedWifiStatusMessage = $"A-Rigator is connected to {SavedWifiNetwork} and has saved this network.";
                 BleStatusMessage = "A-Rigator is connected to Wi-Fi. You can still control it nearby.";
 
                 if (_isRemoteSetup)
