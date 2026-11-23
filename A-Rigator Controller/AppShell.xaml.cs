@@ -164,6 +164,7 @@ public partial class AppShell : Shell
     {
         var pairingPage = _pairingPage;
         if (pairingPage is null) return;
+        _dashboardViewModel.StopMonitoring();
         pairingPage.StartNewPairingFlow(isRemoteSetup: true);
         await GoToAsync("//setup/pairing");
     }
