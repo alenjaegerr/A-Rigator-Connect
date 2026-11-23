@@ -33,8 +33,14 @@ public partial class SettingsPage : ContentPage
 
     private async void OnRobotSetupClicked(object sender, EventArgs e)
     {
-        if (Shell.Current is AppShell shell)
-            await shell.ShowRemoteAccessInfoAsync();
+        try
+        {
+            await Shell.Current.GoToAsync("//setup/remote-connection");
+        }
+        catch
+        {
+            await DisplayAlert("Couldn't open connection settings", "Please return to the Home screen and try again.", "OK");
+        }
     }
 
     private async void OnForgetWifiClicked(object sender, EventArgs e)
