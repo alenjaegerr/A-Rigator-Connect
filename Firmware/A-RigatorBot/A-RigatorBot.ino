@@ -1490,10 +1490,24 @@ void serviceMqttCommands() {
 
   // Mark before execution so QoS 1 redelivery cannot repeat a physical action.
   rememberMqttCommand(commandId);
-  if (command != "heartbeat") manualControlViaMqtt = true;
+  if (command == "autonomous_start" || command == "autonomous_stop") {
+    // An autonomous task is owned by the robot after it starts, not by the
+    // lifetime of the phone's MQTT session.
+    manualControlViaMqtt = false;
+  } else if (command != "heartbeat") {
+    manualControlViaMqtt = true;
+  }
 
   if (command == "stop") {
     handleStop();
+  } else if (command == "autonomous_start") {
+    if (emergencyStopLatched) {
+      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+      return;
+    }
+    handleAutonomousStart();
+  } else if (command == "autonomous_stop") {
+    handleAutonomousStop();
   } else if (command == "forward" || command == "reverse") {
     if (emergencyStopLatched) {
       publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
