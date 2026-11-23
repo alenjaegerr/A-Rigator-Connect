@@ -10,15 +10,18 @@ public sealed class RemoteWifiSetupViewModel : INotifyPropertyChanged
 {
     private readonly IAccountService _accountService;
     private readonly IRobotCommunicationService _robotCommunicationService;
+    private readonly DashboardViewModel _dashboardViewModel;
     private string _statusMessage = "Choose how you'd like to connect to A-Rigator.";
     private bool _isBusy;
 
     public RemoteWifiSetupViewModel(
         IAccountService accountService,
-        IRobotCommunicationService robotCommunicationService)
+        IRobotCommunicationService robotCommunicationService,
+        DashboardViewModel dashboardViewModel)
     {
         _accountService = accountService;
         _robotCommunicationService = robotCommunicationService;
+        _dashboardViewModel = dashboardViewModel;
 
         ChooseLocalCommand = new Command(ChooseLocal, () => !IsBusy);
         ChooseRemoteCommand = new Command(async () => await ChooseRemoteAsync(), () => !IsBusy);
@@ -58,13 +61,21 @@ public sealed class RemoteWifiSetupViewModel : INotifyPropertyChanged
         }
     }
 
-    private void ChooseLocal()
+    private async void ChooseLocal()
     {
         if (IsBusy) return;
 
-        _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
-        StatusMessage = "Connecting to A-Rigator nearby...";
-        NotNowRequested?.Invoke(this, EventArgs.Empty);
+        IsBusy = true;
+        try
+        {
+            StatusMessage = "Connecting to A-Rigator nearby...";
+            await _dashboardViewModel.SelectConnectionModeAsync(RobotConnectionMode.BLE);
+            NotNowRequested?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private async Task ChooseRemoteAsync()
@@ -80,7 +91,7 @@ public sealed class RemoteWifiSetupViewModel : INotifyPropertyChanged
                 await _accountService.SignInWithGoogleAsync();
             }
 
-            _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.IoT;
+            await _dashboardViewModel.SelectConnectionModeAsync(RobotConnectionMode.IoT);
 
             // A saved remote connection means the robot has already been set up.
             // Otherwise, guide the user through nearby Wi-Fi setup.
