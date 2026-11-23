@@ -30,6 +30,9 @@
                     <Label Text="Connection mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
                     <Label Text="Choose whether to control A-Rigator nearby or over the internet. You can change this whenever you need." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Button Text="CHANGE CONNECTION" Clicked="OnRobotSetupClicked" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                    <Label Text="Wi-Fi network" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label Text="Manage the network A-Rigator uses for internet access. This won't affect local Bluetooth control." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Button Text="FORGET SAVED WI-FI NETWORK" Clicked="OnForgetWifiClicked" MinimumHeightRequest="48" BackgroundColor="#8B3A3A" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
