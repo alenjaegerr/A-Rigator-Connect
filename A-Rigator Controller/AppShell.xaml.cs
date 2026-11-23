@@ -30,6 +30,7 @@ public partial class AppShell : Shell
         // refresh and manual-control heartbeat across all operating destinations.
         _dashboardViewModel = (DashboardViewModel)dashboardPage.BindingContext;
         _dashboardViewModel.RemoteWifiSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
+        _dashboardViewModel.RemoteModeSelectionRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
@@ -164,8 +165,10 @@ public partial class AppShell : Shell
     {
         var pairingPage = _pairingPage;
         if (pairingPage is null) return;
+
         _dashboardViewModel.StopMonitoring();
-        pairingPage.StartNewPairingFlow(isRemoteSetup: true);
+        if (pairingPage.BindingContext is PairingViewModel pairingViewModel)
+            await pairingViewModel.StartRemoteWifiSetupFlowAsync();
         await GoToAsync("//setup/pairing");
     }
 
