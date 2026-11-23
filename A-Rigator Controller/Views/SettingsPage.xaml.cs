@@ -7,14 +7,16 @@ public partial class SettingsPage : ContentPage
 {
     private readonly FirmwareSourceUpdateService _firmwareSourceUpdateService;
     private readonly IRobotCommunicationService _robotCommunicationService;
+    private readonly IRobotProvisioningService _robotProvisioningService;
     private string _firmwareCommitUrl = string.Empty;
 
-    public SettingsPage(DashboardViewModel viewModel, FirmwareSourceUpdateService firmwareSourceUpdateService, IRobotCommunicationService robotCommunicationService)
+    public SettingsPage(DashboardViewModel viewModel, FirmwareSourceUpdateService firmwareSourceUpdateService, IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService)
     {
         InitializeComponent();
         BindingContext = viewModel;
         _firmwareSourceUpdateService = firmwareSourceUpdateService;
         _robotCommunicationService = robotCommunicationService;
+        _robotProvisioningService = robotProvisioningService;
         Appearing += OnSettingsPageAppearing;
         Shell.SetTabBarIsVisible(this, true);
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
@@ -33,6 +35,34 @@ public partial class SettingsPage : ContentPage
     {
         if (Shell.Current is AppShell shell)
             await shell.ShowRemoteAccessInfoAsync();
+    }
+
+    private async void OnForgetWifiClicked(object sender, EventArgs e)
+    {
+        var confirmed = await DisplayAlert(
+            "Forget saved Wi-Fi?",
+            "A-Rigator will disconnect from its saved router network. Local Bluetooth control will still work. Your robot pairing, account, and irrigation profiles will stay unchanged.",
+            "Forget network",
+            "Keep network");
+        if (!confirmed) return;
+
+        try
+        {
+            var devices = await _robotProvisioningService.ScanForRobotsAsync();
+            if (devices.Count == 0)
+            {
+                await DisplayAlert("A-Rigator not found", "Bring A-Rigator nearby and turn it on, then try again.", "OK");
+                return;
+            }
+
+            await _robotProvisioningService.ConnectToRobotAsync(devices[0].Id);
+            var result = await _robotProvisioningService.ForgetSavedWifiAsync();
+            await DisplayAlert(result.Success ? "Wi-Fi forgotten" : "Couldn't forget Wi-Fi", result.Message, "OK");
+        }
+        catch
+        {
+            await DisplayAlert("Couldn't reach A-Rigator", "Keep the robot nearby, make sure Bluetooth is enabled, and try again.", "OK");
+        }
     }
 
     private async void OnAccountClicked(object sender, EventArgs e)
