@@ -44,6 +44,7 @@ static const char* BLE_DISCOVERY_CHARACTERISTIC_UUID = "7a1c0002-8f2d-4b6a-9c31-
 static const char* BLE_WIFI_SCAN_CHARACTERISTIC_UUID = "7a1c0003-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_CREDENTIAL_CHARACTERISTIC_UUID = "7a1c0004-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_WIFI_STATUS_CHARACTERISTIC_UUID = "7a1c0005-8f2d-4b6a-9c31-4a5249474154";
+static const char* BLE_WIFI_CONFIG_CHARACTERISTIC_UUID = "7a1c0006-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_HARDWARE_ID_CHARACTERISTIC_UUID = "7a1c0008-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_CONTROL_SERVICE_UUID = "7a1c0009-8f2d-4b6a-9c31-4a5249474154";
 static const char* BLE_CONTROL_COMMAND_UUID = "7a1c000a-8f2d-4b6a-9c31-4a5249474154";
@@ -64,6 +65,7 @@ BLECharacteristic* bleDiscoveryCharacteristic = nullptr;
 BLECharacteristic* bleWifiScanCharacteristic = nullptr;
 BLECharacteristic* bleWifiCredentialCharacteristic = nullptr;
 BLECharacteristic* bleWifiStatusCharacteristic = nullptr;
+BLECharacteristic* bleWifiConfigCharacteristic = nullptr;
 BLECharacteristic* bleHardwareIdCharacteristic = nullptr;
 String bleCredentialHexBuffer;
 int bleCredentialExpectedHexLength = -1;
@@ -185,6 +187,10 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentials.ssid = pendingWifiSsid;
       savedWifiCredentials.password = pendingWifiPassword;
       savedWifiCredentialsAvailable = true;
+      if (bleWifiConfigCharacteristic) {
+        const String config = String("SAVED:") + savedWifiCredentials.ssid;
+        bleWifiConfigCharacteristic->setValue(config.c_str());
+      }
       const String result = String("OK:") + WiFi.localIP().toString();
       bleWifiStatusCharacteristic->setValue(result.c_str());
       Serial.printf(">> Wi-Fi provisioned. STA IP: %s \n",
@@ -259,9 +265,21 @@ void serviceBleWifiScan() {
   bleWifiScanRunning = false;
 }
 
+bool forgetSavedWifiNetwork();
+
 class WifiCredentialCommandCallbacks : public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic* characteristic) override {
     const String command = characteristic->getValue();
+    if (command == "FORGET") {
+      if (wifiProvisioningInProgress || bleWifiConnectRequested) {
+        bleWifiStatusCharacteristic->setValue("ERROR:BUSY");
+        return;
+      }
+      const bool forgotten = forgetSavedWifiNetwork();
+      bleWifiStatusCharacteristic->setValue(forgotten ? "FORGOTTEN" : "ERROR:FORGET");
+      return;
+    }
+
     if (command.startsWith("BEGIN:")) {
       const int expected = command.substring(6).toInt();
       if (expected < 4 || expected > 194 || (expected % 2) != 0) {
@@ -439,6 +457,16 @@ void startBleDiscovery() {
     BLECharacteristic::PROPERTY_READ
   );
   bleWifiStatusCharacteristic->setValue("IDLE");
+
+  // Read-only status exposes the saved network name, never its password.
+  bleWifiConfigCharacteristic = bleProvisioningService->createCharacteristic(
+    BLE_WIFI_CONFIG_CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_READ
+  );
+  const String initialWifiConfig = savedWifiCredentialsAvailable
+    ? String("SAVED:") + savedWifiCredentials.ssid
+    : String("NONE");
+  bleWifiConfigCharacteristic->setValue(initialWifiConfig.c_str());
 
   BLESecurity* security = new BLESecurity();
   security->setAuthenticationMode(true, false, true);
@@ -821,6 +849,8 @@ bool forgetSavedWifiNetwork() {
   savedWifiCredentials.ssid = "";
   savedWifiCredentials.password = "";
   savedWifiCredentialsAvailable = false;
+  if (bleWifiConfigCharacteristic) bleWifiConfigCharacteristic->setValue("NONE");
+  if (bleWifiStatusCharacteristic) bleWifiStatusCharacteristic->setValue("FORGOTTEN");
   WiFi.setAutoReconnect(false);
   WiFi.disconnect(false, true);
   Serial.println(">> Saved router Wi-Fi forgotten. BLE remains available for reprovisioning.");
