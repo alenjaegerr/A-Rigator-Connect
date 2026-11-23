@@ -209,7 +209,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string ConnectionRecoveryMessage => PreferredConnectionMode switch
     {
-        RobotConnectionMode.IoT => "A-Rigator can't be reached right now. Make sure it's turned on and connected to Wi-Fi. We'll keep trying.",
+        RobotConnectionMode.IoT => "A-Rigator can't be reached right now. Make sure it's turned on and connected to Wi-Fi. If it's already watering, it will keep going. We'll keep trying.",
         RobotConnectionMode.BLE => _hasEverConnected
             ? "A-Rigator may be too far away or switched off. Move closer and make sure it's turned on, then try again."
             : "Move closer to A-Rigator and make sure it's turned on. Then try connecting again.",
