@@ -12,6 +12,8 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private readonly IReadOnlyList<IRobotTransport> _transports;
     private IRobotTransport? _activeTransport;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
+    private IRemoteRobotHealth? RemoteHealth => _transports.OfType<IRemoteRobotHealth>().FirstOrDefault();
+
     private RobotConnectionMode _preferredConnectionMode =
         Enum.TryParse<RobotConnectionMode>(
             Preferences.Get("arigator_preferred_connection_mode", "BLE"),
@@ -24,10 +26,20 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     {
         _transports = transports.ToArray();
         foreach (var transport in _transports)
+        {
             transport.ConnectionStateChanged += state => OnTransportConnectionStateChanged(transport, state);
+            if (transport is IRemoteRobotHealth remoteHealth)
+                remoteHealth.HealthChanged += OnRemoteHealthChanged;
+        }
     }
 
     public ConnectionState ConnectionState => _connectionState;
+
+    public bool IsRemoteBrokerConnected => RemoteHealth?.IsBrokerConnected == true;
+
+    public bool IsRemoteRobotResponsive => RemoteHealth?.IsRobotResponsive == true;
+
+    public DateTimeOffset? LastRemoteTelemetryAt => RemoteHealth?.LastTelemetryAt;
 
     public RobotConnectionMode PreferredConnectionMode
     {
@@ -46,6 +58,10 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     }
 
     public event Action<ConnectionState>? ConnectionStateChanged;
+
+    public event Action? RemoteHealthChanged;
+
+    private void OnRemoteHealthChanged() => RemoteHealthChanged?.Invoke();
 
     public async Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
     {
