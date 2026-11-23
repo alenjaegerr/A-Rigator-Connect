@@ -753,11 +753,16 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public async Task SelectConnectionModeAsync(RobotConnectionMode mode)
     {
-        if (IsConnected && PreferredConnectionMode != mode)
+        if (IsConnected &&
+            PreferredConnectionMode == RobotConnectionMode.IoT &&
+            mode == RobotConnectionMode.BLE)
         {
             try { await _communicationService.DisconnectAsync(); }
-            catch { /* Continue switching the selected path; reconnect will report any failure. */ }
+            catch { /* Continue switching; the local connection will report any failure. */ }
         }
+
+        // Keep an existing BLE session alive when entering Remote setup.
+        // The same session is needed to configure the robot's Wi-Fi nearby.
         if (PreferredConnectionMode != mode)
             _communicationService.PreferredConnectionMode = mode;
         _latestStatus = null;
