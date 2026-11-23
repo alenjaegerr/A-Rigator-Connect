@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using System.Text;
+using Microsoft.Maui.Storage;
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.Models;
 
@@ -36,7 +37,12 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         _accountService = accountService;
         BackToWifiSetupCommand = new Command(() => SetStage(PairingStage.ConfigureWifi));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
-        ContinueWithBluetoothCommand = new Command(() => { WifiPassword = string.Empty; SetStage(PairingStage.VerifyConnection); }, () => IsBleConnected && !IsBusy);
+        ContinueWithBluetoothCommand = new Command(() =>
+        {
+            WifiPassword = string.Empty;
+            _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
+            SetStage(PairingStage.VerifyConnection);
+        }, () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
@@ -187,7 +193,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         private set => SetField(ref _errorMessage, value);
     }
 
-    public string SuccessfulResultMessage => "A-Rigator is paired. IoT is preferred, with Bluetooth available for local control.";
+    public string SuccessfulResultMessage => "A-Rigator is ready. Choose how you'd like to connect.";
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
@@ -255,14 +261,15 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             }
 
             IsConnectionVerified = true;
+            Preferences.Set("arigator_setup_completed", true);
             ResultMessage = status.ConnectionMode == RobotConnectionMode.IoT
                 ? "A-Rigator is responding through IoT. Bluetooth remains available for local fallback."
                 : "A-Rigator is responding over Bluetooth. Remote IoT is unavailable; local control is ready.";
             SetStage(PairingStage.Result);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            ResultMessage = $"Could not verify A-Rigator: {ex.Message}";
+            ResultMessage = "We couldn't connect to A-Rigator yet. Check that your robot is turned on and try again.";
         }
         finally
         {
