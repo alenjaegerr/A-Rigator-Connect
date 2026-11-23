@@ -466,6 +466,7 @@ void startBleDiscovery() {
   const String initialWifiConfig = savedWifiCredentialsAvailable
     ? String("SAVED:") + savedWifiCredentials.ssid
     : String("NONE");
+  bleWifiConfigCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
   bleWifiConfigCharacteristic->setValue(initialWifiConfig.c_str());
 
   BLESecurity* security = new BLESecurity();
