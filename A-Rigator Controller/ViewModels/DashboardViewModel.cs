@@ -868,6 +868,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(ConnectionModeLabel));
                 OnPropertyChanged(nameof(ConnectionDetails));
                 OnPropertyChanged(nameof(ConnectionRecoveryMessage));
+                OnPropertyChanged(nameof(RemoteHealthTitle));
+                OnPropertyChanged(nameof(RemoteHealthMessage));
+                OnPropertyChanged(nameof(WifiSignalStatus));
+                OnPropertyChanged(nameof(LastRemoteUpdateStatus));
                 OnPropertyChanged(nameof(IsAutonomous));
                 NotifyControlStateChanged();
             }
