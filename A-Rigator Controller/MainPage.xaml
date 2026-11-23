@@ -65,6 +65,37 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border IsVisible="{Binding IsRemoteHealthVisible}"
+                    Padding="15"
+                    BackgroundColor="{AppThemeBinding Light=#EEF5F0, Dark=#1C2820}"
+                    Stroke="{AppThemeBinding Light=#C9DCCF, Dark=#34443A}"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="REMOTE CONNECTION HEALTH"
+                           FontSize="10"
+                           FontAttributes="Bold"
+                           CharacterSpacing="0.7"
+                           TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Label Text="{Binding RemoteHealthTitle}"
+                           FontSize="17"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Label Text="{Binding RemoteHealthMessage}"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Label Text="{Binding WifiSignalStatus}"
+                               FontSize="11"
+                               TextColor="{AppThemeBinding Light=#426451, Dark=#B8D7C3}" />
+                        <Label Grid.Column="1"
+                               Text="{Binding LastRemoteUpdateStatus}"
+                               FontSize="11"
+                               HorizontalTextAlignment="End"
+                               TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
             <Border IsVisible="{Binding IsDisconnectedNoticeVisible}" Padding="16" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" Stroke="{AppThemeBinding Light=#E8C16D, Dark=#8B6B2D}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
