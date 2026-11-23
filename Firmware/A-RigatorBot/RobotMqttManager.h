@@ -75,10 +75,6 @@ class RobotMqttManager {
     return true;
   }
 
-  const String& robotId() const {
-    return config_.robotId;
-  }
-
   uint8_t queuedCommandCount() const {
     return queuedCommandCount_;
   }
@@ -106,7 +102,7 @@ class RobotMqttManager {
   unsigned long lastConnectAttempt_ = 0;
 
   void buildTopics() {
-    const String prefix = String("arigator/v1/") + config_.robotId + "/";
+    const String prefix = "arigator/v1/";
     commandTopic_ = prefix + "command";
     ackTopic_ = prefix + "ack";
     telemetryTopic_ = prefix + "telemetry";
@@ -114,7 +110,7 @@ class RobotMqttManager {
   }
 
   void connect() {
-    String clientId = String("arigator-") + config_.robotId;
+    const String clientId = "arigator-esp32";
     const bool ok = mqtt_.connect(
       clientId.c_str(),
       config_.username.c_str(),
