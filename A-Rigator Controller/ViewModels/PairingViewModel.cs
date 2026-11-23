@@ -24,7 +24,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _isBusy;
     private bool _isBleConnected;
     private bool _isRemoteSetup;
-    private string _wifiScanStatusMessage = "Pair with A-Rigator over Bluetooth, then scan for router networks.";
+    private string _wifiScanStatusMessage = "Connect to A-Rigator first, then look for nearby Wi-Fi networks.";
     private bool _hasScannedWifiNetworks;
     private RobotWifiNetwork? _selectedWifiNetwork;
     private string _wifiPassword = string.Empty;
@@ -250,8 +250,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         IsBusy = true;
         try
         {
-            // IoT is preferred by the connection manager. If the robot is not
-            // reachable through MQTT, its already-paired BLE session is used.
+            // The selected connection mode is explicit: Local uses the nearby
+            // connection, while Remote uses the saved internet connection.
             await _robotCommunicationService.ConnectAsync();
             var status = await _robotCommunicationService.GetStatusAsync();
             if (status is null)
@@ -356,7 +356,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             BleStatusMessage = "Disconnected from A-Rigator.";
             NearbyWifiNetworks.Clear();
             HasScannedWifiNetworks = false;
-            WifiScanStatusMessage = "Bluetooth is connected. Scan for the router network you want A-Rigator to use.";
+            WifiScanStatusMessage = "Reconnect to A-Rigator before looking for Wi-Fi networks.";
         }
         catch (Exception ex)
         {
