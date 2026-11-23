@@ -50,7 +50,7 @@
                         <Label Text="Turn on your robot and keep your phone nearby. We'll use Bluetooth to find it."
                                FontSize="14"
                                TextColor="#52615A" />
-                        <Button Text="SCAN FOR A-RIGATOR"
+                        <Button Text="Find my robot"
                                 Command="{Binding ScanForBleRobotsCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="52"
@@ -94,7 +94,7 @@
                                                        FontSize="15"
                                                        FontAttributes="Bold"
                                                        TextColor="#17231C" />
-                                                <Label Text="{Binding SignalStrength, StringFormat='{}Bluetooth signal: {0} dBm'}"
+                                                <Label Text="Ready to connect"
                                                        FontSize="12"
                                                        TextColor="#64736B" />
                                             </VerticalStackLayout>
@@ -111,7 +111,7 @@
                         <Label Text="{Binding BleStatusMessage}"
                                FontSize="13"
                                TextColor="#52615A" />
-                        <Button Text="CONNECT TO SELECTED ROBOT"
+                        <Button Text="Connect"
                                 Command="{Binding ConnectToBleRobotCommand}"
                                 IsEnabled="{Binding HasSelectedBleRobot}"
                                 MinimumHeightRequest="52"
@@ -136,7 +136,7 @@
                         <Label Text="Bluetooth is connected. Select the Wi-Fi network you want the robot to use."
                                FontSize="14"
                                TextColor="#52615A" />
-                        <Button Text="SCAN FOR WI-FI NETWORKS"
+                        <Button Text="Find Wi-Fi networks"
                                 Command="{Binding ScanWifiNetworksCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="50"
@@ -164,12 +164,12 @@
                                                        FontSize="15"
                                                        FontAttributes="Bold"
                                                        TextColor="#17231C" />
-                                                <Label Text="{Binding IsSecured, StringFormat='{}Secured: {0}'}"
+                                                <Label Text="Available network"
                                                        FontSize="12"
                                                        TextColor="#64736B" />
                                             </VerticalStackLayout>
                                             <Label Grid.Column="1"
-                                                   Text="{Binding SignalStrength, StringFormat='{}{0} dBm'}"
+                                                   Text="Wi-Fi"
                                                    FontSize="12"
                                                    TextColor="#52615A"
                                                    VerticalOptions="Center" />
@@ -178,7 +178,7 @@
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
                         </CollectionView>
-                        <Label Text="WI-FI PASSWORD"
+                        <Label Text="Wi-Fi password"
                                FontSize="11"
                                FontAttributes="Bold"
                                CharacterSpacing="0.7"
@@ -189,7 +189,7 @@
                                ClearButtonVisibility="WhileEditing"
                                BackgroundColor="#F4F8F5"
                                TextColor="#17231C" />
-                        <Button Text="CONNECT A-RIGATOR"
+                        <Button Text="Connect A-Rigator"
                                 Command="{Binding ConnectRobotToWifiCommand}"
                                 IsEnabled="{Binding CanSubmitWifiCredentials}"
                                 MinimumHeightRequest="52"
@@ -197,7 +197,7 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#2879A8"
                                 TextColor="White" />
-                        <Button Text="CONTINUE WITH BLUETOOTH ONLY"
+                        <Button Text="Continue with Local"
                                 Command="{Binding ContinueWithBluetoothCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="48"
@@ -220,39 +220,21 @@
                         Stroke="#D8E3DC"
                         StrokeShape="RoundRectangle 20">
                     <VerticalStackLayout Spacing="14">
-                        <Label Text="Verify your robot connection"
+                        <Label Text="Check your connection"
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
                         <Label Text="Let's make sure A-Rigator is ready to connect."
                                FontSize="14"
                                TextColor="#52615A" />
-                        <Border Padding="14"
-                                BackgroundColor="#F4F8F5"
-                                Stroke="#D8E3DC"
-                                StrokeShape="RoundRectangle 14">
-                            <VerticalStackLayout Spacing="8">
-                                <Label Text="SETUP CHECKLIST"
-                                       FontSize="10"
-                                       FontAttributes="Bold"
-                                       CharacterSpacing="0.7"
-                                       TextColor="#64736B" />
-                                <Label Text="✓ Google account authenticated"
-                                       FontSize="14"
-                                       TextColor="#176B45" />
-                                <Label Text="✓ Robot registered to your account"
-                                       FontSize="14"
-                                       TextColor="#176B45" />
-                                <Label Text="✓ Router credentials sent to A-Rigator"
-                                       FontSize="14"
-                                       TextColor="#176B45" />
-                            </VerticalStackLayout>
-                        </Border>
+                        <Label Text="A-Rigator will let us know when it's ready."
+                               FontSize="14"
+                               TextColor="#52615A" />
                         <Label Text="{Binding ResultMessage}"
                                IsVisible="{Binding IsErrorVisible}"
                                FontSize="13"
                                TextColor="#A23A32" />
-                        <Button Text="VERIFY &amp; FINISH SETUP"
+                        <Button Text="Check connection"
                                 Command="{Binding ConfirmWifiConnectionCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 MinimumHeightRequest="54"
