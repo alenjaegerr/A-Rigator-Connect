@@ -4,38 +4,84 @@
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
              x:Class="A_Rigator_Controller.Views.RemoteWifiSetupPage"
              x:DataType="viewmodels:RemoteWifiSetupViewModel"
-             Title="Remote access"
+             Title="Choose connection"
              Shell.NavBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
-    <Grid Padding="24">
-        <Border Padding="22"
-                BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
-                Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}"
-                StrokeShape="RoundRectangle 22"
-                VerticalOptions="Center">
-            <VerticalStackLayout Spacing="14">
-                <Label Text="Set up remote connection"
-                       FontSize="25"
-                       FontAttributes="Bold"
-                       TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
-                <Label Text="Sign in to your A-Rigator account, then connect your robot to a nearby Wi-Fi network. We'll take care of the technical setup automatically."
-                       FontSize="14"
-                       TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
-                <Label Text="{Binding StatusMessage}"
-                       FontSize="13"
-                       TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
-                <Button Text="{Binding ButtonText}"
-                        Command="{Binding ContinueCommand}"
-                        IsEnabled="{Binding IsNotBusy}"
-                        MinimumHeightRequest="52"
-                        BackgroundColor="#176B45"
-                        TextColor="White" />
-                <Button Text="NOT NOW"
-                        Command="{Binding NotNowCommand}"
-                        MinimumHeightRequest="46"
-                        BackgroundColor="{AppThemeBinding Light=#EEF3EF, Dark=#2A382F}"
-                        TextColor="{AppThemeBinding Light=#35443B, Dark=#E7F0E9}" />
-            </VerticalStackLayout>
-        </Border>
-    </Grid>
+    <ScrollView>
+        <VerticalStackLayout Padding="24,32,24,28" Spacing="18">
+            <Label Text="A-Rigator Connect"
+                   FontSize="13"
+                   FontAttributes="Bold"
+                   CharacterSpacing="1"
+                   TextColor="#238653" />
+            <Label Text="How should we connect to your robot?"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Choose how you'd like to use A-Rigator. You can change this anytime."
+                   FontSize="15"
+                   TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
+                    Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}"
+                    StrokeShape="RoundRectangle 20">
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <Label Text="⌖" FontSize="25" TextColor="#238653" />
+                        <Label Text="LOCAL" FontSize="12" FontAttributes="Bold"
+                               CharacterSpacing="1" TextColor="#238653"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <Label Text="Control A-Rigator in front of you"
+                           FontSize="20" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Label Text="Connect directly when you're near your robot. No internet needed."
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Button Text="USE LOCAL"
+                            Command="{Binding ChooseLocalCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            MinimumHeightRequest="50"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="#238653"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="18"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
+                    Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}"
+                    StrokeShape="RoundRectangle 20">
+                <VerticalStackLayout Spacing="12">
+                    <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                        <Label Text="◎" FontSize="25" TextColor="#2879A8" />
+                        <Label Text="REMOTE" FontSize="12" FontAttributes="Bold"
+                               CharacterSpacing="1" TextColor="#2879A8"
+                               VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                    <Label Text="Control A-Rigator anywhere in the world"
+                           FontSize="20" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                    <Label Text="Connect your robot to Wi-Fi to reach it from wherever you are."
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Button Text="SET UP REMOTE ACCESS"
+                            Command="{Binding ChooseRemoteCommand}"
+                            IsEnabled="{Binding IsNotBusy}"
+                            MinimumHeightRequest="50"
+                            CornerRadius="14"
+                            FontAttributes="Bold"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="13"
+                   TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+        </VerticalStackLayout>
+    </ScrollView>
 </ContentPage>
