@@ -19,7 +19,6 @@ public partial class AppShell : Shell
         AccountPage accountPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
         IUserProfileService userProfileService,
-        IAccountService accountService,
         IrrigationProfileSyncCoordinator profileSyncCoordinator)
     {
         InitializeComponent();
