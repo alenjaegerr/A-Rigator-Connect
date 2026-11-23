@@ -29,6 +29,7 @@ public partial class AppShell : Shell
         // One shared dashboard view model owns the robot connection, telemetry
         // refresh and manual-control heartbeat across all operating destinations.
         _dashboardViewModel = (DashboardViewModel)dashboardPage.BindingContext;
+        _dashboardViewModel.RemoteWifiSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
