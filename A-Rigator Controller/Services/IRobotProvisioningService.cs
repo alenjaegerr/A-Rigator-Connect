@@ -11,6 +11,10 @@ public interface IRobotProvisioningService
 {
     RobotProvisioningState State { get; }
 
+    Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default);
+
+    Task ConnectAsync(CancellationToken cancellationToken = default);
+
     event Action<RobotProvisioningState>? StateChanged;
 
     Task<IReadOnlyList<RobotProvisioningDevice>> ScanForRobotsAsync(
