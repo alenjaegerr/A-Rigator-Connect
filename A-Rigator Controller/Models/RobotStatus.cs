@@ -20,6 +20,8 @@ public sealed class RobotStatus
 
     public bool? WifiConnected { get; init; }
 
+    public int? WifiRssi { get; init; }
+
     public string? WifiIp { get; init; }
 
     public string? Hostname { get; init; }
