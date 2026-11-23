@@ -249,7 +249,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string WifiSignalStatus => _latestStatus?.WifiConnected != true
         ? "Wi-Fi signal unavailable"
-        : _latestStatus.WifiRssi is int rssi
+        : _latestStatus?.WifiRssi is int rssi
             ? $"Wi-Fi signal: {GetWifiSignalQuality(rssi)} ({rssi} dBm)"
             : "Wi-Fi signal strength unavailable";
 
