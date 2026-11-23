@@ -31,7 +31,8 @@ public partial class SettingsPage : ContentPage
 
     private async void OnRobotSetupClicked(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("pairing");
+        if (Shell.Current is AppShell shell)
+            await shell.ShowRemoteAccessInfoAsync();
     }
 
     private async void OnAccountClicked(object sender, EventArgs e)
