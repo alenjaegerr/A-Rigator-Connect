@@ -8,6 +8,18 @@ public sealed class UnavailableRobotCommunicationService : IRobotCommunicationSe
 
     public RobotConnectionMode PreferredConnectionMode { get; set; } = RobotConnectionMode.BLE;
 
+    public bool IsRemoteBrokerConnected => false;
+
+    public bool IsRemoteRobotResponsive => false;
+
+    public DateTimeOffset? LastRemoteTelemetryAt => null;
+
+    public event Action? RemoteHealthChanged
+    {
+        add { }
+        remove { }
+    }
+
     public event Action<ConnectionState>? ConnectionStateChanged;
 
     public Task<bool> CheckAvailabilityAsync(CancellationToken cancellationToken = default)
