@@ -278,50 +278,46 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         SetStage(PairingStage.DiscoverRobot);
     }
 
-    public async Task StartRemoteWifiSetupFlowAsync()
+    public Task StartRemoteWifiSetupFlowAsync() => BeginDiscoveryFlowAsync(isRemoteSetup: true);
+
+    public async Task BeginDiscoveryFlowAsync(bool isRemoteSetup)
     {
-        _isRemoteSetup = true;
+        _isRemoteSetup = isRemoteSetup;
         OnPropertyChanged(nameof(IsRemoteSetup));
         OnPropertyChanged(nameof(SuccessfulResultMessage));
         OnPropertyChanged(nameof(CompletionButtonText));
         ErrorMessage = string.Empty;
         ResultMessage = string.Empty;
         IsConnectionVerified = false;
+        IsBleConnected = false;
+        SelectedBleRobot = null;
+        NearbyBleRobots.Clear();
+        NearbyWifiNetworks.Clear();
+        HasScannedWifiNetworks = false;
+        SavedWifiNetwork = null;
+        WifiPassword = string.Empty;
 
-        try
+        // Discovery is the required first step in either mode. Do not trust a
+        // cached BLE device or silently reuse a previous GATT session.
+        if (_robotCommunicationService.ConnectionState != ConnectionState.Disconnected)
         {
-            if (await _robotProvisioningService.CheckAvailabilityAsync())
-            {
-                await _robotProvisioningService.ConnectAsync();
-                IsBleConnected = true;
-                BleStatusMessage = "Connected to your A-Rigator nearby.";
-                try
-                {
-                    SavedWifiNetwork = await _robotProvisioningService.GetSavedWifiNetworkAsync();
-                    SavedWifiStatusMessage = HasSavedWifiNetwork
-                        ? "A-Rigator already has a saved Wi-Fi network. You can keep it or choose another network."
-                        : "A-Rigator has no saved Wi-Fi network yet.";
-                }
-                catch
-                {
-                    SavedWifiNetwork = null;
-                    SavedWifiStatusMessage = "You can set up a Wi-Fi network for A-Rigator below.";
-                }
-
-                NearbyWifiNetworks.Clear();
-                HasScannedWifiNetworks = false;
-                WifiPassword = string.Empty;
-                WifiScanStatusMessage = "Choose a Wi-Fi network for remote access, or keep the saved one.";
-                SetStage(PairingStage.ConfigureWifi);
-                return;
-            }
-        }
-        catch
-        {
-            // The remembered BLE device may be out of range. Fall back to discovery.
+            try { await _robotCommunicationService.DisconnectAsync(); }
+            catch { /* The new discovery attempt will report any real failure. */ }
         }
 
-        StartNewPairingFlow(isRemoteSetup: true);
+        _robotCommunicationService.PreferredConnectionMode = isRemoteSetup
+            ? RobotConnectionMode.IoT
+            : RobotConnectionMode.BLE;
+
+        try { await _robotProvisioningService.DisconnectAsync(); }
+        catch { /* Clear any stale provisioning session before scanning. */ }
+
+        SavedWifiStatusMessage = "Checking saved Wi-Fi settings...";
+        WifiScanStatusMessage = isRemoteSetup
+            ? "Find A-Rigator nearby before setting up remote access."
+            : "Find A-Rigator nearby to connect locally.";
+        SetStage(PairingStage.DiscoverRobot);
+        await ScanForBleRobotsAsync();
     }
 
     private async Task ConfirmWifiConnectionAsync()
