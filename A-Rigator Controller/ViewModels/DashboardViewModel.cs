@@ -73,7 +73,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         TerrainBiasRightCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasRight), () => CanAdjustTerrainBias);
         TerrainBiasCenterCommand = new Command(async () => await SetTerrainBiasAsync(RobotControlCommand.TerrainBiasCenter), () => CanAdjustTerrainBias);
         StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
-        RetryConnectionCommand = new Command(() => ReconnectRequested?.Invoke(this, EventArgs.Empty), () => !IsConnecting);
+        RetryConnectionCommand = new Command(() => ReconnectRequested?.Invoke(this, EventArgs.Empty), () => !IsConnected && !IsConnecting);
         SelectBleModeCommand = new Command(() => LocalModeSelectionRequested?.Invoke(this, EventArgs.Empty));
         SelectRemoteModeCommand = new Command(() => RemoteModeSelectionRequested?.Invoke(this, EventArgs.Empty));
         ChangeWifiNetworkCommand = new Command(() => RemoteWifiSetupRequested?.Invoke(this, EventArgs.Empty));
