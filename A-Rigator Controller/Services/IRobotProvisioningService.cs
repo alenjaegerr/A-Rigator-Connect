@@ -33,6 +33,8 @@ public interface IRobotProvisioningService
 
 
 
+    Task<string?> GetSavedWifiNetworkAsync(CancellationToken cancellationToken = default);
+
     Task<RobotProvisioningResult> ForgetSavedWifiAsync(
         CancellationToken cancellationToken = default);
 
