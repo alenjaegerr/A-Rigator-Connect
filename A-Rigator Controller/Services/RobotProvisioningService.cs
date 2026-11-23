@@ -28,6 +28,8 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         Guid.Parse("7a1c0004-8f2d-4b6a-9c31-4a5249474154");
     public static readonly Guid WifiStatusCharacteristicUuid =
         Guid.Parse("7a1c0005-8f2d-4b6a-9c31-4a5249474154");
+    public static readonly Guid WifiConfigCharacteristicUuid =
+        Guid.Parse("7a1c0006-8f2d-4b6a-9c31-4a5249474154");
 
     private readonly Dictionary<string, IDevice> _discoveredDevices = new();
     private readonly SemaphoreSlim _gattLock = new(1, 1);
@@ -526,12 +528,68 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         }
     }
 
-    public Task<RobotProvisioningResult> ForgetSavedWifiAsync(
+    public async Task<string?> GetSavedWifiNetworkAsync(CancellationToken cancellationToken = default)
+    {
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+            throw new InvalidOperationException("Connect to A-Rigator over Bluetooth first.");
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
+            var characteristic = await service.GetCharacteristicAsync(WifiConfigCharacteristicUuid, cancellationToken);
+            if (characteristic is null)
+                throw new InvalidOperationException("This firmware does not report saved Wi-Fi settings yet. Update the ESP32 firmware.");
+
+            var read = await characteristic.ReadAsync(cancellationToken);
+            var response = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n');
+            if (string.Equals(response, "NONE", StringComparison.OrdinalIgnoreCase)) return null;
+            if (response.StartsWith("SAVED:", StringComparison.Ordinal)) return response.Substring(6);
+            throw new InvalidOperationException("A-Rigator returned an unrecognized Wi-Fi status.");
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
+    }
+
+    public async Task<RobotProvisioningResult> ForgetSavedWifiAsync(
         CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(new RobotProvisioningResult(
-            false,
-            "Remote Wi-Fi reset is not enabled yet. Physical reset-button wiring and the authenticated BLE command are still pending."));
+        if (_connectedDevice is null || _connectedDevice.State != DeviceState.Connected)
+            return new RobotProvisioningResult(false, "Connect to A-Rigator over Bluetooth first.");
+
+        await _gattLock.WaitAsync(cancellationToken);
+        try
+        {
+            var service = await _connectedDevice.GetServiceAsync(ProvisioningServiceUuid, cancellationToken);
+            var command = await service.GetCharacteristicAsync(WifiCredentialCharacteristicUuid, cancellationToken);
+            var status = await service.GetCharacteristicAsync(WifiStatusCharacteristicUuid, cancellationToken);
+            if (command is null || status is null)
+                return new RobotProvisioningResult(false, "This firmware does not support forgetting saved Wi-Fi yet. Update the ESP32 firmware.");
+
+            await command.WriteAsync(Encoding.UTF8.GetBytes("FORGET"), cancellationToken);
+            var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
+            while (DateTimeOffset.UtcNow < deadline)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(150, cancellationToken);
+                var read = await status.ReadAsync(cancellationToken);
+                var response = Encoding.UTF8.GetString(read.data).Trim('\0', ' ', '\r', '\n');
+                if (response == "FORGOTTEN")
+                    return new RobotProvisioningResult(true, "A-Rigator has forgotten its saved Wi-Fi network. Local Bluetooth control is still available.");
+                if (response.StartsWith("ERROR:", StringComparison.Ordinal))
+                    return new RobotProvisioningResult(false, response == "ERROR:BUSY"
+                        ? "A-Rigator is finishing another Wi-Fi operation. Try again in a moment."
+                        : "A-Rigator couldn't forget the saved Wi-Fi network. Please try again.");
+            }
+
+            return new RobotProvisioningResult(false, "A-Rigator did not confirm the Wi-Fi reset. Keep it nearby and try again.");
+        }
+        finally
+        {
+            _gattLock.Release();
+        }
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken = default)
