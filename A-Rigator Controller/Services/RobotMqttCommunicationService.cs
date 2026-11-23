@@ -132,6 +132,8 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
             RobotControlCommand.PumpOn => "pump_on",
             RobotControlCommand.PumpOff => "pump_off",
             RobotControlCommand.Heartbeat => "heartbeat",
+            RobotControlCommand.AutonomousStart => "autonomous_start",
+            RobotControlCommand.AutonomousStop => "autonomous_stop",
             _ => throw new NotSupportedException(
                 $"'{command}' is not enabled for remote control yet. Use the local connection or wait for the next firmware command rollout.")
         };
@@ -145,7 +147,11 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
 
         try
         {
-            var ttlMs = command == RobotControlCommand.Stop || command == RobotControlCommand.PumpOff ? 5000 : 1500;
+            var ttlMs = command is RobotControlCommand.Stop
+                or RobotControlCommand.PumpOff
+                or RobotControlCommand.AutonomousStop
+                ? 5000
+                : 1500;
             var envelope = new
             {
                 version = 1,
