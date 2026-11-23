@@ -70,6 +70,16 @@
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ConnectionRecoveryMessage}" FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Button Text="Reconnect" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
+                    <Button Text="Connect to another Wi-Fi network"
+                            Command="{Binding ChangeWifiNetworkCommand}"
+                            IsVisible="{Binding IsRemoteDisconnected}"
+                            MinimumHeightRequest="46"
+                            BackgroundColor="#2879A8"
+                            TextColor="White" />
+                    <Label Text="You'll need to be near A-Rigator to change its Wi-Fi network."
+                           IsVisible="{Binding IsRemoteDisconnected}"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                 </VerticalStackLayout>
             </Border>
 
