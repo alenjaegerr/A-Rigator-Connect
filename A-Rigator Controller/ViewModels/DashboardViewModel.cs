@@ -692,7 +692,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         await RetryConnectionAsync();
     }
 
-    private async Task SelectConnectionModeAsync(RobotConnectionMode mode)
+    public async Task SelectConnectionModeAsync(RobotConnectionMode mode)
     {
         if (PreferredConnectionMode == mode) return;
         if (IsConnected)
