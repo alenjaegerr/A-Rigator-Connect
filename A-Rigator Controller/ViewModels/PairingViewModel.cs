@@ -56,6 +56,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
         ForgetSavedWifiCommand = new Command(async () => await ForgetSavedWifiAsync());
+        KeepSavedWifiCommand = new Command(() =>
+        {
+            WifiPassword = string.Empty;
+            SetStage(PairingStage.VerifyConnection);
+        }, () => HasSavedWifiNetwork && !IsBusy);
     }
 
     public string ResultMessage
@@ -130,6 +135,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             if (SetField(ref _savedWifiNetwork, value))
                 OnPropertyChanged(nameof(HasSavedWifiNetwork));
+                (KeepSavedWifiCommand as Command)?.ChangeCanExecute();
         }
     }
     public bool HasSavedWifiNetwork => !string.IsNullOrWhiteSpace(SavedWifiNetwork);
@@ -206,6 +212,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand ScanWifiNetworksCommand { get; }
     public ICommand ConnectRobotToWifiCommand { get; }
     public ICommand ForgetSavedWifiCommand { get; }
+    public ICommand KeepSavedWifiCommand { get; }
 
     public string ErrorMessage
     {
