@@ -12,7 +12,7 @@
 // to this A-Rigator robot's topic namespace only.
 // ============================================================================
 static const char* ARIGATOR_DEMO_MQTT_USERNAME = "a-rigator-demo";
-static const char* ARIGATOR_DEMO_MQTT_PASSWORD = "69420";
+static const char* ARIGATOR_DEMO_MQTT_PASSWORD = "12345678";
 
 // Broker endpoint, robot ID and public TLS trust certificate are stored in
 // this dedicated NVS namespace. MQTT username/password use the temporary
