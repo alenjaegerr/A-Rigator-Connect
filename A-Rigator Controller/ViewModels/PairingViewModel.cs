@@ -28,6 +28,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private bool _hasScannedWifiNetworks;
     private RobotWifiNetwork? _selectedWifiNetwork;
     private string _wifiPassword = string.Empty;
+    private string? _savedWifiNetwork;
+    private string _savedWifiStatusMessage = "Checking saved Wi-Fi settings...";
 
     public PairingViewModel(IRobotCommunicationService robotCommunicationService, IRobotProvisioningService robotProvisioningService, IRobotCloudService robotCloudService, IAccountService accountService)
     {
@@ -53,6 +55,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         DisconnectBleRobotCommand = new Command(async () => await DisconnectBleRobotAsync());
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
+        ForgetSavedWifiCommand = new Command(async () => await ForgetSavedWifiAsync());
     }
 
     public string ResultMessage
@@ -120,6 +123,21 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     }
 
     public string WifiPassword { get => _wifiPassword; set => SetField(ref _wifiPassword, value); }
+    public string? SavedWifiNetwork
+    {
+        get => _savedWifiNetwork;
+        private set
+        {
+            if (SetField(ref _savedWifiNetwork, value))
+                OnPropertyChanged(nameof(HasSavedWifiNetwork));
+        }
+    }
+    public bool HasSavedWifiNetwork => !string.IsNullOrWhiteSpace(SavedWifiNetwork);
+    public string SavedWifiStatusMessage
+    {
+        get => _savedWifiStatusMessage;
+        private set => SetField(ref _savedWifiStatusMessage, value);
+    }
     public bool CanSubmitWifiCredentials => IsBleConnected && SelectedWifiNetwork is not null && !IsBusy;
 
     public RobotProvisioningDevice? SelectedBleRobot
@@ -187,6 +205,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
 
     public ICommand ScanWifiNetworksCommand { get; }
     public ICommand ConnectRobotToWifiCommand { get; }
+    public ICommand ForgetSavedWifiCommand { get; }
 
     public string ErrorMessage
     {
@@ -344,7 +363,19 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                     : "A-Rigator has been registered to your account.";
             }
             SetStage(PairingStage.ConfigureWifi);
-            WifiScanStatusMessage = "A-Rigator is connected to your phone. Choose the Wi-Fi network it should use, or continue with Local control.";
+            try
+            {
+                SavedWifiNetwork = await _robotProvisioningService.GetSavedWifiNetworkAsync();
+                SavedWifiStatusMessage = HasSavedWifiNetwork
+                    ? "A-Rigator already has a saved Wi-Fi network. You can keep it or choose another network."
+                    : "A-Rigator has no saved Wi-Fi network yet.";
+            }
+            catch
+            {
+                SavedWifiNetwork = null;
+                SavedWifiStatusMessage = "You can set up a Wi-Fi network for A-Rigator below.";
+            }
+            WifiScanStatusMessage = "Choose a Wi-Fi network for A-Rigator, or continue with Local control.";
             HasScannedWifiNetworks = false;
             NearbyWifiNetworks.Clear();
         }
@@ -444,6 +475,40 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             WifiScanStatusMessage = "We couldn't connect A-Rigator to that Wi-Fi network. Check the password and try again.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ForgetSavedWifiAsync()
+    {
+        if (IsBusy || !IsBleConnected) return;
+        var confirmed = await Application.Current!.MainPage!.DisplayAlert(
+            "Forget saved Wi-Fi?",
+            "A-Rigator will disconnect from its saved router network. Local Bluetooth control will still work. Your robot pairing and irrigation profiles will stay unchanged.",
+            "Forget network",
+            "Keep network");
+        if (!confirmed) return;
+
+        IsBusy = true;
+        try
+        {
+            var result = await _robotProvisioningService.ForgetSavedWifiAsync();
+            if (result.Success)
+            {
+                SavedWifiNetwork = null;
+                SavedWifiStatusMessage = "No Wi-Fi network is saved. You can choose one below whenever you're ready.";
+            }
+            else
+            {
+                SavedWifiStatusMessage = result.Message;
+            }
+        }
+        catch
+        {
+            SavedWifiStatusMessage = "We couldn't forget the saved network. Keep A-Rigator nearby and try again.";
         }
         finally
         {
