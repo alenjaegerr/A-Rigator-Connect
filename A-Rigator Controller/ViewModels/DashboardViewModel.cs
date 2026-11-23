@@ -75,12 +75,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         StopTerrainCommand = new Command(async () => await StopTerrainAsync(), () => CanStopTerrain);
         RetryConnectionCommand = new Command(async () => await SearchForRobotAsync(), () => !IsConnected && !IsConnecting);
         SelectBleModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.BLE));
-        SelectRemoteModeCommand = new Command(async () => await SelectConnectionModeAsync(RobotConnectionMode.IoT));
+        SelectRemoteModeCommand = new Command(() => RemoteModeSelectionRequested?.Invoke(this, EventArgs.Empty));
         ChangeWifiNetworkCommand = new Command(() => RemoteWifiSetupRequested?.Invoke(this, EventArgs.Empty));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? RemoteWifiSetupRequested;
+    public event EventHandler? RemoteModeSelectionRequested;
 
     public ObservableCollection<IrrigationProfile> IrrigationProfiles => _irrigationProfileService.Profiles;
 
@@ -752,13 +753,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public async Task SelectConnectionModeAsync(RobotConnectionMode mode)
     {
-        if (PreferredConnectionMode == mode) return;
-        if (IsConnected)
+        if (IsConnected && PreferredConnectionMode != mode)
         {
             try { await _communicationService.DisconnectAsync(); }
             catch { /* Continue switching the selected path; reconnect will report any failure. */ }
         }
-        _communicationService.PreferredConnectionMode = mode;
+        if (PreferredConnectionMode != mode)
+            _communicationService.PreferredConnectionMode = mode;
         _latestStatus = null;
         _activeMotorCommand = null;
         _pumpRequested = false;
