@@ -1,6 +1,7 @@
 using A_Rigator_Controller.Services;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
+using Microsoft.Maui.Storage;
 
 namespace A_Rigator_Controller;
 
@@ -30,6 +31,9 @@ public partial class AppShell : Shell
         ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
+        var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
+        if (hasDisplayName && !hasCompletedSetup)
+            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
 
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
@@ -135,7 +139,9 @@ public partial class AppShell : Shell
         remoteWifiSetupPage.RemoteSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
 
         CurrentItem = setupTabBar;
-        setupTabBar.CurrentItem = hasDisplayName ? remoteConnectionTab : welcomeTab;
+        setupTabBar.CurrentItem = hasCompletedSetup
+            ? remoteConnectionTab
+            : hasDisplayName ? pairingTab : welcomeTab;
     }
 
     public Task ShowDashboardAsync() => GoToAsync("//main/home");
