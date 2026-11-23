@@ -136,6 +136,22 @@
                         <Label Text="Bluetooth is connected. Select the Wi-Fi network you want the robot to use."
                                FontSize="14"
                                TextColor="#52615A" />
+                        <Label Text="{Binding SavedWifiStatusMessage}"
+                               FontSize="13"
+                               TextColor="#52615A" />
+                        <Label Text="{Binding SavedWifiNetwork, StringFormat='Saved network: {0}'}"
+                               IsVisible="{Binding HasSavedWifiNetwork}"
+                               FontSize="14"
+                               FontAttributes="Bold"
+                               TextColor="#176B45" />
+                        <Button Text="Forget saved Wi-Fi network"
+                                Command="{Binding ForgetSavedWifiCommand}"
+                                IsVisible="{Binding HasSavedWifiNetwork}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="44"
+                                CornerRadius="12"
+                                BackgroundColor="#F8EAEA"
+                                TextColor="#8B3A3A" />
                         <Button Text="Find Wi-Fi networks"
                                 Command="{Binding ScanWifiNetworksCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
