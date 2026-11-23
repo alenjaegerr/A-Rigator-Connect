@@ -30,7 +30,9 @@ public partial class AppShell : Shell
         // refresh and manual-control heartbeat across all operating destinations.
         _dashboardViewModel = (DashboardViewModel)dashboardPage.BindingContext;
         _dashboardViewModel.RemoteWifiSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
-        _dashboardViewModel.RemoteModeSelectionRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
+        _dashboardViewModel.RemoteModeSelectionRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
+        _dashboardViewModel.LocalModeSelectionRequested += async (_, _) => await BeginLocalRobotSetupAsync();
+        _dashboardViewModel.ReconnectRequested += async (_, _) => await BeginReconnectFlowAsync();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
@@ -167,8 +169,22 @@ public partial class AppShell : Shell
         if (pairingPage is null) return;
 
         _dashboardViewModel.StopMonitoring();
-        if (pairingPage.BindingContext is PairingViewModel pairingViewModel)
-            await pairingViewModel.StartRemoteWifiSetupFlowAsync();
+        await pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: true);
+        await GoToAsync("//setup/pairing");
+    }
+
+    private async Task BeginLocalRobotSetupAsync()
+    {
+        _dashboardViewModel.StopMonitoring();
+        await _pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false);
+        await GoToAsync("//setup/pairing");
+    }
+
+    private async Task BeginReconnectFlowAsync()
+    {
+        var isRemoteSetup = _dashboardViewModel.PreferredConnectionMode == RobotConnectionMode.IoT;
+        _dashboardViewModel.StopMonitoring();
+        await _pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup);
         await GoToAsync("//setup/pairing");
     }
 
