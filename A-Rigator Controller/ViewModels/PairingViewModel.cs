@@ -278,6 +278,52 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         SetStage(PairingStage.DiscoverRobot);
     }
 
+    public async Task StartRemoteWifiSetupFlowAsync()
+    {
+        _isRemoteSetup = true;
+        OnPropertyChanged(nameof(IsRemoteSetup));
+        OnPropertyChanged(nameof(SuccessfulResultMessage));
+        OnPropertyChanged(nameof(CompletionButtonText));
+        ErrorMessage = string.Empty;
+        ResultMessage = string.Empty;
+        IsConnectionVerified = false;
+
+        try
+        {
+            if (await _robotProvisioningService.CheckAvailabilityAsync())
+            {
+                await _robotProvisioningService.ConnectAsync();
+                IsBleConnected = true;
+                BleStatusMessage = "Connected to your A-Rigator nearby.";
+                try
+                {
+                    SavedWifiNetwork = await _robotProvisioningService.GetSavedWifiNetworkAsync();
+                    SavedWifiStatusMessage = HasSavedWifiNetwork
+                        ? "A-Rigator already has a saved Wi-Fi network. You can keep it or choose another network."
+                        : "A-Rigator has no saved Wi-Fi network yet.";
+                }
+                catch
+                {
+                    SavedWifiNetwork = null;
+                    SavedWifiStatusMessage = "You can set up a Wi-Fi network for A-Rigator below.";
+                }
+
+                NearbyWifiNetworks.Clear();
+                HasScannedWifiNetworks = false;
+                WifiPassword = string.Empty;
+                WifiScanStatusMessage = "Choose a Wi-Fi network for remote access, or keep the saved one.";
+                SetStage(PairingStage.ConfigureWifi);
+                return;
+            }
+        }
+        catch
+        {
+            // The remembered BLE device may be out of range. Fall back to discovery.
+        }
+
+        StartNewPairingFlow(isRemoteSetup: true);
+    }
+
     private async Task ConfirmWifiConnectionAsync()
     {
         if (IsBusy) return;
