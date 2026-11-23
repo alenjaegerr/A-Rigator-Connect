@@ -8,6 +8,7 @@ namespace A_Rigator_Controller;
 public partial class AppShell : Shell
 {
     private readonly PairingPage _pairingPage;
+    private readonly DashboardViewModel _dashboardViewModel;
     public AppShell(
         MainPage dashboardPage,
         ControlPage controlPage,
@@ -28,7 +29,7 @@ public partial class AppShell : Shell
 
         // One shared dashboard view model owns the robot connection, telemetry
         // refresh and manual-control heartbeat across all operating destinations.
-        ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
+        _dashboardViewModel = (DashboardViewModel)dashboardPage.BindingContext;
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
@@ -144,7 +145,11 @@ public partial class AppShell : Shell
             : hasDisplayName ? pairingTab : welcomeTab;
     }
 
-    public Task ShowDashboardAsync() => GoToAsync("//main/home");
+    public Task ShowDashboardAsync()
+    {
+        _dashboardViewModel.StartMonitoring();
+        return GoToAsync("//main/home");
+    }
 
     public Task ShowRemoteAccessInfoAsync() => GoToAsync("//setup/remote-connection");
 
