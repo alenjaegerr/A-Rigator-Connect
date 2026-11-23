@@ -99,7 +99,13 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string Greeting => $"Hello, {_userProfileService.GetDisplayName()}!";
 
-    public string ConnectionStatus => _communicationService.ConnectionState.ToString().ToUpperInvariant();
+    public string ConnectionStatus => _communicationService.ConnectionState switch
+    {
+        ConnectionState.Connected => "Connected",
+        ConnectionState.Connecting => "Connecting",
+        ConnectionState.Reconnecting => "Reconnecting",
+        _ => "Not connected"
+    };
 
     public string RobotStatus => _latestStatus?.State.ToString().ToUpperInvariant() ?? "UNAVAILABLE";
 
@@ -176,40 +182,38 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     public RobotConnectionMode PreferredConnectionMode => _communicationService.PreferredConnectionMode;
 
     public string ConnectionModeLabel => PreferredConnectionMode == RobotConnectionMode.BLE
-        ? "BLE CONNECTION"
-        : "REMOTE CONNECTION";
+        ? "Local"
+        : "Remote";
 
     public string ConnectionModeDescription => PreferredConnectionMode == RobotConnectionMode.BLE
-        ? "Bluetooth selected · Reconnect checks will look for the paired A-Rigator nearby."
-        : "Remote IoT selected · Reconnect checks will use the configured cloud connection only.";
+        ? "Control A-Rigator when you're nearby. No internet needed."
+        : "Control A-Rigator over the internet, wherever you are.";
 
     public bool IsBleModeSelected => PreferredConnectionMode == RobotConnectionMode.BLE;
 
     public bool IsRemoteModeSelected => PreferredConnectionMode == RobotConnectionMode.IoT;
 
     public string ConnectionDetails => !IsConnected
-        ? $"Selected path: {ConnectionModeLabel}. Waiting for a connection."
+        ? "Waiting to connect to A-Rigator."
         : _latestStatus is null
-            ? "Connected, but waiting for fresh robot telemetry."
+            ? "A-Rigator is connected. Waiting for its latest update."
             : _latestStatus.ConnectionMode == RobotConnectionMode.BLE
-            ? (_latestStatus.WifiConnected == true
-                ? $"Local Bluetooth link active · Router Wi-Fi connected ({_latestStatus.WifiIp ?? "IP not reported"})"
-                : "Local Bluetooth link active · Router Wi-Fi is not connected; remote IoT unavailable")
-            : _latestStatus.WifiConnected == true
-                ? $"IoT connection active · {_latestStatus.WifiIp ?? "IP not reported"} · Pair over Bluetooth for local fallback"
-                : "Robot is responding locally, but router Wi-Fi is not connected.";
+                ? "Connected nearby. You're ready to control A-Rigator."
+                : "Connected remotely. You're ready to control A-Rigator.";
 
     public bool IsDisconnectedNoticeVisible => _hasAttemptedConnection && !IsConnected && !IsConnecting;
 
     public string ConnectionNoticeTitle => _hasEverConnected
-        ? "ROBOT CONNECTION LOST"
-        : "ROBOT NOT CONNECTED";
+        ? "A-Rigator connection lost"
+        : "A-Rigator isn't connected yet";
 
     public string ConnectionRecoveryMessage => PreferredConnectionMode switch
     {
-        RobotConnectionMode.IoT => "REMOTE is selected. The app will keep retrying the configured IoT connection and will not switch to Bluetooth.",
-        RobotConnectionMode.BLE => "BLE is selected. The app will keep searching for the paired robot nearby and will not switch to Remote.",
-        _ => "Select BLE or Remote to choose which connection path the app should retry."
+        RobotConnectionMode.IoT => "A-Rigator can't be reached right now. Make sure it's turned on and connected to Wi-Fi. We'll keep trying.",
+        RobotConnectionMode.BLE => _hasEverConnected
+            ? "A-Rigator may be too far away or switched off. Move closer and make sure it's turned on, then try again."
+            : "Move closer to A-Rigator and make sure it's turned on. Then try connecting again.",
+        _ => "Choose Local or Remote to connect to A-Rigator."
     };
 
     public string Message
