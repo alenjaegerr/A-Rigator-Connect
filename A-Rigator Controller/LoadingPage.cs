@@ -10,6 +10,7 @@ public sealed class LoadingPage : ContentPage
     private readonly Image _alligator;
     private readonly Grid _track;
     private bool _started;
+    private bool _isLeaving;
 
     public LoadingPage(Action onComplete)
     {
@@ -61,9 +62,10 @@ public sealed class LoadingPage : ContentPage
         };
         _track = new Grid
         {
-            HeightRequest = 42,
+            HeightRequest = 48,
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
-            Children = { _alligator }
+            Children = { _alligator },
+            IsClippedToBounds = true
         };
 
         var activity = new ActivityIndicator
@@ -126,22 +128,46 @@ public sealed class LoadingPage : ContentPage
             return;
 
         _started = true;
-        await Task.Delay(100);
         await WaitForTrackLayoutAsync();
 
-        // Animate only after the track has a real measured width.
+        if (_isLeaving)
+            return;
+
+        // Keep the runner moving in a visible zigzag while the app finishes starting.
         var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
         if (travelDistance > 1)
         {
             _alligator.TranslationX = 0;
-            await _alligator.TranslateTo(travelDistance, 0, 650, Easing.CubicInOut);
-            await _alligator.TranslateTo(0, 0, 220, Easing.CubicInOut);
+            _alligator.TranslationY = 0;
+
+            for (var pass = 0; pass < 3 && !_isLeaving; pass++)
+            {
+                await _alligator.TranslateTo(travelDistance, -7, 420, Easing.CubicInOut);
+                if (_isLeaving) return;
+                await _alligator.TranslateTo(0, 7, 420, Easing.CubicInOut);
+                if (_isLeaving) return;
+            }
         }
+
+        if (_isLeaving)
+            return;
 
         _statusText.Text = "App ready — robot discovery is available.";
         await Task.Delay(180);
+        if (_isLeaving)
+            return;
+
         await Content.FadeTo(0, 220, Easing.CubicInOut);
-        _onComplete();
+        if (!_isLeaving)
+            _onComplete();
+    }
+
+    protected override void OnDisappearing()
+    {
+        _isLeaving = true;
+        _alligator.CancelAnimations();
+        Content?.CancelAnimations();
+        base.OnDisappearing();
     }
 
     private async Task WaitForTrackLayoutAsync()
@@ -158,7 +184,7 @@ public sealed class LoadingPage : ContentPage
         };
 
         _track.SizeChanged += sizeChanged;
-        await Task.WhenAny(layoutReady.Task, Task.Delay(1500));
+        await Task.WhenAny(layoutReady.Task, Task.Delay(3000));
         _track.SizeChanged -= sizeChanged;
     }
 }
