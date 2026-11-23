@@ -44,6 +44,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         _irrigationProfileService = irrigationProfileService;
         _irrigationProfileService.SelectedProfileChanged += OnSelectedIrrigationProfileChanged;
         _communicationService.ConnectionStateChanged += OnConnectionStateChanged;
+        _communicationService.RemoteHealthChanged += OnRemoteHealthChanged;
         Connectivity.ConnectivityChanged += OnConnectivityChanged;
 
         ForwardCommand = new Command(async () => await SetMotorCommandAsync(RobotControlCommand.Forward), () => CanManualControl);
@@ -222,6 +223,50 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             ? "A-Rigator may be too far away or switched off. Move closer and make sure it's turned on, then try again."
             : "Move closer to A-Rigator and make sure it's turned on. Then try connecting again.",
         _ => "Choose Local or Remote to connect to A-Rigator."
+    };
+
+    public bool IsRemoteHealthVisible => IsRemoteModeSelected && _hasAttemptedConnection;
+
+    public string RemoteHealthTitle => !_communicationService.IsRemoteBrokerConnected
+        ? "Remote service unavailable"
+        : !_communicationService.IsRemoteRobotResponsive
+            ? "Waiting for A-Rigator"
+            : _latestStatus?.WifiConnected == false
+                ? "Robot Wi-Fi disconnected"
+                : _latestStatus?.WifiRssi is int rssi && rssi <= -75
+                    ? "Weak Wi-Fi signal"
+                    : "Remote connection healthy";
+
+    public string RemoteHealthMessage => !_communicationService.IsRemoteBrokerConnected
+        ? "The app can't reach the remote service. Check the internet connection on your phone and A-Rigator's Wi-Fi, then try again."
+        : !_communicationService.IsRemoteRobotResponsive
+            ? "The cloud connection is working, but A-Rigator hasn't sent an update. Check that the robot is powered on and connected to Wi-Fi."
+            : _latestStatus?.WifiConnected == false
+                ? "A-Rigator isn't connected to its router Wi-Fi. Move closer and reconnect it to your network."
+                : _latestStatus?.WifiRssi is int rssi && rssi <= -75
+                    ? "A-Rigator is responding, but its Wi-Fi signal is weak. Move it closer to your router for a steadier connection."
+                    : "A-Rigator is online and sending updates. Remote control is ready.";
+
+    public string WifiSignalStatus => _latestStatus?.WifiConnected != true
+        ? "Wi-Fi signal unavailable"
+        : _latestStatus.WifiRssi is int rssi
+            ? $"Wi-Fi signal: {GetWifiSignalQuality(rssi)} ({rssi} dBm)"
+            : "Wi-Fi signal strength unavailable";
+
+    public string LastRemoteUpdateStatus => _communicationService.LastRemoteTelemetryAt is not DateTimeOffset updatedAt
+        ? "No robot updates received yet"
+        : (DateTimeOffset.UtcNow - updatedAt).TotalSeconds < 2
+            ? "Last robot update: just now"
+            : (DateTimeOffset.UtcNow - updatedAt).TotalMinutes >= 1
+                ? $"Last robot update: {(int)(DateTimeOffset.UtcNow - updatedAt).TotalMinutes} min ago"
+                : $"Last robot update: {(int)(DateTimeOffset.UtcNow - updatedAt).TotalSeconds} sec ago";
+
+    private static string GetWifiSignalQuality(int rssi) => rssi switch
+    {
+        >= -55 => "Excellent",
+        >= -67 => "Good",
+        >= -75 => "Fair",
+        _ => "Weak"
     };
 
     public string Message
@@ -775,6 +820,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(ConnectionDetails));
         OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
         OnPropertyChanged(nameof(IsRemoteDisconnected));
+        OnPropertyChanged(nameof(IsRemoteHealthVisible));
+        OnPropertyChanged(nameof(RemoteHealthTitle));
+        OnPropertyChanged(nameof(RemoteHealthMessage));
+        OnPropertyChanged(nameof(WifiSignalStatus));
+        OnPropertyChanged(nameof(LastRemoteUpdateStatus));
         OnPropertyChanged(nameof(ConnectionNoticeTitle));
         OnPropertyChanged(nameof(ConnectionRecoveryMessage));
         OnPropertyChanged(nameof(IsConnected));
@@ -912,6 +962,20 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         }
     }
 
+    private void OnRemoteHealthChanged()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnPropertyChanged(nameof(RemoteHealthTitle));
+            OnPropertyChanged(nameof(RemoteHealthMessage));
+            OnPropertyChanged(nameof(WifiSignalStatus));
+            OnPropertyChanged(nameof(LastRemoteUpdateStatus));
+            OnPropertyChanged(nameof(ConnectionDetails));
+            OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
+            OnPropertyChanged(nameof(IsRemoteDisconnected));
+        });
+    }
+
     private void OnConnectionStateChanged(ConnectionState state)
     {
         MainThread.BeginInvokeOnMainThread(() =>
@@ -921,6 +985,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ConnectionDetails));
             OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
             OnPropertyChanged(nameof(ConnectionRecoveryMessage));
+            OnPropertyChanged(nameof(RemoteHealthTitle));
+            OnPropertyChanged(nameof(RemoteHealthMessage));
+            OnPropertyChanged(nameof(WifiSignalStatus));
+            OnPropertyChanged(nameof(LastRemoteUpdateStatus));
             OnPropertyChanged(nameof(IsConnected));
             OnPropertyChanged(nameof(IsConnecting));
                 OnPropertyChanged(nameof(CanControl));
