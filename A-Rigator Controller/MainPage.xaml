@@ -37,7 +37,33 @@
                             <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="White" />
                         </Border>
                     </Grid>
+                    <Label Text="{Binding ConnectionModeDescription}" FontSize="12" TextColor="#B8D7C3" />
                     <Button Text="REFRESH STATUS" Command="{Binding RefreshCommand}" IsEnabled="{Binding IsConnected}" MinimumHeightRequest="44" BackgroundColor="#E1F1E5" TextColor="#173D2B" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Padding="15"
+                    BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2820}"
+                    Stroke="{AppThemeBinding Light=#DCE6DF, Dark=#34443A}"
+                    StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="CONNECTION MODE" FontSize="11" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button Text="Local"
+                                Command="{Binding SelectBleModeCommand}"
+                                IsEnabled="{Binding IsRemoteModeSelected}"
+                                MinimumHeightRequest="46"
+                                BackgroundColor="#238653"
+                                TextColor="White" />
+                        <Button Grid.Column="1"
+                                Text="Remote"
+                                Command="{Binding SelectRemoteModeCommand}"
+                                IsEnabled="{Binding IsBleModeSelected}"
+                                MinimumHeightRequest="46"
+                                BackgroundColor="#2879A8"
+                                TextColor="White" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
 
@@ -45,8 +71,7 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{Binding ConnectionNoticeTitle}" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
                     <Label Text="{Binding ConnectionRecoveryMessage}" FontSize="13" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
-                    <Button Text="SEARCH FOR ROBOT" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
-                    <Button Text="CONNECT THROUGH A-RIGATOR AP" Command="{Binding ConnectViaApCommand}" MinimumHeightRequest="46" BackgroundColor="{AppThemeBinding Light=#72510D, Dark=#8B6B2D}" TextColor="White" />
+                    <Button Text="Reconnect" Command="{Binding RetryConnectionCommand}" MinimumHeightRequest="48" BackgroundColor="#176B45" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
 
