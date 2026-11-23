@@ -21,3 +21,14 @@ public interface IRobotTransport
     Task StopManualIrrigationAsync(CancellationToken cancellationToken = default);
     void SetRobotAddress(string address);
 }
+
+/// <summary>
+/// Optional health details exposed by transports that use a remote broker.
+/// </summary>
+public interface IRemoteRobotHealth
+{
+    bool IsBrokerConnected { get; }
+    bool IsRobotResponsive { get; }
+    DateTimeOffset? LastTelemetryAt { get; }
+    event Action? HealthChanged;
+}
