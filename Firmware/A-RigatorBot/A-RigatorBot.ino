@@ -775,8 +775,15 @@ void publishBleTelemetryIfDue() {
   doc["batteryVoltage"] = batteryVoltageValid ? batteryVoltage : 0.0f;
   doc["batteryVoltageValid"] = batteryVoltageValid;
   doc["controlsEnabled"] = controlsEnabled;
-  doc["wifiConnected"] = WiFi.status() == WL_CONNECTED;
-  doc["wifiIp"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
+  const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+  doc["wifiConnected"] = wifiConnected;
+  if (wifiConnected) {
+    doc["wifiRssi"] = WiFi.RSSI();
+    doc["wifiIp"] = WiFi.localIP().toString();
+  } else {
+    doc["wifiRssi"] = nullptr;
+    doc["wifiIp"] = "";
+  }
   doc["hostname"] = "A-Rigator";
   doc["obstacleDistanceCm"] = getObstacleDistanceCM();
   doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
