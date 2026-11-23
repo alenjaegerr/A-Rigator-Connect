@@ -256,15 +256,17 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             var status = await _robotCommunicationService.GetStatusAsync();
             if (status is null)
             {
-                ResultMessage = "A-Rigator is paired, but it has not returned telemetry yet. Check that the robot is powered on and that its firmware supports BLE control.";
+                ResultMessage = _robotCommunicationService.PreferredConnectionMode == RobotConnectionMode.IoT
+                    ? "A-Rigator hasn't checked in yet. Make sure it's turned on and connected to Wi-Fi, then try again."
+                    : "A-Rigator hasn't responded yet. Move closer to your robot and try again.";
                 return;
             }
 
             IsConnectionVerified = true;
             Preferences.Set("arigator_setup_completed", true);
             ResultMessage = status.ConnectionMode == RobotConnectionMode.IoT
-                ? "A-Rigator is responding through IoT. Bluetooth remains available for local fallback."
-                : "A-Rigator is responding over Bluetooth. Remote IoT is unavailable; local control is ready.";
+                ? "A-Rigator is connected and ready for remote access."
+                : "A-Rigator is connected and ready for local control.";
             SetStage(PairingStage.Result);
         }
         catch (Exception)
@@ -284,7 +286,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         IsBusy = true;
         NearbyBleRobots.Clear();
         SelectedBleRobot = null;
-        BleStatusMessage = "Scanning for A-Rigator over Bluetooth...";
+        BleStatusMessage = "Looking for your A-Rigator nearby...";
         try
         {
             var devices = await _robotProvisioningService.ScanForRobotsAsync();
@@ -295,14 +297,14 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 SelectedBleRobot = devices[0];
 
             BleStatusMessage = devices.Count == 0
-                ? "No robot found. Check that A-Rigator is powered on, then scan again."
+                ? "We couldn't find A-Rigator. Make sure it's turned on and nearby, then try again."
                 : devices.Count == 1
-                    ? "A-Rigator found. Select the device card, then tap Connect."
-                    : $"{devices.Count} robots found. Select the one you want to connect to.";
+                    ? "A-Rigator found. Tap Connect to continue."
+                    : $"{devices.Count} robots found. Choose the one you want to connect to.";
         }
         catch (Exception ex)
         {
-            BleStatusMessage = $"Bluetooth discovery failed: {ex.Message}";
+            BleStatusMessage = "We couldn't find your robot. Check that Bluetooth is on and try again.";
         }
         finally
         {
@@ -331,13 +333,13 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                     : "A-Rigator has been registered to your account.";
             }
             SetStage(PairingStage.ConfigureWifi);
-            WifiScanStatusMessage = "Bluetooth is connected. Choose the router Wi-Fi network that A-Rigator will use for IoT access. You can also continue with Bluetooth-only local control.";
+            WifiScanStatusMessage = "A-Rigator is connected to your phone. Choose the Wi-Fi network it should use, or continue with Local control.";
             HasScannedWifiNetworks = false;
             NearbyWifiNetworks.Clear();
         }
         catch (Exception ex)
         {
-            BleStatusMessage = $"Could not connect over Bluetooth: {ex.Message}";
+            BleStatusMessage = "We couldn't connect to A-Rigator. Make sure it's turned on and nearby, then try again.";
         }
         finally
         {
@@ -358,7 +360,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            BleStatusMessage = $"Could not disconnect: {ex.Message}";
+            BleStatusMessage = "We couldn't disconnect from A-Rigator. Please try again.";
         }
     }
 
@@ -371,7 +373,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         SelectedWifiNetwork = null;
         WifiPassword = string.Empty;
         NearbyWifiNetworks.Clear();
-        WifiScanStatusMessage = "Scanning for nearby Wi-Fi networks...";
+        WifiScanStatusMessage = "Looking for nearby Wi-Fi networks...";
         try
         {
             var networks = await _robotProvisioningService.ScanWifiNetworksAsync();
@@ -385,7 +387,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            WifiScanStatusMessage = $"Wi-Fi scan failed: {ex.Message}";
+            WifiScanStatusMessage = "We couldn't find Wi-Fi networks. Check that A-Rigator is nearby and try again.";
         }
         finally
         {
@@ -407,7 +409,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
 
         IsBusy = true;
-        WifiScanStatusMessage = $"Sending Wi-Fi settings for {SelectedWifiNetwork.Ssid}...";
+        WifiScanStatusMessage = $"Connecting A-Rigator to {SelectedWifiNetwork.Ssid}...";
         try
         {
             var result = await _robotProvisioningService.SendWifiCredentialsAsync(
@@ -418,11 +420,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             if (result.Success)
             {
                 WifiPassword = string.Empty;
-                BleStatusMessage = "A-Rigator joined the selected router network. Bluetooth remains available for local control.";
+                BleStatusMessage = "A-Rigator is connected to Wi-Fi. You can still control it nearby.";
 
                 if (_isRemoteSetup)
                 {
-                    WifiScanStatusMessage = "Wi-Fi saved. The robot is ready for the MQTT remote-connection test.";
+                    WifiScanStatusMessage = "Wi-Fi is ready. Let's check your remote connection.";
                 }
 
                 SetStage(PairingStage.VerifyConnection);
@@ -430,7 +432,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            WifiScanStatusMessage = $"Could not provision Wi-Fi: {ex.Message}";
+            WifiScanStatusMessage = "We couldn't connect A-Rigator to that Wi-Fi network. Check the password and try again.";
         }
         finally
         {
