@@ -30,8 +30,6 @@ public partial class AppShell : Shell
         ((DashboardViewModel)dashboardPage.BindingContext).StartMonitoring();
 
         var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
-        if (hasDisplayName)
-            pairingPage.StartNewPairingFlow(accountService.IsAuthenticated);
 
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
@@ -131,13 +129,13 @@ public partial class AppShell : Shell
             await GoToAsync("//setup/pairing");
         };
 
-        pairingPage.DashboardPreviewRequested += async (_, _) => await ShowDashboardAsync();
+        pairingPage.DashboardPreviewRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
         remoteWifiSetupPage.RemoteSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
 
         CurrentItem = setupTabBar;
-        setupTabBar.CurrentItem = hasDisplayName ? pairingTab : welcomeTab;
+        setupTabBar.CurrentItem = hasDisplayName ? remoteConnectionTab : welcomeTab;
     }
 
     public Task ShowDashboardAsync() => GoToAsync("//main/home");
