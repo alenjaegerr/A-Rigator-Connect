@@ -14,7 +14,7 @@ namespace A_Rigator_Controller.Services;
 /// are exposed separately so the UI never mistakes a broker session for an
 /// online robot.
 /// </summary>
-public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDisposable
+public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobotHealth, IAsyncDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private readonly IRemoteRobotConfigurationStore _configurationStore;
@@ -32,12 +32,15 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
 
     public DateTimeOffset? LastTelemetryAt => _lastTelemetryAt;
 
+    public bool IsBrokerConnected => _client.IsConnected;
+
     public bool IsRobotResponsive =>
         _client.IsConnected &&
         _lastTelemetryAt is { } receivedAt &&
         DateTimeOffset.UtcNow - receivedAt <= TelemetryFreshnessWindow;
 
     public event Action<bool>? RobotReachabilityChanged;
+    public event Action? HealthChanged;
     private bool _lastReportedReachability;
     private string? _ackTopic;
     private string? _telemetryTopic;
@@ -239,6 +242,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
                     _latestStatus = status;
                     _lastTelemetryAt = DateTimeOffset.UtcNow;
                     ReportRobotReachability();
+                    HealthChanged?.Invoke();
                 }
             }
             catch (JsonException) { }
@@ -262,6 +266,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
         _connectionState = state;
         ConnectionStateChanged?.Invoke(state);
         ReportRobotReachability();
+        HealthChanged?.Invoke();
     }
 
     private void ReportRobotReachability()
@@ -270,6 +275,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IAsyncDispo
         if (_lastReportedReachability == reachable) return;
         _lastReportedReachability = reachable;
         RobotReachabilityChanged?.Invoke(reachable);
+        HealthChanged?.Invoke();
     }
 
     public async ValueTask DisposeAsync()
