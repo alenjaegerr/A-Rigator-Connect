@@ -19,7 +19,6 @@
 // ============================================================================
 // 1. WI-FI STATION + MQTT
 // ============================================================================
-RobotMqttConfigStore mqttConfigStore;
 RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
 bool mqttConfigured = false;
@@ -2151,12 +2150,12 @@ void setup() {
   }
   controlsEnabled = true;
 
-  // MQTT is optional. BLE remains the local control path when cloud access is unavailable.
-  mqttConfigured = mqttConfigStore.begin() &&
-                   mqttConfigStore.load(mqttConfig) &&
-                   mqttManager.begin(mqttConfig);
+  // MQTT is optional. The fixed demo broker profile is compiled into this
+  // single-robot expo build; BLE local control remains independent of cloud access.
+  mqttConfig = makeRobotMqttConfig();
+  mqttConfigured = mqttManager.begin(mqttConfig);
   Serial.println(mqttConfigured
-    ? ">> Fixed EMQX demo configuration loaded. Waiting for station Wi-Fi and NTP."
+    ? ">> Demo MQTT configuration loaded. Waiting for Wi-Fi and NTP time."
     : ">> MQTT configuration invalid. BLE local control remains available.");
 
   Wire.begin(SDA_PIN, SCL_PIN);
