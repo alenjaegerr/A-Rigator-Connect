@@ -138,7 +138,14 @@ class RobotMqttManager {
     );
 
     if (!ok) {
+      char tlsError[160] = {0};
+      const int tlsErrorCode = tlsClient_.lastError(tlsError, sizeof(tlsError));
       Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\n", mqtt_.state());
+      if (tlsErrorCode != 0) {
+        Serial.printf(">> [MQTT] TLS error (%d): %s\n", tlsErrorCode, tlsError);
+      } else {
+        Serial.println(">> [MQTT] No TLS error code was reported by WiFiClientSecure.");
+      }
       return;
     }
 
