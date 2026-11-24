@@ -15,7 +15,7 @@ static const char* ARIGATOR_DEMO_MQTT_PASSWORD = "12345678";
 
 // CA certificate supplied from the A-Rigator EMQX Serverless deployment.
 // TLS verification remains enabled; do not replace with setInsecure().
-static const char ARIGATOR_EMQX_ROOT_CA[] PROGMEM = R"ARIGATOR_CA(
+static const char ARIGATOR_EMQX_ROOT_CA[] = R"ARIGATOR_CA(
 -----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
@@ -71,6 +71,7 @@ class RobotMqttConfigStore {
     config.username = ARIGATOR_DEMO_MQTT_USERNAME;
     config.password = ARIGATOR_DEMO_MQTT_PASSWORD;
     config.rootCaPem = ARIGATOR_EMQX_ROOT_CA;
+    config.rootCaPem.trim(); // Strip the raw-string delimiter's surrounding newlines.
     return config.isValid();
   }
 };
