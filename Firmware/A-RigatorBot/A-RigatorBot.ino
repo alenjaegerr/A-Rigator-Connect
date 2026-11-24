@@ -2179,7 +2179,8 @@ void setup() {
 
 void loop() {
   readBatteryVoltage();
-  mqttManager.loop();
+  const bool mqttTlsClockReady = time(nullptr) >= 1700000000;
+  mqttManager.loop(mqttTlsClockReady);
   serviceMqttCommands();
   serviceBleWifiScan();
   serviceBleWifiProvisioning();
