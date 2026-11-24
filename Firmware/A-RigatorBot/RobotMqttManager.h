@@ -16,7 +16,9 @@ class RobotMqttManager {
   bool begin(const RobotMqttConfig& config) {
     if (!config.isValid()) return false;
     config_ = config;
-    tlsClient_.setCACert(config_.rootCaPem.c_str());
+    // Use the ESP32 Arduino core's built-in Mozilla root CA bundle.
+    // TLS verification remains enabled; no certificate pinning or insecure fallback.
+    tlsClient_.useBuiltinCACertBundle();
     mqtt_.setClient(tlsClient_);
     mqtt_.setServer(config_.brokerHost.c_str(), config_.brokerPort);
     mqtt_.setBufferSize(1024);
