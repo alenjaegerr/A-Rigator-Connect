@@ -1,24 +1,48 @@
 #pragma once
 
 #include <Arduino.h>
-#include <Preferences.h>
 
 // ============================================================================
-// TEMPORARY STI EXPO DEMONSTRATION CREDENTIALS
-// Remove this hardcoded block after STI EXPO and replace it with a secure
-// device-credential provisioning flow before any public/production release.
-// These credentials are intentionally shared with the demo app configuration.
-// They are not broker administrator credentials; restrict their broker ACL
-// to this A-Rigator robot's topic namespace only.
+// STI EXPO DEMONSTRATION MQTT CONFIGURATION
+// Single-robot build: broker settings are compiled into the firmware so MQTT
+// does not depend on a separate NVS provisioning step.
+// Replace shared demo credentials with per-device credentials before release.
 // ============================================================================
+static const char* ARIGATOR_DEMO_MQTT_HOST = "c1d96f86.ala.asia-southeast1.emqxsl.com";
+static const uint16_t ARIGATOR_DEMO_MQTT_PORT = 8883;
 static const char* ARIGATOR_DEMO_MQTT_USERNAME = "a-rigator-demo";
 static const char* ARIGATOR_DEMO_MQTT_PASSWORD = "12345678";
 
-// Broker endpoint and public TLS trust certificate are stored in this dedicated
-// NVS namespace. This build uses one fixed robot and shared demo credentials.
+// CA certificate supplied from the A-Rigator EMQX Serverless deployment.
+// TLS verification remains enabled; do not replace with setInsecure().
+static const char ARIGATOR_EMQX_ROOT_CA[] PROGMEM = R"ARIGATOR_CA(
+-----BEGIN CERTIFICATE-----
+MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
+MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
+d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBH
+MjAeFw0xMzA4MDExMjAwMDBaFw0zODAxMTUxMjAwMDBaMGExCzAJBgNVBAYTAlVT
+MRUwEwYDVQQKEwxEaWdpQ2VydCBJbmMxGTAXBgNVBAsTEHd3dy5kaWdpY2VydC5j
+b20xIDAeBgNVBAMTF0RpZ2lDZXJ0IEdsb2JhbCBSb290IEcyMIIBIjANBgkqhkiG
+9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuzfNNNx7a8myaJCtSnX/RrohCgiN9RlUyfuI
+2/Ou8jqJkTx65qsGGmvPrC3oXgkkRLpimn7Wo6h+4FR1IAWsULecYxpsMNzaHxmx
+1x7e/dfgy5SDN67sH0NO3Xss0r0upS/kqbitOtSZpLYl6ZtrAGCSYP9PIUkY92eQ
+q2EGnI/yuum06ZIya7XzV+hdG82MHauVBJVJ8zUtluNJbd134/tJS7SsVQepj5Wz
+tCO7TG1F8PapspUwtP1MVYwnSlcUfIKdzXOS0xZKBgyMUNGPHgm+F6HmIcr9g+UQ
+vIOlCsRnKPZzFBQ9RnbDhxSJITRNrw9FDKZJobq7nMWxM4MphQIDAQABo0IwQDAP
+BgNVHRMBAf8EBTADAQH/MA4GA1UdDwEB/wQEAwIBhjAdBgNVHQ4EFgQUTiJUIBiV
+5uNu5g/6+rkS7QYXjzkwDQYJKoZIhvcNAQELBQADggEBAGBnKJRvDkhj6zHd6mcY
+1Yl9PMWLSn/pvtsrF9+wX3N3KjITOYFnQoQj8kVnNeyIv/iPsGEMNKSuIEyExtv4
+NeF22d+mQrvHRAiGfzZ0JFrabA0UWTW98kndth/Jsw1HKj2ZL7tcu7XUIOGZX1NG
+Fdtom/DzMNU+MeKNhJ7jitralj41E6Vf8PlwUHBHQRFXGU7Aj64GxJUTFy8bJZ91
+8rGOmaFvE7FBcf6IKshPECBV1/MUReXgRPTqh5Uykw7+U0b6LJ3/iyK5S9kJRaTe
+pLiaWN0bfVKfjllDiIGknibVb63dDcY3fe0Dkhvld1927jyNxF1WW6LZZm6zNTfl
+MrY=
+-----END CERTIFICATE-----
+)ARIGATOR_CA";
+
 struct RobotMqttConfig {
   String brokerHost;
-  uint16_t brokerPort = 8883;
+  uint16_t brokerPort = ARIGATOR_DEMO_MQTT_PORT;
   String username;
   String password;
   String rootCaPem;
@@ -35,61 +59,18 @@ struct RobotMqttConfig {
 
 class RobotMqttConfigStore {
  public:
+  // Kept as a store-shaped interface so setup code remains straightforward.
+  // The current expo build uses a fixed configuration, not NVS provisioning.
   bool begin() {
-    return preferences.begin("arigator-mqtt", false);
+    return true;
   }
 
   bool load(RobotMqttConfig& config) {
-    if (!preferences.getBool("configured", false)) return false;
-
-    config.brokerHost = preferences.getString("host", "");
-    config.brokerPort = preferences.getUShort("port", 8883);
-    // TEMPORARY — STI EXPO DEMONSTRATION ONLY.
-    // Remove these hardcoded credentials after STI EXPO and restore secure
-    // per-device provisioning. Do not use this fallback in production.
+    config.brokerHost = ARIGATOR_DEMO_MQTT_HOST;
+    config.brokerPort = ARIGATOR_DEMO_MQTT_PORT;
     config.username = ARIGATOR_DEMO_MQTT_USERNAME;
     config.password = ARIGATOR_DEMO_MQTT_PASSWORD;
-    config.rootCaPem = preferences.getString("rootCa", "");
+    config.rootCaPem = ARIGATOR_EMQX_ROOT_CA;
     return config.isValid();
   }
-
-  bool save(const RobotMqttConfig& config) {
-    if (!config.isValid()) return false;
-
-    // Invalidate first so a power loss during a multi-key write cannot expose
-    // a partially written configuration as a usable broker profile.
-    preferences.remove("configured");
-
-    const bool written =
-      preferences.putString("host", config.brokerHost) > 0 &&
-      preferences.putUShort("port", config.brokerPort) > 0 &&
-      preferences.putString("rootCa", config.rootCaPem) > 0 &&
-      preferences.putBool("configured", true) > 0;
-
-    if (!written) {
-      preferences.remove("configured");
-      return false;
-    }
-
-    RobotMqttConfig verification;
-    return load(verification) &&
-           verification.brokerHost == config.brokerHost &&
-           verification.brokerPort == config.brokerPort &&
-           verification.rootCaPem == config.rootCaPem;
-  }
-
-  bool clear() {
-    const bool markerRemoved = !preferences.isKey("configured") || preferences.remove("configured");
-    const bool hostRemoved = !preferences.isKey("host") || preferences.remove("host");
-    const bool portRemoved = !preferences.isKey("port") || preferences.remove("port");
-    const bool caRemoved = !preferences.isKey("rootCa") || preferences.remove("rootCa");
-    return markerRemoved && hostRemoved && portRemoved && caRemoved;
-  }
-
-  void end() {
-    preferences.end();
-  }
-
- private:
-  Preferences preferences;
 };
