@@ -30,8 +30,19 @@ class RobotMqttManager {
     return true;
   }
 
-  void loop() {
+  void loop(bool tlsClockReady) {
     if (!configured_ || WiFi.status() != WL_CONNECTED) return;
+
+    // EMQX Serverless TLS certificate validation requires a valid system clock.
+    // Do not attempt the TLS handshake until NTP has synchronized the ESP32.
+    if (!tlsClockReady) {
+      if (!waitingForClockLogged_) {
+        Serial.println(">> [MQTT] Waiting for NTP time synchronization before TLS connection.");
+        waitingForClockLogged_ = true;
+      }
+      return;
+    }
+    waitingForClockLogged_ = false;
 
     if (!mqtt_.connected()) {
       const unsigned long now = millis();
@@ -100,6 +111,7 @@ class RobotMqttManager {
   uint32_t droppedCommandCount_ = 0;
   bool configured_ = false;
   unsigned long lastConnectAttempt_ = 0;
+  bool waitingForClockLogged_ = false;
 
   void buildTopics() {
     const String prefix = "arigator/v1/";
@@ -111,6 +123,8 @@ class RobotMqttManager {
 
   void connect() {
     const String clientId = "arigator-esp32";
+    Serial.printf(">> [MQTT] Connecting to %s:%u ...\\n",
+                  config_.brokerHost.c_str(), config_.brokerPort);
     const bool ok = mqtt_.connect(
       clientId.c_str(),
       config_.username.c_str(),
@@ -121,9 +135,14 @@ class RobotMqttManager {
       "{\"status\":\"offline\"}"
     );
 
-    if (!ok) return;
+    if (!ok) {
+      Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\\n", mqtt_.state());
+      return;
+    }
 
-    mqtt_.subscribe(commandTopic_.c_str(), 1);
+    const bool subscribed = mqtt_.subscribe(commandTopic_.c_str(), 1);
+    Serial.printf(">> [MQTT] Connected. Command subscription: %s\\n",
+                  subscribed ? "OK" : "FAILED");
     publishAvailability(true);
   }
 
