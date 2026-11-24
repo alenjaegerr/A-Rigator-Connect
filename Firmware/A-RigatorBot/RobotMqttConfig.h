@@ -13,8 +13,7 @@ static const char* ARIGATOR_MQTT_BROKER_HOST = "c1d96f86.ala.asia-southeast1.emq
 static const uint16_t ARIGATOR_MQTT_BROKER_PORT = 8883;
 
 // CA certificate supplied from this A-Rigator EMQX Serverless deployment.
-static const char ARIGATOR_EMQX_ROOT_CA[] = R"EMQX_CA(
------BEGIN CERTIFICATE-----
+static const char ARIGATOR_EMQX_ROOT_CA[] = R"EMQX_CA(-----BEGIN CERTIFICATE-----
 MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh
 MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaWNlcnQgSW5jMRkwFwYDVQQLExB3
 d3cuZGlnaWNlcnQuY29tMSAwHgYDVQQDExdEaWdpQ2VydCBHbG9iYWwgUm9vdCBH
