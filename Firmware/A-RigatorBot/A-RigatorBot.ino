@@ -22,7 +22,6 @@
 RobotMqttConfigStore mqttConfigStore;
 RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
-bool mqttConfigStoreAvailable = false;
 bool mqttConfigured = false;
 // BLE manual actions persist until stop or BLE disconnect. Remote manual control
 // uses a short session lease because the ESP32's broker connection can outlive the phone.
@@ -2153,18 +2152,12 @@ void setup() {
   controlsEnabled = true;
 
   // MQTT is optional. BLE remains the local control path when cloud access is unavailable.
-  if (mqttConfigStore.begin()) {
-    mqttConfigStoreAvailable = true;
-    mqttConfigured = mqttConfigStore.load(mqttConfig);
-    if (mqttConfigured && mqttManager.begin(mqttConfig)) {
-      Serial.println(">> Per-device MQTT configuration loaded. Waiting for station Wi-Fi.");
-    } else {
-      mqttConfigured = false;
-      Serial.println(">> MQTT is not provisioned. BLE local control remains available.");
-    }
-  } else {
-    Serial.println(">> MQTT NVS unavailable. Local control remains available.");
-  }
+  mqttConfigured = mqttConfigStore.begin() &&
+                   mqttConfigStore.load(mqttConfig) &&
+                   mqttManager.begin(mqttConfig);
+  Serial.println(mqttConfigured
+    ? ">> Fixed EMQX demo configuration loaded. Waiting for station Wi-Fi and NTP."
+    : ">> MQTT configuration invalid. BLE local control remains available.");
 
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(10000);
