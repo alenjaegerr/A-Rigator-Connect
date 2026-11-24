@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
+#include <esp_heap_caps.h>
 #include "RobotMqttConfig.h"
 
 // Requires the Arduino PubSubClient library by Nick O'Leary.
@@ -123,10 +124,24 @@ class RobotMqttManager {
     availabilityTopic_ = prefix + "availability";
   }
 
+  void logTlsMemory(const char* stage) {
+    const size_t freeInternal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    const size_t largestInternal = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    Serial.printf(
+      ">> [MQTT][MEM] %s | free=%u B | internal=%u B | largest_internal_block=%u B | min_free=%u B\\n",
+      stage,
+      ESP.getFreeHeap(),
+      freeInternal,
+      largestInternal,
+      ESP.getMinFreeHeap()
+    );
+  }
+
   void connect() {
     const String clientId = "arigator-esp32";
     Serial.printf(">> [MQTT] Connecting to %s:%u ...\n",
                   config_.brokerHost.c_str(), config_.brokerPort);
+    logTlsMemory("before handshake");
     const bool ok = mqtt_.connect(
       clientId.c_str(),
       config_.username.c_str(),
@@ -141,6 +156,7 @@ class RobotMqttManager {
       char tlsError[160] = {0};
       const int tlsErrorCode = tlsClient_.lastError(tlsError, sizeof(tlsError));
       Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\n", mqtt_.state());
+      logTlsMemory("after failed handshake");
       if (tlsErrorCode != 0) {
         Serial.printf(">> [MQTT] TLS error (%d): %s\n", tlsErrorCode, tlsError);
       } else {
