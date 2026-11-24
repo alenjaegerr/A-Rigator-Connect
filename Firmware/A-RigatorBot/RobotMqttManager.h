@@ -123,7 +123,7 @@ class RobotMqttManager {
 
   void connect() {
     const String clientId = "arigator-esp32";
-    Serial.printf(">> [MQTT] Connecting to %s:%u ...\\n",
+    Serial.printf(">> [MQTT] Connecting to %s:%u ...\n",
                   config_.brokerHost.c_str(), config_.brokerPort);
     const bool ok = mqtt_.connect(
       clientId.c_str(),
@@ -136,12 +136,12 @@ class RobotMqttManager {
     );
 
     if (!ok) {
-      Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\\n", mqtt_.state());
+      Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\n", mqtt_.state());
       return;
     }
 
     const bool subscribed = mqtt_.subscribe(commandTopic_.c_str(), 1);
-    Serial.printf(">> [MQTT] Connected. Command subscription: %s\\n",
+    Serial.printf(">> [MQTT] Connected. Command subscription: %s\n",
                   subscribed ? "OK" : "FAILED");
     publishAvailability(true);
   }
@@ -162,7 +162,7 @@ class RobotMqttManager {
     String message;
     message.reserve(length);
     for (unsigned int i = 0; i < length; ++i) {
-      if (payload[i] < 0x20 && payload[i] != '\\n' &&
+      if (payload[i] < 0x20 && payload[i] != '\n' &&
           payload[i] != '\\r' && payload[i] != '\\t') {
         ++droppedCommandCount_;
         return;
