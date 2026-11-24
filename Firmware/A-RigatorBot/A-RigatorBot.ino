@@ -24,6 +24,7 @@ RobotMqttManager mqttManager;
 bool mqttConfigured = false;
 // One-shot diagnostic: release BLE memory for the first saved-Wi-Fi MQTT TLS test.
 bool bleDisabledForMqttMemoryTest = false;
+bool bleRestoreAttemptedAfterMqttTest = false;
 // BLE manual actions persist until stop or BLE disconnect. Remote manual control
 // uses a short session lease because the ESP32's broker connection can outlive the phone.
 static const unsigned long REMOTE_MANUAL_CONTROL_TIMEOUT_MS = 1500;
@@ -417,8 +418,11 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
   }
 };
 
-void startBleDiscovery() {
-  BLEDevice::init(BLE_DEVICE_NAME);
+bool startBleDiscovery() {
+  if (!BLEDevice::init(BLE_DEVICE_NAME)) {
+    Serial.println(">> BLE initialization failed.");
+    return false;
+  }
   bleServer = BLEDevice::createServer();
   bleServer->setCallbacks(new RobotBleServerCallbacks());
   bleProvisioningService = bleServer->createService(BLE_PROVISIONING_SERVICE_UUID);
@@ -503,6 +507,7 @@ void startBleDiscovery() {
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
   Serial.println(">> BLE discovery advertising started (A-Rigator).");
+  return true;
 }
 
 // ============================================================================
@@ -2141,7 +2146,9 @@ void setup() {
   }
 
 
-  startBleDiscovery();
+  if (!startBleDiscovery()) {
+    Serial.println(">> BLE startup failed. Local BLE features are unavailable until restart.");
+  }
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
   if (savedWifiCredentialsAvailable) {
@@ -2182,8 +2189,9 @@ void loop() {
   if (mqttConfigured && savedWifiCredentialsAvailable &&
       WiFi.status() == WL_CONNECTED && mqttTlsClockReady &&
       !mqttManager.connected() && !bleDisabledForMqttMemoryTest) {
-    Serial.println(">> [MQTT TEST] Saved Wi-Fi is connected. Shutting down BLE temporarily to free memory for TLS.");
-    BLEDevice::deinit(true);
+    Serial.println(">> [MQTT TEST] Saved Wi-Fi is connected. Temporarily deinitializing BLE for the TLS handshake.");
+    // Keep Bluetooth controller memory reserved so BLE can be initialized again after MQTT connects.
+    BLEDevice::deinit(false);
     bleServer = nullptr;
     bleProvisioningService = nullptr;
     bleControlService = nullptr;
@@ -2202,12 +2210,26 @@ void loop() {
     bleControlCommandPending = false;
     pendingBleControlCommand = "";
     bleDisabledForMqttMemoryTest = true;
-    Serial.println(">> [MQTT TEST] BLE stack released. BLE pairing/control will return after reboot.");
+    Serial.println(">> [MQTT TEST] BLE deinitialized. Waiting for MQTT connection before restoring BLE.");
   }
 
   if (savedWifiCredentialsAvailable) {
     mqttManager.loop(mqttTlsClockReady);
   }
+
+  // Restore local BLE only after the TLS handshake and MQTT subscription succeed.
+  if (bleDisabledForMqttMemoryTest && mqttManager.connected() &&
+      !bleRestoreAttemptedAfterMqttTest) {
+    bleRestoreAttemptedAfterMqttTest = true;
+    Serial.println(">> [MQTT TEST] MQTT is connected. Reinitializing BLE while keeping MQTT online.");
+    if (startBleDiscovery()) {
+      bleDisabledForMqttMemoryTest = false;
+      Serial.println(">> [MQTT TEST] BLE restored. Verify BLE discovery and MQTT remain connected together.");
+    } else {
+      Serial.println(">> [MQTT TEST] BLE restore failed. MQTT remains the priority for this diagnostic boot.");
+    }
+  }
+
   serviceMqttCommands();
 
   if (!bleDisabledForMqttMemoryTest) {
