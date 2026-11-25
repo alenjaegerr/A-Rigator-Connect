@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace A_Rigator_Controller.Models;
 
 public sealed class RobotStatus
@@ -26,7 +28,24 @@ public sealed class RobotStatus
 
     public string? Hostname { get; init; }
 
-    public RobotConnectionMode ConnectionMode { get; set; } = RobotConnectionMode.Unknown;
+    // These fields are reported by the ESP32. The robot, not the phone's saved
+    // preference, is authoritative about its selected operating mode and state.
+    [JsonPropertyName("operatingMode")]
+    public string? ReportedOperatingMode { get; init; }
+
+    [JsonPropertyName("connectionState")]
+    public string? ReportedConnectionState { get; init; }
+
+    [JsonPropertyName("mqttConnected")]
+    public bool? MqttConnected { get; init; }
+
+    [JsonIgnore]
+    public RobotConnectionMode ConnectionMode => ReportedOperatingMode?.ToUpperInvariant() switch
+    {
+        "LOCAL" => RobotConnectionMode.BLE,
+        "REMOTE" => RobotConnectionMode.IoT,
+        _ => RobotConnectionMode.Unknown
+    };
 
     public float? ObstacleDistanceCm { get; init; }
 
