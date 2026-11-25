@@ -61,7 +61,6 @@ namespace A_Rigator_Controller
             builder.Services.AddTransient<PairingViewModel>();
             builder.Services.AddTransient<IrrigationProfilesViewModel>();
             builder.Services.AddTransient<RemoteWifiSetupViewModel>();
-            builder.Services.AddTransient<WelcomeViewModel>();
             builder.Services.AddTransient<AccountViewModel>();
 
             builder.Services.AddTransient<MainPage>();
@@ -70,7 +69,6 @@ namespace A_Rigator_Controller
             builder.Services.AddTransient<PathwayModePage>();
             builder.Services.AddTransient<TerrainModePage>();
             builder.Services.AddTransient<IrrigationProfilesPage>();
-            builder.Services.AddTransient<WelcomePage>();
             builder.Services.AddTransient<PairingPage>();
             builder.Services.AddTransient<RemoteWifiSetupPage>();
             builder.Services.AddTransient<AccountPage>();
