@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <Preferences.h>
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
