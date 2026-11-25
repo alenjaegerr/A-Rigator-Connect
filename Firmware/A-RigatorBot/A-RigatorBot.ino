@@ -2269,12 +2269,12 @@ void setup() {
 
   Serial.println();
   Serial.println("==============================================");
-  Serial.printf(" A-RIGATOR FIRMWARE %s | BUILD %s\\n",
+  Serial.printf(" A-RIGATOR FIRMWARE %s | BUILD %s\n",
                 ARIGATOR_FIRMWARE_VERSION, ARIGATOR_BUILD_ID);
-  Serial.printf(" Operating mode : %s\\n", operatingModeName());
-  Serial.printf(" Connection state: %s\\n", connectionStateName());
-  Serial.printf(" Wi-Fi provisioned: %s\\n", savedWifiCredentialsAvailable ? "YES" : "NO");
-  Serial.printf(" MQTT configured : %s\\n", mqttConfigured ? "YES" : "NO");
+  Serial.printf(" Operating mode : %s\n", operatingModeName());
+  Serial.printf(" Connection state: %s\n", connectionStateName());
+  Serial.printf(" Wi-Fi provisioned: %s\n", savedWifiCredentialsAvailable ? "YES" : "NO");
+  Serial.printf(" MQTT configured : %s\n", mqttConfigured ? "YES" : "NO");
   Serial.println("==============================================");
   Serial.println(mqttConfigured
     ? ">> Demo MQTT configuration loaded."
@@ -2386,12 +2386,12 @@ void loop() {
       gmtime_r(&epoch, &utcTime);
       char timestamp[24];
       strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &utcTime);
-      Serial.printf(">> [NTP] Clock synchronized: %s (epoch=%ld). TLS certificate checks may proceed.\\n",
+      Serial.printf(">> [NTP] Clock synchronized: %s (epoch=%ld). TLS certificate checks may proceed.\n",
                     timestamp, (long)epoch);
       ntpSyncConfirmed = true;
     } else if (millis() - lastNtpDiagnosticAt >= NTP_DIAGNOSTIC_INTERVAL_MS) {
       lastNtpDiagnosticAt = millis();
-      Serial.printf(">> [NTP] Waiting for valid clock; current epoch=%ld. TLS remains blocked.\\n",
+      Serial.printf(">> [NTP] Waiting for valid clock; current epoch=%ld. TLS remains blocked.\n",
                     (long)epoch);
     }
   }
