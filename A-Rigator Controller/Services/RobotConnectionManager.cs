@@ -107,7 +107,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             return null;
         }
 
-        status.ConnectionMode = PreferredConnectionMode;
+        // Keep the connection mode reported by the ESP32; do not infer it from app preference.
         SetConnectionState(ConnectionState.Connected);
         return status;
     }
