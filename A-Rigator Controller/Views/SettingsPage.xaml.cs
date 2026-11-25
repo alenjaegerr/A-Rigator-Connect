@@ -113,7 +113,7 @@ public partial class SettingsPage : ContentPage
                     await DisplayAlert("A-Rigator not found", "Bring A-Rigator nearby and turn it on, then try again.", "OK");
                     return;
                 }
-                await _robotProvisioningService.ConnectToRobotAsync(devices[0].Id);
+                await _robotProvisioningService.ConnectToRobotAsync(devices[0].DeviceId);
             }
             var result = await _robotProvisioningService.ForgetSavedWifiAsync();
             await DisplayAlert(result.Success ? "Wi-Fi forgotten" : "Couldn't forget Wi-Fi", result.Message, "OK");
