@@ -2255,7 +2255,7 @@ void setup() {
   // single-robot expo build; BLE local control remains independent of cloud access.
   mqttConfig = makeRobotMqttConfig();
   mqttConfigured = mqttManager.begin(mqttConfig);
-  connectionModeStore.begin();
+  connectionModeStore.begin(savedWifiCredentialsAvailable ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
   operatingMode = connectionModeStore.mode();
   if (!savedWifiCredentialsAvailable) operatingMode = ROBOT_MODE_LOCAL;
   Serial.println(mqttConfigured
