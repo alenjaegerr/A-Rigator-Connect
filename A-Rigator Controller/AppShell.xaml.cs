@@ -14,12 +14,10 @@ public partial class AppShell : Shell
         MainPage dashboardPage,
         ControlPage controlPage,
         AutonomousHubPage autonomousHubPage,
-        WelcomePage welcomePage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
         AccountPage accountPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
-        IUserProfileService userProfileService,
         IrrigationProfileSyncCoordinator profileSyncCoordinator)
     {
         InitializeComponent();
@@ -35,10 +33,7 @@ public partial class AppShell : Shell
         _dashboardViewModel.LocalModeSelectionRequested += async (_, _) => await BeginLocalRobotSetupAsync();
         _dashboardViewModel.ReconnectRequested += async (_, _) => await BeginReconnectFlowAsync();
 
-        var hasDisplayName = !string.IsNullOrWhiteSpace(userProfileService.GetDisplayName());
         var hasCompletedSetup = Preferences.Get("arigator_setup_completed", false);
-        if (hasDisplayName && !hasCompletedSetup)
-            pairingPage.StartNewPairingFlow();
 
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
@@ -97,14 +92,6 @@ public partial class AppShell : Shell
         // Keep onboarding isolated from the persistent five-tab application shell.
         var setupTabBar = new TabBar { Route = "setup" };
 
-        var welcomeTab = new Tab { Title = "Welcome", Route = "welcome" };
-        welcomeTab.Items.Add(new ShellContent
-        {
-            Title = "Welcome",
-            Route = "welcome-content",
-            Content = welcomePage
-        });
-
         var pairingTab = new Tab { Title = "Pairing", Route = "pairing" };
         pairingTab.Items.Add(new ShellContent
         {
@@ -121,7 +108,6 @@ public partial class AppShell : Shell
             Content = remoteWifiSetupPage
         });
 
-        setupTabBar.Items.Add(welcomeTab);
         setupTabBar.Items.Add(pairingTab);
         setupTabBar.Items.Add(remoteConnectionTab);
 
@@ -132,28 +118,21 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("terrain", typeof(TerrainModePage));
         Routing.RegisterRoute("irrigation-profiles", typeof(IrrigationProfilesPage));
 
-        welcomePage.DisplayNameSaved += async (_, _) =>
-        {
-            pairingPage.StartNewPairingFlow();
-            await GoToAsync("//setup/pairing");
-        };
-
         pairingPage.DashboardPreviewRequested += async (_, _) =>
         {
             var pairingViewModel = pairingPage.BindingContext as PairingViewModel;
-            if (pairingViewModel?.IsRemoteSetup == true)
-                await ShowDashboardAsync();
-            else
-                await ShowRemoteAccessInfoAsync();
+            await ShowDashboardAsync();
         };
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
         pairingPage.NotNowRequested += async (_, _) => await ShowDashboardAsync();
         remoteWifiSetupPage.RemoteSetupRequested += async (_, _) => await BeginRemoteRobotSetupAsync();
 
-        CurrentItem = setupTabBar;
-        setupTabBar.CurrentItem = hasCompletedSetup
-            ? remoteConnectionTab
-            : hasDisplayName ? pairingTab : welcomeTab;
+        // Fresh installs go straight to robot discovery. No name-entry or sign-in gate.
+        // Returning installs resume the dashboard using the device's local setup marker.
+        CurrentItem = hasCompletedSetup ? mainTabBar : setupTabBar;
+        setupTabBar.CurrentItem = pairingTab;
+        if (!hasCompletedSetup)
+            Dispatcher.Dispatch(async () => await pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false));
     }
 
     public Task ShowDashboardAsync()
