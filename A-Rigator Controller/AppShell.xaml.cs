@@ -10,6 +10,7 @@ public partial class AppShell : Shell
 {
     private readonly PairingPage _pairingPage;
     private readonly DashboardViewModel _dashboardViewModel;
+    private readonly IRobotCommunicationService _robotCommunicationService;
     public AppShell(
         MainPage dashboardPage,
         ControlPage controlPage,
@@ -18,10 +19,12 @@ public partial class AppShell : Shell
         SettingsPage settingsPage,
         AccountPage accountPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
-        IrrigationProfileSyncCoordinator profileSyncCoordinator)
+        IrrigationProfileSyncCoordinator profileSyncCoordinator,
+        IRobotCommunicationService robotCommunicationService)
     {
         InitializeComponent();
         _pairingPage = pairingPage;
+        _robotCommunicationService = robotCommunicationService;
         Navigated += OnShellNavigated;
         _ = profileSyncCoordinator.StartAsync();
 
@@ -146,7 +149,7 @@ public partial class AppShell : Shell
     {
         Preferences.Remove("arigator_setup_completed");
         _dashboardViewModel.StopMonitoring();
-        _dashboardViewModel.PreferredConnectionMode = RobotConnectionMode.BLE;
+        _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
         await _pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false);
         await GoToAsync("//setup/pairing");
     }
