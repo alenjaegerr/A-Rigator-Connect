@@ -2317,10 +2317,16 @@ void loop() {
 
   if (pendingModeTransition && millis() - modeTransitionAt >= MODE_TRANSITION_ACK_GRACE_MS) {
     pendingModeTransition = false;
-    if (!connectionModeStore.save(requestedOperatingMode)) {
+
+    // Branch on the requested mode, not the previous operatingMode. The old
+    // check always selected Local Mode when provisioning first requested
+    // Remote Mode, because operatingMode was still LOCAL at this point.
+    const RobotOperatingMode targetMode = requestedOperatingMode;
+    if (!connectionModeStore.save(targetMode)) {
       connectionState = operatingMode == ROBOT_MODE_REMOTE ? CONN_REMOTE_RECOVERY : CONN_LOCAL_ACTIVE;
       Serial.println(">> [CONNECTION] Mode persistence failed; transition cancelled.");
-    } else if (operatingMode == ROBOT_MODE_LOCAL) {
+    } else if (targetMode == ROBOT_MODE_LOCAL) {
+      operatingMode = ROBOT_MODE_LOCAL;
       mqttManager.stop();
       if (bleStackActive) {
         BLEDevice::stopAdvertising();
@@ -2335,16 +2341,21 @@ void loop() {
       }
       WiFi.disconnect(false, false);
       WiFi.mode(WIFI_OFF);
-      startBleDiscovery();
-      connectionState = CONN_LOCAL_ACTIVE;
-      Serial.println(">> [CONNECTION] Local Mode active; MQTT stopped and BLE restarted.");
+      if (!startBleDiscovery()) {
+        connectionState = CONN_REMOTE_RECOVERY;
+        Serial.println(">> [CONNECTION] Local Mode selected, but BLE could not be restarted.");
+      } else {
+        connectionState = CONN_LOCAL_ACTIVE;
+        Serial.println(">> [CONNECTION] Local Mode active; MQTT stopped and BLE restarted.");
+      }
     } else if (!savedWifiCredentialsAvailable) {
       connectionModeStore.save(ROBOT_MODE_LOCAL);
       operatingMode = ROBOT_MODE_LOCAL;
       connectionState = CONN_REMOTE_RECOVERY;
-      startBleDiscovery();
+      if (!bleStackActive) startBleDiscovery();
       Serial.println(">> [CONNECTION] Cannot enter Remote Mode without saved Wi-Fi credentials.");
     } else {
+      operatingMode = ROBOT_MODE_REMOTE;
       if (bleStackActive) {
         BLEDevice::stopAdvertising();
         BLEDevice::deinit(true);
@@ -2362,6 +2373,7 @@ void loop() {
       WiFi.setAutoReconnect(true);
       WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
       mqttClockSyncRequested = false;
+      ntpSyncConfirmed = false;
       stationWasConnected = false;
       connectionState = CONN_WIFI_CONNECTING;
       Serial.println(">> [CONNECTION] Remote Mode selected; connecting to saved Wi-Fi.");
