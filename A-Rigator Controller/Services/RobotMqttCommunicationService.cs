@@ -137,6 +137,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
             RobotControlCommand.Heartbeat => "heartbeat",
             RobotControlCommand.AutonomousStart => "autonomous_start",
             RobotControlCommand.AutonomousStop => "autonomous_stop",
+            RobotControlCommand.FactoryReset => "factory_reset",
             _ => throw new NotSupportedException(
                 $"'{command}' is not enabled for remote control yet. Use the local connection or wait for the next firmware command rollout.")
         };
@@ -177,7 +178,8 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 throw new TimeoutException("The robot did not acknowledge the remote command. Check its internet connection and try again.");
 
             var ack = await acknowledgement.Task;
-            if (!string.Equals(ack.Status, "executed", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(ack.Status, "executed", StringComparison.OrdinalIgnoreCase) &&
+                !(command == RobotControlCommand.FactoryReset && string.Equals(ack.Status, "accepted", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException(ack.Message ?? $"The robot rejected the command ({ack.Code ?? ack.Status}).");
         }
         catch (Exception) when (!_client.IsConnected)
