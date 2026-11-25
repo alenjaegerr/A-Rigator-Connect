@@ -5,7 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-app-factory-reset1"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-app-factory-reset2"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
