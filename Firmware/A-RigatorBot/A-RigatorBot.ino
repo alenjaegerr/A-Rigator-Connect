@@ -1,9 +1,11 @@
 #include <Wire.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <Preferences.h>
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
+#define ARIGATOR_BUILD_ID "phase1-arduino-primary-2026.11.26-diagnostics1"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -15,6 +17,7 @@
 #include "RobotWifiConfig.h"
 #include "RobotMqttConfig.h"
 #include "RobotMqttManager.h"
+#include "RobotConnectionMode.h"
 
 // ============================================================================
 // 1. WI-FI STATION + MQTT
@@ -32,6 +35,38 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+bool ntpSyncConfirmed = false;
+unsigned long lastNtpDiagnosticAt = 0;
+static const unsigned long NTP_DIAGNOSTIC_INTERVAL_MS = 5000;
+static const time_t NTP_VALID_EPOCH = 1700000000;
+RobotConnectionModeStore connectionModeStore;
+RobotOperatingMode operatingMode = ROBOT_MODE_LOCAL;
+RobotConnectionState connectionState = CONN_LOCAL_ACTIVE;
+bool pendingModeTransition = false;
+RobotOperatingMode requestedOperatingMode = ROBOT_MODE_LOCAL;
+unsigned long modeTransitionAt = 0;
+bool bleStackActive = false;
+static const unsigned long MODE_TRANSITION_ACK_GRACE_MS = 900;
+
+const char* operatingModeName() { return operatingMode == ROBOT_MODE_REMOTE ? "REMOTE" : "LOCAL"; }
+const char* connectionStateName() {
+  switch (connectionState) {
+    case CONN_MODE_SWITCHING: return "MODE_SWITCHING";
+    case CONN_WIFI_CONNECTING: return "WIFI_CONNECTING";
+    case CONN_TIME_SYNC: return "TIME_SYNC";
+    case CONN_MQTT_CONNECTING: return "MQTT_CONNECTING";
+    case CONN_REMOTE_ACTIVE: return "REMOTE_ACTIVE";
+    case CONN_REMOTE_RECOVERY: return "REMOTE_RECOVERY";
+    default: return "LOCAL_ACTIVE";
+  }
+}
+void requestOperatingMode(RobotOperatingMode mode) {
+  if (mode == operatingMode && !pendingModeTransition) return;
+  requestedOperatingMode = mode;
+  pendingModeTransition = true;
+  modeTransitionAt = millis();
+  connectionState = CONN_MODE_SWITCHING;
+}
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
 // not provide MITM protection; production pairing needs physical presence or
@@ -185,6 +220,7 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentials.ssid = pendingWifiSsid;
       savedWifiCredentials.password = pendingWifiPassword;
       savedWifiCredentialsAvailable = true;
+      if (operatingMode == ROBOT_MODE_LOCAL) requestOperatingMode(ROBOT_MODE_REMOTE);
       if (bleWifiConfigCharacteristic) {
         const String config = String("SAVED:") + savedWifiCredentials.ssid;
         bleWifiConfigCharacteristic->setValue(config.c_str());
@@ -219,6 +255,8 @@ void serviceBleWifiProvisioning() {
 void serviceBleWifiScan() {
   if (bleWifiScanRequested && !bleWifiScanRunning) {
     bleWifiScanRequested = false;
+    // Local Mode normally powers Wi-Fi down; briefly enable station mode for scanning.
+    if (WiFi.getMode() == WIFI_OFF) WiFi.mode(WIFI_STA);
     const int result = WiFi.scanNetworks(true, true);
     if (result == WIFI_SCAN_FAILED) {
       bleWifiScanCharacteristic->setValue("ERROR");
@@ -416,6 +454,7 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
 };
 
 bool startBleDiscovery() {
+  if (bleStackActive) return true;
   if (!BLEDevice::init(BLE_DEVICE_NAME)) {
     Serial.println(">> BLE initialization failed.");
     return false;
@@ -503,6 +542,7 @@ bool startBleDiscovery() {
   advertising->addServiceUUID(BLE_CONTROL_SERVICE_UUID);
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
+  bleStackActive = true;
   Serial.println(">> BLE discovery advertising started (A-Rigator).");
   return true;
 }
@@ -693,6 +733,15 @@ void serviceBleControlCommands() {
     return;
   }
 
+  if (command == "switch_remote" || command == "switch_local") {
+    if (command == "switch_remote" && !savedWifiCredentialsAvailable) {
+      publishBleControlAck(commandId, "rejected", "WIFI_NOT_CONFIGURED", "Save Wi-Fi credentials before switching to Remote Mode");
+      return;
+    }
+    publishBleControlAck(commandId, "accepted", "MODE_SWITCHING", "Operating mode transition accepted");
+    requestOperatingMode(command == "switch_remote" ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
+    return;
+  }
   if (command != "heartbeat" && command != "irrigation_profile")
     manualControlViaMqtt = false;
   bool supported = true;
@@ -788,12 +837,15 @@ void serviceBleControlCommands() {
 }
 
 void publishBleTelemetryIfDue() {
-  if (bleControlTelemetryCharacteristic == nullptr ||
-      millis() - lastBleTelemetryAt < 1000) return;
+  if (millis() - lastBleTelemetryAt < 1000) return;
+  if (operatingMode == ROBOT_MODE_LOCAL && bleControlTelemetryCharacteristic == nullptr) return;
   lastBleTelemetryAt = millis();
 
   StaticJsonDocument<896> doc;
   doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
+  doc["operatingMode"] = operatingModeName();
+  doc["connectionState"] = connectionStateName();
+  doc["mqttConnected"] = mqttManager.connected();
   doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
                  ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
   doc["mode"] = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
@@ -825,8 +877,9 @@ void publishBleTelemetryIfDue() {
   doc["connectionMode"] = "BLE";
   String payload;
   serializeJson(doc, payload);
-  bleControlTelemetryCharacteristic->setValue(payload.c_str());
-  // Keep BLE and Remote IoT dashboards on the same telemetry contract.
+  if (bleControlTelemetryCharacteristic != nullptr)
+    bleControlTelemetryCharacteristic->setValue(payload.c_str());
+  // Remote telemetry must remain available when BLE is intentionally shut down.
   if (mqttManager.connected()) mqttManager.publishTelemetry(payload);
 }
 
@@ -1571,7 +1624,11 @@ void serviceMqttCommands() {
     manualControlViaMqtt = true;
   }
 
-  if (command == "stop") {
+  if (command == "switch_local") {
+    publishMqttCommandAck(commandId, "accepted", "MODE_SWITCHING", "Switching to Local Mode");
+    requestOperatingMode(ROBOT_MODE_LOCAL);
+    return;
+  } else if (command == "stop") {
     handleStop();
   } else if (command == "autonomous_start") {
     if (emergencyStopLatched) {
@@ -2178,26 +2235,49 @@ void setup() {
   }
 
 
-  if (!startBleDiscovery()) {
-    Serial.println(">> BLE startup failed. Local BLE features are unavailable until restart.");
-  }
-  WiFi.mode(WIFI_STA);
-  WiFi.setAutoReconnect(true);
-  if (savedWifiCredentialsAvailable) {
-    WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
-    Serial.println(">> Attempting to connect to the saved router Wi-Fi network.");
+  // Resolve persisted mode BEFORE selecting a transport. A robot without
+  // credentials cannot enter Remote Mode, regardless of a stale NVS setting.
+  const RobotOperatingMode defaultMode = savedWifiCredentialsAvailable
+    ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL;
+  if (!connectionModeStore.begin(defaultMode)) {
+    Serial.println(">> [BOOT] Connection-mode NVS unavailable; using safe Local Mode.");
+    operatingMode = ROBOT_MODE_LOCAL;
   } else {
-    Serial.println(">> No router configured. Provision Wi-Fi through BLE; local BLE control remains available.");
+    operatingMode = connectionModeStore.mode();
+  }
+  if (!savedWifiCredentialsAvailable && operatingMode != ROBOT_MODE_LOCAL) {
+    operatingMode = ROBOT_MODE_LOCAL;
+    connectionModeStore.save(ROBOT_MODE_LOCAL);
+  }
+
+  // MQTT is optional and is initialized before the selected mode is activated.
+  mqttConfig = makeRobotMqttConfig();
+  mqttConfigured = mqttManager.begin(mqttConfig);
+  if (operatingMode == ROBOT_MODE_LOCAL) {
+    if (!startBleDiscovery()) Serial.println(">> BLE startup failed.");
+    WiFi.mode(WIFI_OFF);
+    mqttManager.stop();
+    connectionState = CONN_LOCAL_ACTIVE;
+  } else {
+    WiFi.mode(WIFI_STA);
+    WiFi.setAutoReconnect(true);
+    WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
+    connectionState = CONN_WIFI_CONNECTING;
   }
   controlsEnabled = true;
 
-  // MQTT is optional. The fixed demo broker profile is compiled into this
-  // single-robot expo build; BLE local control remains independent of cloud access.
-  mqttConfig = makeRobotMqttConfig();
-  mqttConfigured = mqttManager.begin(mqttConfig);
+  Serial.println();
+  Serial.println("==============================================");
+  Serial.printf(" A-RIGATOR FIRMWARE %s | BUILD %s\n",
+                ARIGATOR_FIRMWARE_VERSION, ARIGATOR_BUILD_ID);
+  Serial.printf(" Operating mode : %s\n", operatingModeName());
+  Serial.printf(" Connection state: %s\n", connectionStateName());
+  Serial.printf(" Wi-Fi provisioned: %s\n", savedWifiCredentialsAvailable ? "YES" : "NO");
+  Serial.printf(" MQTT configured : %s\n", mqttConfigured ? "YES" : "NO");
+  Serial.println("==============================================");
   Serial.println(mqttConfigured
-    ? ">> Demo MQTT configuration loaded. Waiting for Wi-Fi and NTP time."
-    : ">> MQTT configuration invalid. BLE local control remains available.");
+    ? ">> Demo MQTT configuration loaded."
+    : ">> MQTT configuration invalid; Local Mode remains available.");
 
   i2cBusInitialized = Wire.begin(SDA_PIN, SCL_PIN);
   if (i2cBusInitialized) {
@@ -2217,29 +2297,111 @@ void setup() {
 
 void loop() {
   readBatteryVoltage();
-  const bool mqttTlsClockReady = time(nullptr) >= 1700000000;
+  const time_t currentEpoch = time(nullptr);
+  const bool mqttTlsClockReady = currentEpoch >= NTP_VALID_EPOCH;
 
-  if (savedWifiCredentialsAvailable) {
+  if (operatingMode == ROBOT_MODE_REMOTE) {
     mqttManager.loop(mqttTlsClockReady);
+    if (WiFi.status() != WL_CONNECTED) connectionState = CONN_WIFI_CONNECTING;
+    else if (!mqttTlsClockReady) connectionState = CONN_TIME_SYNC;
+    else if (!mqttManager.connected()) connectionState = CONN_MQTT_CONNECTING;
+    else connectionState = CONN_REMOTE_ACTIVE;
+    serviceMqttCommands();
   }
-
-  serviceMqttCommands();
-
-  serviceBleWifiScan();
-  serviceBleWifiProvisioning();
-  serviceBleControlCommands();
+  if (bleStackActive) {
+    serviceBleWifiScan();
+    serviceBleWifiProvisioning();
+    serviceBleControlCommands();
+  }
   publishBleTelemetryIfDue();
 
+  if (pendingModeTransition && millis() - modeTransitionAt >= MODE_TRANSITION_ACK_GRACE_MS) {
+    pendingModeTransition = false;
+    if (!connectionModeStore.save(requestedOperatingMode)) {
+      connectionState = operatingMode == ROBOT_MODE_REMOTE ? CONN_REMOTE_RECOVERY : CONN_LOCAL_ACTIVE;
+      Serial.println(">> [CONNECTION] Mode persistence failed; transition cancelled.");
+    } else if (operatingMode == ROBOT_MODE_LOCAL) {
+      mqttManager.stop();
+      if (bleStackActive) {
+        BLEDevice::stopAdvertising();
+        BLEDevice::deinit(true);
+        bleStackActive = false;
+        bleServer = nullptr; bleProvisioningService = nullptr; bleControlService = nullptr;
+        bleControlCommandCharacteristic = nullptr; bleControlAckCharacteristic = nullptr;
+        bleControlTelemetryCharacteristic = nullptr; bleDiscoveryCharacteristic = nullptr;
+        bleWifiScanCharacteristic = nullptr; bleWifiCredentialCharacteristic = nullptr;
+        bleWifiStatusCharacteristic = nullptr; bleWifiConfigCharacteristic = nullptr;
+        bleHardwareIdCharacteristic = nullptr;
+      }
+      WiFi.disconnect(false, false);
+      WiFi.mode(WIFI_OFF);
+      startBleDiscovery();
+      connectionState = CONN_LOCAL_ACTIVE;
+      Serial.println(">> [CONNECTION] Local Mode active; MQTT stopped and BLE restarted.");
+    } else if (!savedWifiCredentialsAvailable) {
+      connectionModeStore.save(ROBOT_MODE_LOCAL);
+      operatingMode = ROBOT_MODE_LOCAL;
+      connectionState = CONN_REMOTE_RECOVERY;
+      startBleDiscovery();
+      Serial.println(">> [CONNECTION] Cannot enter Remote Mode without saved Wi-Fi credentials.");
+    } else {
+      if (bleStackActive) {
+        BLEDevice::stopAdvertising();
+        BLEDevice::deinit(true);
+        bleStackActive = false;
+        bleServer = nullptr; bleProvisioningService = nullptr; bleControlService = nullptr;
+        bleControlCommandCharacteristic = nullptr; bleControlAckCharacteristic = nullptr;
+        bleControlTelemetryCharacteristic = nullptr; bleDiscoveryCharacteristic = nullptr;
+        bleWifiScanCharacteristic = nullptr; bleWifiCredentialCharacteristic = nullptr;
+        bleWifiStatusCharacteristic = nullptr; bleWifiConfigCharacteristic = nullptr;
+        bleHardwareIdCharacteristic = nullptr;
+      }
+      mqttManager.stop();
+      mqttConfigured = mqttManager.begin(mqttConfig);
+      WiFi.mode(WIFI_STA);
+      WiFi.setAutoReconnect(true);
+      WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
+      mqttClockSyncRequested = false;
+      stationWasConnected = false;
+      connectionState = CONN_WIFI_CONNECTING;
+      Serial.println(">> [CONNECTION] Remote Mode selected; connecting to saved Wi-Fi.");
+    }
+  }
+
   // Report station connectivity transitions without exposing the password.
-  const bool stationConnected = WiFi.status() == WL_CONNECTED;
+  const bool stationConnected = operatingMode == ROBOT_MODE_REMOTE && WiFi.status() == WL_CONNECTED;
   if (stationConnected && !mqttClockSyncRequested) {
+    Serial.println(">> [NTP] Starting time synchronization (pool.ntp.org, time.google.com).");
     configTime(0, 0, "pool.ntp.org", "time.google.com");
     mqttClockSyncRequested = true;
+    ntpSyncConfirmed = false;
+    lastNtpDiagnosticAt = 0;
+  }
+
+  if (stationConnected && mqttClockSyncRequested && !ntpSyncConfirmed) {
+    const time_t epoch = time(nullptr);
+    if (epoch >= NTP_VALID_EPOCH) {
+      struct tm utcTime;
+      gmtime_r(&epoch, &utcTime);
+      char timestamp[24];
+      strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &utcTime);
+      Serial.printf(">> [NTP] Clock synchronized: %s (epoch=%ld). TLS certificate checks may proceed.\n",
+                    timestamp, (long)epoch);
+      ntpSyncConfirmed = true;
+    } else if (millis() - lastNtpDiagnosticAt >= NTP_DIAGNOSTIC_INTERVAL_MS) {
+      lastNtpDiagnosticAt = millis();
+      Serial.printf(">> [NTP] Waiting for valid clock; current epoch=%ld. TLS remains blocked.\n",
+                    (long)epoch);
+    }
   }
   if (stationConnected && !stationWasConnected) {
     Serial.printf(">> Router Wi-Fi connected. IP: %s\n",
                   WiFi.localIP().toString().c_str());
   } else if (!stationConnected && stationWasConnected) {
+    // A reconnect needs a fresh NTP synchronization before TLS certificate checks.
+    mqttClockSyncRequested = false;
+    ntpSyncConfirmed = false;
+    lastNtpDiagnosticAt = 0;
     Serial.println(">> Router Wi-Fi disconnected. ESP32 will attempt to reconnect.");
   }
   stationWasConnected = stationConnected;

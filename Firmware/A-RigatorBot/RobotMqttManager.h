@@ -6,6 +6,7 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <esp_heap_caps.h>
+#include <mbedtls/error.h>
 #include "RobotMqttConfig.h"
 
 // Requires the Arduino PubSubClient library by Nick O'Leary.
@@ -18,6 +19,7 @@ class RobotMqttManager {
   bool begin(const RobotMqttConfig& config) {
     if (!config.isValid()) return false;
     config_ = config;
+    tlsClient_.stop();
     // Use the ESP32 Arduino core's built-in Mozilla root CA bundle.
     // TLS verification remains enabled; no certificate pinning or insecure fallback.
     tlsClient_.useBuiltinCACertBundle();
@@ -31,11 +33,35 @@ class RobotMqttManager {
     });
     buildTopics();
     configured_ = true;
+    enabled_ = true;
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
+    lastConnectAttempt_ = 0;
+    waitingForClockLogged_ = false;
     return true;
   }
 
+  // Stops MQTT and releases the TLS socket while retaining broker configuration.
+  // Call from the main loop, never from a PubSubClient callback.
+  void stop() {
+    if (mqtt_.connected()) {
+      publishAvailability(false);
+      mqtt_.disconnect();
+    }
+    enabled_ = false;
+    tlsClient_.stop();
+    clearCommandQueue();
+    lastConnectAttempt_ = 0;
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
+    waitingForClockLogged_ = false;
+    Serial.println(">> [MQTT] Client stopped; TLS socket closed.");
+  }
+
+  bool enabled() const {
+    return enabled_;
+  }
+
   void loop(bool tlsClockReady) {
-    if (!configured_ || WiFi.status() != WL_CONNECTED) return;
+    if (!configured_ || !enabled_ || WiFi.status() != WL_CONNECTED) return;
 
     // EMQX Serverless TLS certificate validation requires a valid system clock.
     // Do not attempt the TLS handshake until NTP has synchronized the ESP32.
@@ -50,7 +76,7 @@ class RobotMqttManager {
 
     if (!mqtt_.connected()) {
       const unsigned long now = millis();
-      if ((uint32_t)(now - lastConnectAttempt_) < RECONNECT_INTERVAL_MS) return;
+      if ((uint32_t)(now - lastConnectAttempt_) < reconnectIntervalMs_) return;
       lastConnectAttempt_ = now;
       connect();
       return;
@@ -60,22 +86,22 @@ class RobotMqttManager {
   }
 
   bool connected() {
-    return mqtt_.connected();
+    return enabled_ && mqtt_.connected();
   }
 
   bool publishTelemetry(const String& json) {
-    return mqtt_.connected() &&
+    return enabled_ && mqtt_.connected() &&
            mqtt_.publish(telemetryTopic_.c_str(), json.c_str(), false);
   }
 
   bool publishAvailability(bool online) {
-    if (!mqtt_.connected()) return false;
+    if (!enabled_ || !mqtt_.connected()) return false;
     const char* payload = online ? "{\"status\":\"online\"}" : "{\"status\":\"offline\"}";
     return mqtt_.publish(availabilityTopic_.c_str(), payload, true);
   }
 
   bool publishAck(const String& json) {
-    return mqtt_.connected() &&
+    return enabled_ && mqtt_.connected() &&
            mqtt_.publish(ackTopic_.c_str(), json.c_str(), false);
   }
 
@@ -99,7 +125,8 @@ class RobotMqttManager {
   }
 
  private:
-  static const unsigned long RECONNECT_INTERVAL_MS = 5000;
+  static const uint32_t BASE_RECONNECT_INTERVAL_MS = 5000;
+  static const uint32_t MAX_RECONNECT_INTERVAL_MS = 60000;
 
   RobotMqttConfig config_;
   WiFiClientSecure tlsClient_;
@@ -114,8 +141,25 @@ class RobotMqttManager {
   uint8_t queuedCommandCount_ = 0;
   uint32_t droppedCommandCount_ = 0;
   bool configured_ = false;
+  bool enabled_ = false;
   unsigned long lastConnectAttempt_ = 0;
+  uint32_t reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
   bool waitingForClockLogged_ = false;
+
+  void clearCommandQueue() {
+    for (uint8_t i = 0; i < COMMAND_QUEUE_CAPACITY; ++i) commandQueue_[i] = "";
+    commandQueueHead_ = 0;
+    commandQueueTail_ = 0;
+    queuedCommandCount_ = 0;
+  }
+
+  void scheduleNextReconnect() {
+    reconnectIntervalMs_ = reconnectIntervalMs_ >= MAX_RECONNECT_INTERVAL_MS / 2
+      ? MAX_RECONNECT_INTERVAL_MS
+      : reconnectIntervalMs_ * 2;
+    Serial.printf(">> [MQTT] Next reconnect attempt in %lu seconds.\n",
+                  (unsigned long)(reconnectIntervalMs_ / 1000));
+  }
 
   void buildTopics() {
     const String prefix = "arigator/v1/";
@@ -154,18 +198,32 @@ class RobotMqttManager {
     );
 
     if (!ok) {
-      char tlsError[160] = {0};
+      char tlsError[192] = {0};
       const int tlsErrorCode = tlsClient_.lastError(tlsError, sizeof(tlsError));
       Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\n", mqtt_.state());
       logTlsMemory("after failed handshake");
       if (tlsErrorCode != 0) {
-        Serial.printf(">> [MQTT] TLS error (%d): %s\n", tlsErrorCode, tlsError);
+        Serial.printf(">> [TLS][ESP32] WiFiClientSecure lastError=%d (0x%08X): %s\n",
+                      tlsErrorCode, (unsigned int)tlsErrorCode, tlsError);
+        // Decode native negative mbedTLS error values when exposed by the
+        // ESP32 Arduino WiFiClientSecure implementation.
+        if (tlsErrorCode < 0) {
+          char mbedError[192] = {0};
+          mbedtls_strerror(tlsErrorCode, mbedError, sizeof(mbedError));
+          Serial.printf(">> [TLS][mbedTLS] code=%d (0x%08X): %s\n",
+                        tlsErrorCode, (unsigned int)tlsErrorCode, mbedError);
+        } else {
+          Serial.println(">> [TLS][mbedTLS] No native negative mbedTLS code exposed; retain ESP32 TLS detail above.");
+        }
       } else {
-        Serial.println(">> [MQTT] No TLS error code was reported by WiFiClientSecure.");
+        Serial.println(">> [TLS] WiFiClientSecure reported no retained error code.");
       }
+      Serial.printf(">> [TLS] Clock epoch at failure: %ld\n", (long)time(nullptr));
+      scheduleNextReconnect();
       return;
     }
 
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
     const bool subscribed = mqtt_.subscribe(commandTopic_.c_str(), 1);
     Serial.printf(">> [MQTT] Connected. Command subscription: %s\n",
                   subscribed ? "OK" : "FAILED");
