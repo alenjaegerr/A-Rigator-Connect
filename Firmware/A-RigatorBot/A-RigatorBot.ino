@@ -250,6 +250,8 @@ void serviceBleWifiProvisioning() {
 void serviceBleWifiScan() {
   if (bleWifiScanRequested && !bleWifiScanRunning) {
     bleWifiScanRequested = false;
+    // Local Mode normally powers Wi-Fi down; briefly enable station mode for scanning.
+    if (WiFi.getMode() == WIFI_OFF) WiFi.mode(WIFI_STA);
     const int result = WiFi.scanNetworks(true, true);
     if (result == WIFI_SCAN_FAILED) {
       bleWifiScanCharacteristic->setValue("ERROR");
