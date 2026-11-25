@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using A_Rigator_Controller.Models;
 using MQTTnet;
 using MQTTnet.Client;
@@ -16,7 +17,14 @@ namespace A_Rigator_Controller.Services;
 /// </summary>
 public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobotHealth, IAsyncDisposable
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
     private readonly IRemoteRobotConfigurationStore _configurationStore;
     private readonly IMqttClient _client;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<MqttCommandAck>> _pendingAcks = new();
