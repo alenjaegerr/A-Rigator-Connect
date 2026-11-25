@@ -2240,6 +2240,8 @@ void loop() {
     Serial.printf(">> Router Wi-Fi connected. IP: %s\n",
                   WiFi.localIP().toString().c_str());
   } else if (!stationConnected && stationWasConnected) {
+    // A reconnect needs a fresh NTP synchronization before TLS certificate checks.
+    mqttClockSyncRequested = false;
     Serial.println(">> Router Wi-Fi disconnected. ESP32 will attempt to reconnect.");
   }
   stationWasConnected = stationConnected;
