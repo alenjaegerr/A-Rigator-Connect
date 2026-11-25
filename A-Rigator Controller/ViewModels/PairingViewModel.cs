@@ -397,12 +397,21 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            // Keep the real failure visible during setup instead of hiding
-            // broker, subscription, TLS, and configuration errors behind one
-            // misleading BLE-style message.
-            var detail = string.IsNullOrWhiteSpace(ex.Message)
-                ? ex.GetType().Name
-                : ex.Message;
+            // Surface nested MQTT/TLS exceptions. MQTTnet often wraps the
+            // broker's CONNACK failure and puts the useful reason in InnerException.
+            var details = new List<string>();
+            var current = ex;
+            while (current is not null && details.Count < 5)
+            {
+                var message = string.IsNullOrWhiteSpace(current.Message)
+                    ? current.GetType().Name
+                    : current.Message;
+                if (details.Count == 0 || !details.Contains(message, StringComparer.Ordinal))
+                    details.Add(message);
+                current = current.InnerException;
+            }
+
+            var detail = string.Join(" → ", details);
             ResultMessage = $"Remote connection failed ({ex.GetType().Name}): {detail}";
         }
         finally
