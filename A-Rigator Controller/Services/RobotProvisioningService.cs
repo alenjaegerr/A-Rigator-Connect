@@ -198,7 +198,9 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
 
                 var status = root.TryGetProperty("status", out var statusElement) ? statusElement.GetString() : null;
                 var message = root.TryGetProperty("message", out var messageElement) ? messageElement.GetString() : null;
-                if (!string.Equals(status, "executed", StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(status, "executed", StringComparison.OrdinalIgnoreCase) &&
+                    !(document.RootElement.GetProperty("command").GetString() == "factory_reset" &&
+                      string.Equals(status, "accepted", StringComparison.OrdinalIgnoreCase)))
                     throw new InvalidOperationException(message ?? "A-Rigator rejected the Bluetooth command.");
                 SetTransportState(ConnectionState.Connected);
                 return;
