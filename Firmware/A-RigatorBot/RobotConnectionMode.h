@@ -35,6 +35,15 @@ class RobotConnectionModeStore {
     return true;
   }
 
+  // Remove the persisted mode so the next boot uses the factory default
+  // derived from whether Wi-Fi credentials exist (normally Local Mode).
+  bool clear() {
+    if (!ready_ && !begin()) return false;
+    const bool removed = !preferences_.isKey("op_mode") || preferences_.remove("op_mode");
+    if (removed) mode_ = ROBOT_MODE_LOCAL;
+    return removed;
+  }
+
   RobotOperatingMode mode() const { return mode_; }
 
  private:
