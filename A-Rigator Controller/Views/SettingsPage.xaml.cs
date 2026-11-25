@@ -1,3 +1,4 @@
+using A_Rigator_Controller.Models;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Services;
 
@@ -40,6 +41,51 @@ public partial class SettingsPage : ContentPage
         catch
         {
             await DisplayAlert("Couldn't open connection settings", "Please return to the Home screen and try again.", "OK");
+        }
+    }
+
+    private async void OnFactoryResetClicked(object sender, EventArgs e)
+    {
+        var firstConfirmation = await DisplayAlert(
+            "Factory reset A-Rigator?",
+            "This will stop the robot, erase its saved Wi-Fi network and operating mode, and restart it in Local setup mode.",
+            "Continue",
+            "Cancel");
+        if (!firstConfirmation) return;
+
+        var finalConfirmation = await DisplayAlert(
+            "This cannot be undone",
+            "A-Rigator will return to its brand-new setup state. Your app account and cloud irrigation profiles will remain untouched.",
+            "Reset robot",
+            "Go back");
+        if (!finalConfirmation) return;
+
+        FactoryResetButton.IsEnabled = false;
+        FactoryResetButton.Text = "RESETTING…";
+        try
+        {
+            await _robotCommunicationService.SendCommandAsync(RobotControlCommand.FactoryReset);
+            await Task.Delay(1200);
+            await _robotCommunicationService.DisconnectAsync();
+            if (Shell.Current is AppShell appShell)
+                await appShell.ResumeFirstTimeSetupAfterFactoryResetAsync();
+
+            await DisplayAlert(
+                "A-Rigator reset",
+                "The robot is restarting with its original Local setup. Connect to it nearby to configure Wi-Fi again.",
+                "OK");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert(
+                "Factory reset failed",
+                $"A-Rigator could not confirm the reset. Keep the robot powered on and connected, then try again.\n\n{ex.Message}",
+                "OK");
+        }
+        finally
+        {
+            FactoryResetButton.IsEnabled = true;
+            FactoryResetButton.Text = "RESET A-RIGATOR";
         }
     }
 
