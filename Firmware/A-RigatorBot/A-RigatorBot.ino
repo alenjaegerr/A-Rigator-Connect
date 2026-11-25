@@ -875,7 +875,7 @@ bool initShieldFrequency(uint32_t freq) {
 
   const uint8_t err = Wire.endTransmission();
   if (err != 0) {
-    Serial.printf(">> [I2C] Motor shield frequency initialization failed (error %u).\\n", err);
+    Serial.printf(">> [I2C] Motor shield frequency initialization failed (error %u).\n", err);
     return false;
   }
   return true;
@@ -894,7 +894,7 @@ bool sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
   const uint8_t err = Wire.endTransmission();
   if (err != 0) {
     motorShieldInitialized = false;
-    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Motor output disabled until reinitialized.\\n", err);
+    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Motor output disabled until reinitialized.\n", err);
     return false;
   }
   return true;
@@ -1108,7 +1108,7 @@ void triggerEmergencyStop(const char* source) {
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   setLedOutput(false);
   playAudioTrack(7);
-  Serial.printf(">> [EMERGENCY STOP] Latched by %s. Explicit reset required.\\n", source);
+  Serial.printf(">> [EMERGENCY STOP] Latched by %s. Explicit reset required.\n", source);
 }
 
 bool resetEmergencyStop() {
@@ -1637,7 +1637,7 @@ void stopManualOutputsForLinkLoss(const char* source) {
   setPump(false);
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
-  Serial.printf(">> [SAFETY] Manual outputs stopped after %s connection loss.\\n", source);
+  Serial.printf(">> [SAFETY] Manual outputs stopped after %s connection loss.\n", source);
 }
 
 void serviceControlLinkSafety() {
