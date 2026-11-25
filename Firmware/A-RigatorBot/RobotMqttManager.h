@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <inttypes.h>
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
@@ -128,7 +129,7 @@ class RobotMqttManager {
     const size_t freeInternal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     const size_t largestInternal = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     Serial.printf(
-      ">> [MQTT][MEM] %s | free=%u B | internal=%u B | largest_internal_block=%u B | min_free=%u B\n",
+      ">> [MQTT][MEM] %s | free=%" PRIu32 " B | internal=%zu B | largest_internal_block=%zu B | min_free=%" PRIu32 " B\n",
       stage,
       ESP.getFreeHeap(),
       freeInternal,
@@ -188,7 +189,7 @@ class RobotMqttManager {
     message.reserve(length);
     for (unsigned int i = 0; i < length; ++i) {
       if (payload[i] < 0x20 && payload[i] != '\n' &&
-          payload[i] != '\\r' && payload[i] != '\\t') {
+          payload[i] != '\r' && payload[i] != '\t') {
         ++droppedCommandCount_;
         return;
       }
