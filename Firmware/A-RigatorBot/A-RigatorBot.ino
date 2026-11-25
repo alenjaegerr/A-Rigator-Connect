@@ -5,7 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-factory-reset1"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-app-factory-reset1"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -46,6 +46,7 @@ bool pendingModeTransition = false;
 RobotOperatingMode requestedOperatingMode = ROBOT_MODE_LOCAL;
 unsigned long modeTransitionAt = 0;
 bool bleStackActive = false;
+bool performFactoryReset();
 static const unsigned long MODE_TRANSITION_ACK_GRACE_MS = 900;
 static const unsigned long FACTORY_RESET_CONFIRM_TIMEOUT_MS = 15000;
 bool factoryResetConfirmationPending = false;
@@ -731,8 +732,15 @@ void serviceBleControlCommands() {
     return;
   }
 
-  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
+  if (emergencyStopLatched && command != "stop" && command != "pump_off" && command != "factory_reset") {
     publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
+    return;
+  }
+
+  if (command == "factory_reset") {
+    publishBleControlAck(commandId, "accepted", "FACTORY_RESET", "Factory reset accepted; robot is restarting");
+    delay(300);
+    performFactoryReset();
     return;
   }
 
@@ -1677,6 +1685,13 @@ void serviceMqttCommands() {
     manualControlViaMqtt = false;
   } else if (command != "heartbeat") {
     manualControlViaMqtt = true;
+  }
+
+  if (command == "factory_reset") {
+    publishMqttCommandAck(commandId, "accepted", "FACTORY_RESET", "Factory reset accepted; robot is restarting");
+    delay(300);
+    performFactoryReset();
+    return;
   }
 
   if (command == "switch_local") {
