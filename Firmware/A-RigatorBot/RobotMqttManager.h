@@ -206,9 +206,11 @@ class RobotMqttManager {
       } else {
         Serial.println(">> [MQTT] No TLS error code was reported by WiFiClientSecure.");
       }
+      scheduleNextReconnect();
       return;
     }
 
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
     const bool subscribed = mqtt_.subscribe(commandTopic_.c_str(), 1);
     Serial.printf(">> [MQTT] Connected. Command subscription: %s\n",
                   subscribed ? "OK" : "FAILED");
