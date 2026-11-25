@@ -42,11 +42,11 @@ class RobotMqttManager {
   // Stops MQTT and releases the TLS socket while retaining broker configuration.
   // Call from the main loop, never from a PubSubClient callback.
   void stop() {
-    enabled_ = false;
     if (mqtt_.connected()) {
       publishAvailability(false);
       mqtt_.disconnect();
     }
+    enabled_ = false;
     tlsClient_.stop();
     clearCommandQueue();
     lastConnectAttempt_ = 0;
