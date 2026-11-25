@@ -200,17 +200,17 @@ class RobotMqttManager {
     if (!ok) {
       char tlsError[192] = {0};
       const int tlsErrorCode = tlsClient_.lastError(tlsError, sizeof(tlsError));
-      Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\\n", mqtt_.state());
+      Serial.printf(">> [MQTT] Connection failed. PubSubClient state: %d\n", mqtt_.state());
       logTlsMemory("after failed handshake");
       if (tlsErrorCode != 0) {
-        Serial.printf(">> [TLS][ESP32] WiFiClientSecure lastError=%d (0x%08X): %s\\n",
+        Serial.printf(">> [TLS][ESP32] WiFiClientSecure lastError=%d (0x%08X): %s\n",
                       tlsErrorCode, (unsigned int)tlsErrorCode, tlsError);
         // Decode native negative mbedTLS error values when exposed by the
         // ESP32 Arduino WiFiClientSecure implementation.
         if (tlsErrorCode < 0) {
           char mbedError[192] = {0};
           mbedtls_strerror(tlsErrorCode, mbedError, sizeof(mbedError));
-          Serial.printf(">> [TLS][mbedTLS] code=%d (0x%08X): %s\\n",
+          Serial.printf(">> [TLS][mbedTLS] code=%d (0x%08X): %s\n",
                         tlsErrorCode, (unsigned int)tlsErrorCode, mbedError);
         } else {
           Serial.println(">> [TLS][mbedTLS] No native negative mbedTLS code exposed; retain ESP32 TLS detail above.");
@@ -218,7 +218,7 @@ class RobotMqttManager {
       } else {
         Serial.println(">> [TLS] WiFiClientSecure reported no retained error code.");
       }
-      Serial.printf(">> [TLS] Clock epoch at failure: %ld\\n", (long)time(nullptr));
+      Serial.printf(">> [TLS] Clock epoch at failure: %ld\n", (long)time(nullptr));
       scheduleNextReconnect();
       return;
     }
