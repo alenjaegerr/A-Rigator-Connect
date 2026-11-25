@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Security.Authentication;
 using A_Rigator_Controller.Models;
 using MQTTnet;
 using MQTTnet.Client;
@@ -94,7 +95,11 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 .WithClientId($"arigator-app-{Guid.NewGuid():N}")
                 .WithTcpServer(_options.BrokerHost, _options.BrokerPort)
                 .WithCredentials(_options.Username, _options.Password)
-                .WithTlsOptions(tls => tls.UseTls())
+                .WithTlsOptions(tls => tls
+                    .UseTls()
+                    // Pin the supported protocol and SNI host explicitly for Android's TLS provider.
+                    .WithSslProtocols(SslProtocols.Tls12)
+                    .WithTargetHost(_options.BrokerHost))
                 .WithCleanSession()
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
                 .Build();
