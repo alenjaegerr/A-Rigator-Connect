@@ -236,6 +236,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
             try
             {
                 var status = JsonSerializer.Deserialize<RobotStatus>(payload, JsonOptions);
+                // Preserve the robot-reported operating mode and connection state.
                 if (status is not null)
                 {
                     _latestStatus = status;
