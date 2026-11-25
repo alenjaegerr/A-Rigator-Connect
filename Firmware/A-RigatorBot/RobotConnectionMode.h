@@ -20,10 +20,10 @@ enum RobotConnectionState : uint8_t {
 
 class RobotConnectionModeStore {
  public:
-  bool begin() {
+  bool begin(RobotOperatingMode defaultMode = ROBOT_MODE_LOCAL) {
     if (!preferences_.begin("arigator_conn", false)) return false;
     ready_ = true;
-    mode_ = preferences_.getUChar("op_mode", ROBOT_MODE_LOCAL) == ROBOT_MODE_REMOTE
+    mode_ = preferences_.getUChar("op_mode", (uint8_t)defaultMode) == ROBOT_MODE_REMOTE
       ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL;
     return true;
   }
