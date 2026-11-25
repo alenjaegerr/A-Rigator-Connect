@@ -16,6 +16,7 @@
 #include "RobotWifiConfig.h"
 #include "RobotMqttConfig.h"
 #include "RobotMqttManager.h"
+#include "RobotConnectionMode.h"
 
 // ============================================================================
 // 1. WI-FI STATION + MQTT
@@ -33,6 +34,34 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+RobotConnectionModeStore connectionModeStore;
+RobotOperatingMode operatingMode = ROBOT_MODE_LOCAL;
+RobotConnectionState connectionState = CONN_LOCAL_ACTIVE;
+bool pendingModeTransition = false;
+RobotOperatingMode requestedOperatingMode = ROBOT_MODE_LOCAL;
+unsigned long modeTransitionAt = 0;
+bool bleStackActive = false;
+static const unsigned long MODE_TRANSITION_ACK_GRACE_MS = 900;
+
+const char* operatingModeName() { return operatingMode == ROBOT_MODE_REMOTE ? "REMOTE" : "LOCAL"; }
+const char* connectionStateName() {
+  switch (connectionState) {
+    case CONN_MODE_SWITCHING: return "MODE_SWITCHING";
+    case CONN_WIFI_CONNECTING: return "WIFI_CONNECTING";
+    case CONN_TIME_SYNC: return "TIME_SYNC";
+    case CONN_MQTT_CONNECTING: return "MQTT_CONNECTING";
+    case CONN_REMOTE_ACTIVE: return "REMOTE_ACTIVE";
+    case CONN_REMOTE_RECOVERY: return "REMOTE_RECOVERY";
+    default: return "LOCAL_ACTIVE";
+  }
+}
+void requestOperatingMode(RobotOperatingMode mode) {
+  if (mode == operatingMode && !pendingModeTransition) return;
+  requestedOperatingMode = mode;
+  pendingModeTransition = true;
+  modeTransitionAt = millis();
+  connectionState = CONN_MODE_SWITCHING;
+}
 
 // BLE credential writes require an encrypted, bonded link. Just Works does
 // not provide MITM protection; production pairing needs physical presence or
@@ -186,6 +215,7 @@ void serviceBleWifiProvisioning() {
       savedWifiCredentials.ssid = pendingWifiSsid;
       savedWifiCredentials.password = pendingWifiPassword;
       savedWifiCredentialsAvailable = true;
+      if (operatingMode == ROBOT_MODE_LOCAL) requestOperatingMode(ROBOT_MODE_REMOTE);
       if (bleWifiConfigCharacteristic) {
         const String config = String("SAVED:") + savedWifiCredentials.ssid;
         bleWifiConfigCharacteristic->setValue(config.c_str());
@@ -417,6 +447,7 @@ class WifiScanCommandCallbacks : public BLECharacteristicCallbacks {
 };
 
 bool startBleDiscovery() {
+  if (bleStackActive) return true;
   if (!BLEDevice::init(BLE_DEVICE_NAME)) {
     Serial.println(">> BLE initialization failed.");
     return false;
@@ -504,6 +535,7 @@ bool startBleDiscovery() {
   advertising->addServiceUUID(BLE_CONTROL_SERVICE_UUID);
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
+  bleStackActive = true;
   Serial.println(">> BLE discovery advertising started (A-Rigator).");
   return true;
 }
@@ -795,6 +827,9 @@ void publishBleTelemetryIfDue() {
 
   StaticJsonDocument<896> doc;
   doc["firmwareVersion"] = ARIGATOR_FIRMWARE_VERSION;
+  doc["operatingMode"] = operatingModeName();
+  doc["connectionState"] = connectionStateName();
+  doc["mqttConnected"] = mqttManager.connected();
   doc["state"] = currentMode == MODE_AUTONOMOUS ? (pumpState ? "Watering" : "Automatic") :
                  ((manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW) ? "Manual" : "Idle");
   doc["mode"] = currentMode == MODE_AUTONOMOUS ? "Automatic" : "Manual";
@@ -2196,6 +2231,9 @@ void setup() {
   // single-robot expo build; BLE local control remains independent of cloud access.
   mqttConfig = makeRobotMqttConfig();
   mqttConfigured = mqttManager.begin(mqttConfig);
+  connectionModeStore.begin();
+  operatingMode = connectionModeStore.mode();
+  if (!savedWifiCredentialsAvailable) operatingMode = ROBOT_MODE_LOCAL;
   Serial.println(mqttConfigured
     ? ">> Demo MQTT configuration loaded. Waiting for Wi-Fi and NTP time."
     : ">> MQTT configuration invalid. BLE local control remains available.");
