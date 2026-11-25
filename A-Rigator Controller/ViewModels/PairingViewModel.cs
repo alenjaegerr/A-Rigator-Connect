@@ -226,9 +226,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             ? "A-Rigator is ready for remote access."
             : "A-Rigator is ready for local control.";
 
-    public string CompletionButtonText => IsRemoteSetup
-        ? "Continue to Dashboard"
-        : "Choose connection";
+    public string CompletionButtonText => "Continue to Dashboard";
 
     public bool IsErrorVisible => !string.IsNullOrWhiteSpace(ResultMessage);
 
@@ -515,10 +513,12 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 SavedWifiStatusMessage = $"A-Rigator is connected to {SavedWifiNetwork} and has saved this network.";
                 BleStatusMessage = "A-Rigator is connected to Wi-Fi. You can still control it nearby.";
 
-                if (_isRemoteSetup)
-                {
-                    WifiScanStatusMessage = "Wi-Fi is ready. Let's check your remote connection.";
-                }
+                // The ESP32 automatically enters Remote Mode after successfully
+                // saving Wi-Fi credentials. Align the app transport with that
+                // firmware transition before attempting connection verification.
+                _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.IoT;
+                OnPropertyChanged(nameof(SuccessfulResultMessage));
+                WifiScanStatusMessage = "Wi-Fi is ready. Checking A-Rigator's remote connection...";
 
                 SetStage(PairingStage.VerifyConnection);
             }
