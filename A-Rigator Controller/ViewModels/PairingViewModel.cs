@@ -41,6 +41,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
         ContinueWithBluetoothCommand = new Command(async () => await ContinueLocallyAsync(), () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
+        ContinueToDashboardCommand = new Command(ContinueToDashboard);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
         StartOverCommand = new Command(StartOver);
@@ -186,6 +187,8 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     public ICommand ContinueWithBluetoothCommand { get; }
 
     public ICommand OpenDashboardPreviewCommand { get; }
+
+    public ICommand ContinueToDashboardCommand { get; }
 
     public ICommand OpenRemoteWifiSetupCommand { get; }
 
@@ -638,6 +641,15 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     private void NotNow()
     {
         NotNowRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ContinueToDashboard()
+    {
+        // Setup verification is useful, but must not lock the user out of the
+        // dashboard when the robot is temporarily unreachable. The dashboard
+        // owns reconnect and disconnected-state handling.
+        Preferences.Set("arigator_setup_completed", true);
+        DashboardPreviewRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void OpenDashboardPreview()
