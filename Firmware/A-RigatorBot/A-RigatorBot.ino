@@ -2292,8 +2292,8 @@ void loop() {
     serviceBleWifiScan();
     serviceBleWifiProvisioning();
     serviceBleControlCommands();
-    publishBleTelemetryIfDue();
   }
+  publishBleTelemetryIfDue();
 
   if (pendingModeTransition && millis() - modeTransitionAt >= MODE_TRANSITION_ACK_GRACE_MS) {
     pendingModeTransition = false;
