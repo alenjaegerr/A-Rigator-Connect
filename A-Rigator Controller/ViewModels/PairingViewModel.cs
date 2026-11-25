@@ -285,8 +285,21 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         SavedWifiNetwork = null;
         WifiPassword = string.Empty;
 
-        // Discovery is the required first step in either mode. Do not trust a
-        // cached BLE device or silently reuse a previous GATT session.
+        // Remote setup is verified over MQTT. BLE is only needed for local
+        // control and first-time Wi-Fi provisioning; requiring BLE here makes
+        // a robot with working Wi-Fi/MQTT appear offline after app reinstall.
+        if (isRemoteSetup)
+        {
+            _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.IoT;
+            SavedWifiStatusMessage = "Checking A-Rigator's remote connection...";
+            WifiScanStatusMessage = "Verifying the robot through its cloud connection.";
+            SetStage(PairingStage.VerifyConnection);
+            await ConfirmWifiConnectionAsync();
+            return;
+        }
+
+        // Local setup uses BLE discovery. Do not trust a cached BLE device or
+        // silently reuse a previous GATT session.
         if (_robotCommunicationService.ConnectionState != ConnectionState.Disconnected)
         {
             try { await _robotCommunicationService.DisconnectAsync(); }
