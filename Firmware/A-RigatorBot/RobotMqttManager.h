@@ -75,7 +75,7 @@ class RobotMqttManager {
 
     if (!mqtt_.connected()) {
       const unsigned long now = millis();
-      if ((uint32_t)(now - lastConnectAttempt_) < RECONNECT_INTERVAL_MS) return;
+      if ((uint32_t)(now - lastConnectAttempt_) < reconnectIntervalMs_) return;
       lastConnectAttempt_ = now;
       connect();
       return;
@@ -89,18 +89,18 @@ class RobotMqttManager {
   }
 
   bool publishTelemetry(const String& json) {
-    return mqtt_.connected() &&
+    return enabled_ && mqtt_.connected() &&
            mqtt_.publish(telemetryTopic_.c_str(), json.c_str(), false);
   }
 
   bool publishAvailability(bool online) {
-    if (!mqtt_.connected()) return false;
+    if (!enabled_ || !mqtt_.connected()) return false;
     const char* payload = online ? "{\"status\":\"online\"}" : "{\"status\":\"offline\"}";
     return mqtt_.publish(availabilityTopic_.c_str(), payload, true);
   }
 
   bool publishAck(const String& json) {
-    return mqtt_.connected() &&
+    return enabled_ && mqtt_.connected() &&
            mqtt_.publish(ackTopic_.c_str(), json.c_str(), false);
   }
 
