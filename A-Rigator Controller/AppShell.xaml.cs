@@ -120,7 +120,6 @@ public partial class AppShell : Shell
 
         pairingPage.DashboardPreviewRequested += async (_, _) =>
         {
-            var pairingViewModel = pairingPage.BindingContext as PairingViewModel;
             await ShowDashboardAsync();
         };
         pairingPage.RemoteWifiSetupRequested += async (_, _) => await ShowRemoteAccessInfoAsync();
