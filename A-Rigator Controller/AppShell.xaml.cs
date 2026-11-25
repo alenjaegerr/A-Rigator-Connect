@@ -142,6 +142,15 @@ public partial class AppShell : Shell
 
     public Task ShowRemoteAccessInfoAsync() => GoToAsync("//setup/remote-connection");
 
+    public async Task ResumeFirstTimeSetupAfterFactoryResetAsync()
+    {
+        Preferences.Remove("arigator_setup_completed");
+        _dashboardViewModel.StopMonitoring();
+        _dashboardViewModel.PreferredConnectionMode = RobotConnectionMode.BLE;
+        await _pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false);
+        await GoToAsync("//setup/pairing");
+    }
+
     public async Task BeginRemoteRobotSetupAsync()
     {
         var pairingPage = _pairingPage;
