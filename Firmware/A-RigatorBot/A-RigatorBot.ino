@@ -5,6 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
+#define ARIGATOR_BUILD_ID "phase1-arduino-primary-2026.11.26-diagnostics1"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -34,6 +35,11 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
+bool mqttClockSyncRequested = false;
+bool ntpSyncConfirmed = false;
+unsigned long lastNtpDiagnosticAt = 0;
+static const unsigned long NTP_DIAGNOSTIC_INTERVAL_MS = 5000;
+static const time_t NTP_VALID_EPOCH = 1700000000;
 RobotConnectionModeStore connectionModeStore;
 RobotOperatingMode operatingMode = ROBOT_MODE_LOCAL;
 RobotConnectionState connectionState = CONN_LOCAL_ACTIVE;
@@ -2230,37 +2236,49 @@ void setup() {
   }
 
 
+  // Resolve persisted mode BEFORE selecting a transport. A robot without
+  // credentials cannot enter Remote Mode, regardless of a stale NVS setting.
+  const RobotOperatingMode defaultMode = savedWifiCredentialsAvailable
+    ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL;
+  if (!connectionModeStore.begin(defaultMode)) {
+    Serial.println(">> [BOOT] Connection-mode NVS unavailable; using safe Local Mode.");
+    operatingMode = ROBOT_MODE_LOCAL;
+  } else {
+    operatingMode = connectionModeStore.mode();
+  }
+  if (!savedWifiCredentialsAvailable && operatingMode != ROBOT_MODE_LOCAL) {
+    operatingMode = ROBOT_MODE_LOCAL;
+    connectionModeStore.save(ROBOT_MODE_LOCAL);
+  }
+
+  // MQTT is optional and is initialized before the selected mode is activated.
+  mqttConfig = makeRobotMqttConfig();
+  mqttConfigured = mqttManager.begin(mqttConfig);
   if (operatingMode == ROBOT_MODE_LOCAL) {
     if (!startBleDiscovery()) Serial.println(">> BLE startup failed.");
     WiFi.mode(WIFI_OFF);
     mqttManager.stop();
     connectionState = CONN_LOCAL_ACTIVE;
-    Serial.println(">> Local Mode restored from NVS.");
-  } else if (savedWifiCredentialsAvailable) {
+  } else {
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
     connectionState = CONN_WIFI_CONNECTING;
-    Serial.println(">> Remote Mode restored from NVS; connecting to Wi-Fi.");
-  } else {
-    operatingMode = ROBOT_MODE_LOCAL;
-    connectionModeStore.save(ROBOT_MODE_LOCAL);
-    startBleDiscovery();
-    WiFi.mode(WIFI_OFF);
-    connectionState = CONN_LOCAL_ACTIVE;
   }
   controlsEnabled = true;
 
-  // MQTT is optional. The fixed demo broker profile is compiled into this
-  // single-robot expo build; BLE local control remains independent of cloud access.
-  mqttConfig = makeRobotMqttConfig();
-  mqttConfigured = mqttManager.begin(mqttConfig);
-  connectionModeStore.begin(savedWifiCredentialsAvailable ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
-  operatingMode = connectionModeStore.mode();
-  if (!savedWifiCredentialsAvailable) operatingMode = ROBOT_MODE_LOCAL;
+  Serial.println();
+  Serial.println("==============================================");
+  Serial.printf(" A-RIGATOR FIRMWARE %s | BUILD %s\\n",
+                ARIGATOR_FIRMWARE_VERSION, ARIGATOR_BUILD_ID);
+  Serial.printf(" Operating mode : %s\\n", operatingModeName());
+  Serial.printf(" Connection state: %s\\n", connectionStateName());
+  Serial.printf(" Wi-Fi provisioned: %s\\n", savedWifiCredentialsAvailable ? "YES" : "NO");
+  Serial.printf(" MQTT configured : %s\\n", mqttConfigured ? "YES" : "NO");
+  Serial.println("==============================================");
   Serial.println(mqttConfigured
-    ? ">> Demo MQTT configuration loaded. Waiting for Wi-Fi and NTP time."
-    : ">> MQTT configuration invalid. BLE local control remains available.");
+    ? ">> Demo MQTT configuration loaded."
+    : ">> MQTT configuration invalid; Local Mode remains available.");
 
   i2cBusInitialized = Wire.begin(SDA_PIN, SCL_PIN);
   if (i2cBusInitialized) {
@@ -2280,7 +2298,8 @@ void setup() {
 
 void loop() {
   readBatteryVoltage();
-  const bool mqttTlsClockReady = time(nullptr) >= 1700000000;
+  const time_t currentEpoch = time(nullptr);
+  const bool mqttTlsClockReady = currentEpoch >= NTP_VALID_EPOCH;
 
   if (operatingMode == ROBOT_MODE_REMOTE) {
     mqttManager.loop(mqttTlsClockReady);
@@ -2353,8 +2372,28 @@ void loop() {
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = operatingMode == ROBOT_MODE_REMOTE && WiFi.status() == WL_CONNECTED;
   if (stationConnected && !mqttClockSyncRequested) {
+    Serial.println(">> [NTP] Starting time synchronization (pool.ntp.org, time.google.com).");
     configTime(0, 0, "pool.ntp.org", "time.google.com");
     mqttClockSyncRequested = true;
+    ntpSyncConfirmed = false;
+    lastNtpDiagnosticAt = 0;
+  }
+
+  if (stationConnected && mqttClockSyncRequested && !ntpSyncConfirmed) {
+    const time_t epoch = time(nullptr);
+    if (epoch >= NTP_VALID_EPOCH) {
+      struct tm utcTime;
+      gmtime_r(&epoch, &utcTime);
+      char timestamp[24];
+      strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", &utcTime);
+      Serial.printf(">> [NTP] Clock synchronized: %s (epoch=%ld). TLS certificate checks may proceed.\\n",
+                    timestamp, (long)epoch);
+      ntpSyncConfirmed = true;
+    } else if (millis() - lastNtpDiagnosticAt >= NTP_DIAGNOSTIC_INTERVAL_MS) {
+      lastNtpDiagnosticAt = millis();
+      Serial.printf(">> [NTP] Waiting for valid clock; current epoch=%ld. TLS remains blocked.\\n",
+                    (long)epoch);
+    }
   }
   if (stationConnected && !stationWasConnected) {
     Serial.printf(">> Router Wi-Fi connected. IP: %s\n",
@@ -2362,6 +2401,8 @@ void loop() {
   } else if (!stationConnected && stationWasConnected) {
     // A reconnect needs a fresh NTP synchronization before TLS certificate checks.
     mqttClockSyncRequested = false;
+    ntpSyncConfirmed = false;
+    lastNtpDiagnosticAt = 0;
     Serial.println(">> Router Wi-Fi disconnected. ESP32 will attempt to reconnect.");
   }
   stationWasConnected = stationConnected;
