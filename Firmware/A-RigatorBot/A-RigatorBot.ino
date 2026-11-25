@@ -933,7 +933,7 @@ bool performFactoryReset() {
   setPump(false);
   driveMotor(CMD_BRAKE, 0.0);
   setLedOutput(false);
-  if (audioPlayerReady) dfPlayer.stop();
+  if (audioAvailable) audioPlayer.stop();
 
   manualControlLeaseActive = false;
   autonomousControlLeaseActive = false;
