@@ -109,8 +109,12 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
             await _client.SubscribeAsync(_telemetryTopic, MqttQualityOfServiceLevel.AtLeastOnce, cancellationToken);
             SetConnectionState(ConnectionState.Connected);
         }
-        catch
+        catch (Exception ex)
         {
+            // Preserve the native Android TLS exception details. The platform
+            // SslException can have an empty Message, hiding the actual cause.
+            System.Diagnostics.Debug.WriteLine(
+                $"[MQTT TLS] Connect failed: {ex}");
             SetConnectionState(ConnectionState.Disconnected);
             throw;
         }
