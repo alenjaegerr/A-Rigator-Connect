@@ -22,9 +22,6 @@
 RobotMqttConfig mqttConfig;
 RobotMqttManager mqttManager;
 bool mqttConfigured = false;
-// One-shot diagnostic: release BLE memory for the first saved-Wi-Fi MQTT TLS test.
-bool bleDisabledForMqttMemoryTest = false;
-bool bleRestoreAttemptedAfterMqttTest = false;
 // BLE manual actions persist until stop or BLE disconnect. Remote manual control
 // uses a short session lease because the ESP32's broker connection can outlive the phone.
 static const unsigned long REMOTE_MANUAL_CONTROL_TIMEOUT_MS = 1500;
@@ -2182,62 +2179,16 @@ void loop() {
   readBatteryVoltage();
   const bool mqttTlsClockReady = time(nullptr) >= 1700000000;
 
-  // Diagnostic only: MQTT is attempted only after router credentials have
-  // been saved and the station has connected. Release the BLE stack once
-  // before the first TLS handshake so we can measure whether BLE memory
-  // pressure is preventing the ESP32 from completing the handshake.
-  if (mqttConfigured && savedWifiCredentialsAvailable &&
-      WiFi.status() == WL_CONNECTED && mqttTlsClockReady &&
-      !mqttManager.connected() && !bleDisabledForMqttMemoryTest) {
-    Serial.println(">> [MQTT TEST] Saved Wi-Fi is connected. Temporarily deinitializing BLE for the TLS handshake.");
-    // Keep Bluetooth controller memory reserved so BLE can be initialized again after MQTT connects.
-    BLEDevice::deinit(false);
-    bleServer = nullptr;
-    bleProvisioningService = nullptr;
-    bleControlService = nullptr;
-    bleControlCommandCharacteristic = nullptr;
-    bleControlAckCharacteristic = nullptr;
-    bleControlTelemetryCharacteristic = nullptr;
-    bleDiscoveryCharacteristic = nullptr;
-    bleWifiScanCharacteristic = nullptr;
-    bleWifiCredentialCharacteristic = nullptr;
-    bleWifiStatusCharacteristic = nullptr;
-    bleWifiConfigCharacteristic = nullptr;
-    bleHardwareIdCharacteristic = nullptr;
-    bleWifiScanRequested = false;
-    bleWifiScanRunning = false;
-    bleWifiConnectRequested = false;
-    bleControlCommandPending = false;
-    pendingBleControlCommand = "";
-    bleDisabledForMqttMemoryTest = true;
-    Serial.println(">> [MQTT TEST] BLE deinitialized. Waiting for MQTT connection before restoring BLE.");
-  }
-
   if (savedWifiCredentialsAvailable) {
     mqttManager.loop(mqttTlsClockReady);
   }
 
-  // Restore local BLE only after the TLS handshake and MQTT subscription succeed.
-  if (bleDisabledForMqttMemoryTest && mqttManager.connected() &&
-      !bleRestoreAttemptedAfterMqttTest) {
-    bleRestoreAttemptedAfterMqttTest = true;
-    Serial.println(">> [MQTT TEST] MQTT is connected. Reinitializing BLE while keeping MQTT online.");
-    if (startBleDiscovery()) {
-      bleDisabledForMqttMemoryTest = false;
-      Serial.println(">> [MQTT TEST] BLE restored. Verify BLE discovery and MQTT remain connected together.");
-    } else {
-      Serial.println(">> [MQTT TEST] BLE restore failed. MQTT remains the priority for this diagnostic boot.");
-    }
-  }
-
   serviceMqttCommands();
 
-  if (!bleDisabledForMqttMemoryTest) {
-    serviceBleWifiScan();
-    serviceBleWifiProvisioning();
-    serviceBleControlCommands();
-    publishBleTelemetryIfDue();
-  }
+  serviceBleWifiScan();
+  serviceBleWifiProvisioning();
+  serviceBleControlCommands();
+  publishBleTelemetryIfDue();
 
   // Report station connectivity transitions without exposing the password.
   const bool stationConnected = WiFi.status() == WL_CONNECTED;
