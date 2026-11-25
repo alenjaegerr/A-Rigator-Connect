@@ -266,6 +266,12 @@
                                 FontAttributes="Bold"
                                 BackgroundColor="#176B45"
                                 TextColor="White" />
+                        <Button Text="Continue to dashboard"
+                                Command="{Binding ContinueToDashboardCommand}"
+                                MinimumHeightRequest="48"
+                                CornerRadius="12"
+                                BackgroundColor="#EEF3EF"
+                                TextColor="#35443B" />
                         <Button Text="Back"
                                 Command="{Binding BackToWifiSetupCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
