@@ -5,7 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "phase1-arduino-primary-2026.11.26-diagnostics1"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-mode-transition-fix1"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -874,7 +874,7 @@ void publishBleTelemetryIfDue() {
   doc["manualControlTimeoutMs"] = REMOTE_MANUAL_CONTROL_TIMEOUT_MS;
   doc["lineGpio14"] = digitalRead(14) == HIGH;
   doc["lineGpio27"] = digitalRead(27) == HIGH;
-  doc["connectionMode"] = "BLE";
+  doc["connectionMode"] = operatingMode == ROBOT_MODE_REMOTE ? "IoT" : "BLE";
   String payload;
   serializeJson(doc, payload);
   if (bleControlTelemetryCharacteristic != nullptr)
