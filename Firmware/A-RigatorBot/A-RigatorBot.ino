@@ -35,7 +35,6 @@ RobotWifiCredentialStore wifiCredentialStore;
 RobotWifiCredentials savedWifiCredentials;
 bool savedWifiCredentialsAvailable = false;
 bool stationWasConnected = false;
-bool mqttClockSyncRequested = false;
 bool ntpSyncConfirmed = false;
 unsigned long lastNtpDiagnosticAt = 0;
 static const unsigned long NTP_DIAGNOSTIC_INTERVAL_MS = 5000;
