@@ -830,8 +830,8 @@ void serviceBleControlCommands() {
 }
 
 void publishBleTelemetryIfDue() {
-  if (bleControlTelemetryCharacteristic == nullptr ||
-      millis() - lastBleTelemetryAt < 1000) return;
+  if (millis() - lastBleTelemetryAt < 1000) return;
+  if (operatingMode == ROBOT_MODE_LOCAL && bleControlTelemetryCharacteristic == nullptr) return;
   lastBleTelemetryAt = millis();
 
   StaticJsonDocument<896> doc;
@@ -870,8 +870,9 @@ void publishBleTelemetryIfDue() {
   doc["connectionMode"] = "BLE";
   String payload;
   serializeJson(doc, payload);
-  bleControlTelemetryCharacteristic->setValue(payload.c_str());
-  // Keep BLE and Remote IoT dashboards on the same telemetry contract.
+  if (bleControlTelemetryCharacteristic != nullptr)
+    bleControlTelemetryCharacteristic->setValue(payload.c_str());
+  // Remote telemetry must remain available when BLE is intentionally shut down.
   if (mqttManager.connected()) mqttManager.publishTelemetry(payload);
 }
 
