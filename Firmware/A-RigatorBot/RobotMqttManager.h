@@ -18,6 +18,8 @@ class RobotMqttManager {
   bool begin(const RobotMqttConfig& config) {
     if (!config.isValid()) return false;
     config_ = config;
+    tlsClient_.stop();
+    mqtt_.setClient(tlsClient_);
     // Use the ESP32 Arduino core's built-in Mozilla root CA bundle.
     // TLS verification remains enabled; no certificate pinning or insecure fallback.
     tlsClient_.useBuiltinCACertBundle();
@@ -31,11 +33,35 @@ class RobotMqttManager {
     });
     buildTopics();
     configured_ = true;
+    enabled_ = true;
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
+    lastConnectAttempt_ = 0;
+    waitingForClockLogged_ = false;
     return true;
   }
 
+  // Stops MQTT and releases the TLS socket while retaining broker configuration.
+  // Call from the main loop, never from a PubSubClient callback.
+  void stop() {
+    enabled_ = false;
+    if (mqtt_.connected()) {
+      publishAvailability(false);
+      mqtt_.disconnect();
+    }
+    tlsClient_.stop();
+    clearCommandQueue();
+    lastConnectAttempt_ = 0;
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
+    waitingForClockLogged_ = false;
+    Serial.println(">> [MQTT] Client stopped; TLS socket closed.");
+  }
+
+  bool enabled() const {
+    return enabled_;
+  }
+
   void loop(bool tlsClockReady) {
-    if (!configured_ || WiFi.status() != WL_CONNECTED) return;
+    if (!configured_ || !enabled_ || WiFi.status() != WL_CONNECTED) return;
 
     // EMQX Serverless TLS certificate validation requires a valid system clock.
     // Do not attempt the TLS handshake until NTP has synchronized the ESP32.
@@ -60,7 +86,7 @@ class RobotMqttManager {
   }
 
   bool connected() {
-    return mqtt_.connected();
+    return enabled_ && mqtt_.connected();
   }
 
   bool publishTelemetry(const String& json) {
@@ -99,7 +125,8 @@ class RobotMqttManager {
   }
 
  private:
-  static const unsigned long RECONNECT_INTERVAL_MS = 5000;
+  static const uint32_t BASE_RECONNECT_INTERVAL_MS = 5000;
+  static const uint32_t MAX_RECONNECT_INTERVAL_MS = 60000;
 
   RobotMqttConfig config_;
   WiFiClientSecure tlsClient_;
@@ -114,8 +141,25 @@ class RobotMqttManager {
   uint8_t queuedCommandCount_ = 0;
   uint32_t droppedCommandCount_ = 0;
   bool configured_ = false;
+  bool enabled_ = false;
   unsigned long lastConnectAttempt_ = 0;
+  uint32_t reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
   bool waitingForClockLogged_ = false;
+
+  void clearCommandQueue() {
+    for (uint8_t i = 0; i < COMMAND_QUEUE_CAPACITY; ++i) commandQueue_[i] = "";
+    commandQueueHead_ = 0;
+    commandQueueTail_ = 0;
+    queuedCommandCount_ = 0;
+  }
+
+  void scheduleNextReconnect() {
+    reconnectIntervalMs_ = reconnectIntervalMs_ >= MAX_RECONNECT_INTERVAL_MS / 2
+      ? MAX_RECONNECT_INTERVAL_MS
+      : reconnectIntervalMs_ * 2;
+    Serial.printf(">> [MQTT] Next reconnect attempt in %lu seconds.\n",
+                  (unsigned long)(reconnectIntervalMs_ / 1000));
+  }
 
   void buildTopics() {
     const String prefix = "arigator/v1/";
@@ -163,9 +207,11 @@ class RobotMqttManager {
       } else {
         Serial.println(">> [MQTT] No TLS error code was reported by WiFiClientSecure.");
       }
+      scheduleNextReconnect();
       return;
     }
 
+    reconnectIntervalMs_ = BASE_RECONNECT_INTERVAL_MS;
     const bool subscribed = mqtt_.subscribe(commandTopic_.c_str(), 1);
     Serial.printf(">> [MQTT] Connected. Command subscription: %s\n",
                   subscribed ? "OK" : "FAILED");
