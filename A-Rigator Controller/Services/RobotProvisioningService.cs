@@ -86,6 +86,7 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
             var statusOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
             statusOptions.Converters.Add(new JsonStringEnumConverter());
             var status = JsonSerializer.Deserialize<RobotStatus>(json, statusOptions);
+            // operatingMode and connectionState are authoritative ESP32 telemetry.
             SetTransportState(ConnectionState.Connected);
             return status;
         }
