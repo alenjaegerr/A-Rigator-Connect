@@ -554,6 +554,7 @@ bool startBleDiscovery() {
 // every 4 seconds to keep the shield responsive without changing motor state.
 static const unsigned long SHIELD_KEEPALIVE_INTERVAL_MS = 4000;
 unsigned long lastShieldKeepAlive = 0;
+bool i2cBusInitialized = false;
 bool motorShieldInitialized = false;
 uint8_t lastShieldMotorDirection = CMD_BRAKE;
 float lastShieldMotorSpeed = 0.0;
@@ -863,33 +864,52 @@ bool forgetSavedWifiNetwork() {
 // ============================================================================
 // 5. HARDWARE DRIVERS
 // ============================================================================
-void initShieldFrequency(uint32_t freq) {
+bool initShieldFrequency(uint32_t freq) {
+  if (!i2cBusInitialized) return false;
+
   Wire.beginTransmission(SHIELD_ADDR);
   Wire.write(((byte)(freq >> 24)) & (byte)0x0F);
   Wire.write((byte)(freq >> 16));
   Wire.write((byte)(freq >> 8));
   Wire.write((byte)freq);
-  byte err = Wire.endTransmission();
-  Serial.printf(">> Frequency Init (1000 Hz): %s\n", (err == 0) ? "SUCCESS" : "FAILED");
+
+  const uint8_t err = Wire.endTransmission();
+  if (err != 0) {
+    Serial.printf(">> [I2C] Motor shield frequency initialization failed (error %u).\\n", err);
+    return false;
+  }
+  return true;
 }
 
-void sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
-  uint16_t pwm_val = (uint16_t)(speed_percent * 100.0);
+bool sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
+  if (!i2cBusInitialized || !motorShieldInitialized) return false;
+
+  const uint16_t pwm_val = (uint16_t)(speed_percent * 100.0);
   Wire.beginTransmission(SHIELD_ADDR);
   Wire.write(channel | 0x10);
   Wire.write(dir);
   Wire.write((uint8_t)(pwm_val >> 8));
   Wire.write((uint8_t)(pwm_val & 0xFF));
-  Wire.endTransmission();
+
+  const uint8_t err = Wire.endTransmission();
+  if (err != 0) {
+    motorShieldInitialized = false;
+    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Motor output disabled until reinitialized.\\n", err);
+    return false;
+  }
+  return true;
 }
 
 void driveMotor(uint8_t dir, float speed_percent) {
-  // A-Rigator has one physical drive motor connected to channel A only.
-  // Channel B is intentionally left unused.
+  // Preserve the requested state even while the optional shield is absent.
   lastShieldMotorDirection = dir;
   lastShieldMotorSpeed = speed_percent;
-  sendRawPacket(MOTOR_A, dir, speed_percent);
-  lastShieldKeepAlive = millis();
+
+  if (!motorShieldInitialized) return;
+
+  if (sendRawPacket(MOTOR_A, dir, speed_percent)) {
+    lastShieldKeepAlive = millis();
+  }
 }
 
 void refreshMotorShieldKeepAlive() {
@@ -900,23 +920,38 @@ void refreshMotorShieldKeepAlive() {
 
   // Refresh only the connected drive channel. Do not use driveMotor()
   // here because this is a refresh, not a new motor-state change.
-  sendRawPacket(MOTOR_A, lastShieldMotorDirection, lastShieldMotorSpeed);
-  lastShieldKeepAlive = millis();
+  if (sendRawPacket(MOTOR_A, lastShieldMotorDirection, lastShieldMotorSpeed)) {
+    lastShieldKeepAlive = millis();
+  }
 }
 
 void initializeMotorShield() {
   motorShieldInitialized = false;
+
+  if (!i2cBusInitialized) {
+    Serial.println(">> [I2C] Bus unavailable. Skipping motor shield initialization.");
+    return;
+  }
+
   digitalWrite(SHIELD_RST_PIN, LOW);
   delay(50);
   digitalWrite(SHIELD_RST_PIN, HIGH);
   delay(250);
-  initShieldFrequency(1000);
+
+  const bool firstInit = initShieldFrequency(1000);
   delay(80);
-  initShieldFrequency(1000);
+  const bool secondInit = initShieldFrequency(1000);
+
+  if (!firstInit || !secondInit) {
+    Serial.println(">> [I2C] Motor shield not detected. Continuing without motor control.");
+    return;
+  }
+
   motorShieldInitialized = true;
+  lastShieldKeepAlive = millis();
+  Serial.println(">> [I2C] Motor shield initialized successfully.");
   driveMotor(CMD_BRAKE, 0.0);
 }
-
 void resetMotorShield() {
   autonomousControlLeaseActive = false;
   activeAutonomousMode = AUTO_NONE;
@@ -2164,10 +2199,15 @@ void setup() {
     ? ">> Demo MQTT configuration loaded. Waiting for Wi-Fi and NTP time."
     : ">> MQTT configuration invalid. BLE local control remains available.");
 
-  Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(10000);
-  delay(100);
-  initializeMotorShield();
+  i2cBusInitialized = Wire.begin(SDA_PIN, SCL_PIN);
+  if (i2cBusInitialized) {
+    Wire.setClock(10000);
+    delay(100);
+    initializeMotorShield();
+  } else {
+    motorShieldInitialized = false;
+    Serial.println(">> [I2C] Bus initialization failed. Continuing without motor shield.");
+  }
 
   driveMotor(CMD_STOP, 0.0);
   setLedOutput(false); // Keep lighting off until explicitly tested from Serial Monitor.
