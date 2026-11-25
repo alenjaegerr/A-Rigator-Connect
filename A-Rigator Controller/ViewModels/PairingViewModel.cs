@@ -360,6 +360,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
     {
         if (IsBusy) return;
 
+        RobotProvisioningDevice? autoConnect = null;
         IsBusy = true;
         NearbyBleRobots.Clear();
         SelectedBleRobot = null;
@@ -371,15 +372,19 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 NearbyBleRobots.Add(device);
 
             if (devices.Count == 1)
+            {
                 SelectedBleRobot = devices[0];
-
-            BleStatusMessage = devices.Count == 0
-                ? "We couldn't find A-Rigator. Make sure it's turned on and nearby, then try again."
-                : devices.Count == 1
-                    ? "A-Rigator found. Tap Connect to continue."
-                    : $"{devices.Count} robots found. Choose the one you want to connect to.";
+                autoConnect = devices[0];
+                BleStatusMessage = "A-Rigator found. Connecting...";
+            }
+            else
+            {
+                BleStatusMessage = devices.Count == 0
+                    ? "We couldn't find A-Rigator. Make sure it's turned on and nearby, then try again."
+                    : $"{devices.Count} robots found. Choose yours to connect.";
+            }
         }
-        catch (Exception ex)
+        catch
         {
             BleStatusMessage = "We couldn't find your robot. Check that Bluetooth is on and try again.";
         }
@@ -387,12 +392,17 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+
+        // A single nearby A-Rigator is unambiguous, so connect immediately.
+        if (autoConnect is not null)
+            await ConnectToBleRobotAsync();
     }
 
     private async Task ConnectToBleRobotAsync()
     {
         if (IsBusy || SelectedBleRobot is null) return;
 
+        var shouldScanWifi = false;
         IsBusy = true;
         BleStatusMessage = $"Connecting to {SelectedBleRobot.Name}...";
         try
@@ -409,24 +419,27 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                     ? "A-Rigator is already linked to your account."
                     : "A-Rigator has been registered to your account.";
             }
+
             SetStage(PairingStage.ConfigureWifi);
             try
             {
                 SavedWifiNetwork = await _robotProvisioningService.GetSavedWifiNetworkAsync();
                 SavedWifiStatusMessage = HasSavedWifiNetwork
-                    ? "A-Rigator already has a saved Wi-Fi network. You can keep it or choose another network."
-                    : "A-Rigator has no saved Wi-Fi network yet.";
+                    ? "A-Rigator already has a saved Wi-Fi network. Keep it or choose another."
+                    : "No Wi-Fi network saved yet. Choose one below or continue locally.";
             }
             catch
             {
                 SavedWifiNetwork = null;
-                SavedWifiStatusMessage = "You can set up a Wi-Fi network for A-Rigator below.";
+                SavedWifiStatusMessage = "No saved Wi-Fi network was found. You can add one below.";
             }
-            WifiScanStatusMessage = "Choose a Wi-Fi network for A-Rigator, or continue with Local control.";
+
+            WifiScanStatusMessage = "Choose a Wi-Fi network, or continue with Local control.";
             HasScannedWifiNetworks = false;
             NearbyWifiNetworks.Clear();
+            shouldScanWifi = !HasSavedWifiNetwork;
         }
-        catch (Exception ex)
+        catch
         {
             BleStatusMessage = "We couldn't connect to A-Rigator. Make sure it's turned on and nearby, then try again.";
         }
@@ -434,6 +447,11 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+
+        // For a first-time setup, scan automatically so the user only needs to
+        // select their router and enter its password.
+        if (shouldScanWifi)
+            await ScanWifiNetworksAsync();
     }
 
     private async Task DisconnectBleRobotAsync()
