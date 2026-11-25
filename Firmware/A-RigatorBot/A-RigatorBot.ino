@@ -726,6 +726,15 @@ void serviceBleControlCommands() {
     return;
   }
 
+  if (command == "switch_remote" || command == "switch_local") {
+    if (command == "switch_remote" && !savedWifiCredentialsAvailable) {
+      publishBleControlAck(commandId, "rejected", "WIFI_NOT_CONFIGURED", "Save Wi-Fi credentials before switching to Remote Mode");
+      return;
+    }
+    publishBleControlAck(commandId, "accepted", "MODE_SWITCHING", "Operating mode transition accepted");
+    requestOperatingMode(command == "switch_remote" ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
+    return;
+  }
   if (command != "heartbeat" && command != "irrigation_profile")
     manualControlViaMqtt = false;
   bool supported = true;
@@ -1607,7 +1616,11 @@ void serviceMqttCommands() {
     manualControlViaMqtt = true;
   }
 
-  if (command == "stop") {
+  if (command == "switch_local") {
+    publishMqttCommandAck(commandId, "accepted", "MODE_SWITCHING", "Switching to Local Mode");
+    requestOperatingMode(ROBOT_MODE_LOCAL);
+    return;
+  } else if (command == "stop") {
     handleStop();
   } else if (command == "autonomous_start") {
     if (emergencyStopLatched) {
