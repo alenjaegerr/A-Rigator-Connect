@@ -5,7 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-mode-transition-fix1"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-factory-reset1"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -47,6 +47,9 @@ RobotOperatingMode requestedOperatingMode = ROBOT_MODE_LOCAL;
 unsigned long modeTransitionAt = 0;
 bool bleStackActive = false;
 static const unsigned long MODE_TRANSITION_ACK_GRACE_MS = 900;
+static const unsigned long FACTORY_RESET_CONFIRM_TIMEOUT_MS = 15000;
+bool factoryResetConfirmationPending = false;
+unsigned long factoryResetConfirmationAt = 0;
 
 const char* operatingModeName() { return operatingMode == ROBOT_MODE_REMOTE ? "REMOTE" : "LOCAL"; }
 const char* connectionStateName() {
@@ -911,6 +914,58 @@ bool forgetSavedWifiNetwork() {
   WiFi.setAutoReconnect(false);
   WiFi.disconnect(false, true);
   Serial.println(">> Saved router Wi-Fi forgotten. BLE remains available for reprovisioning.");
+  return true;
+}
+
+
+// Restore firmware-owned settings to the same state as a brand-new robot.
+// Cloud account ownership and cloud-stored data are deliberately not touched.
+bool performFactoryReset() {
+  Serial.println(">> [FACTORY RESET] Stopping outputs and clearing robot configuration...");
+  setPump(false);
+  driveMotor(CMD_BRAKE, 0.0);
+  setLedOutput(false);
+  if (audioPlayerReady) dfPlayer.stop();
+
+  manualControlLeaseActive = false;
+  autonomousControlLeaseActive = false;
+  manualTerrainModeActive = false;
+  nozzleSweepActive = false;
+  irrigationSequenceActive = false;
+  irrigationSequenceSpraying = false;
+  irrigationSequenceManual = false;
+  irrigationZoneLatched = false;
+  activeAutonomousMode = AUTO_NONE;
+  currentMode = MODE_MANUAL;
+  manualMotorDir = CMD_STOP;
+  emergencyStopLatched = false;
+  pendingModeTransition = false;
+
+  mqttManager.stop();
+  WiFi.setAutoReconnect(false);
+  WiFi.disconnect(true, true);
+  WiFi.mode(WIFI_OFF);
+
+  const bool wifiCleared = wifiCredentialStore.clear();
+  const bool modeCleared = connectionModeStore.clear();
+  if (!wifiCleared || !modeCleared) {
+    Serial.printf(">> [FACTORY RESET] FAILED (Wi-Fi store: %s, mode store: %s). Do not power off; retry after checking storage.\n",
+      wifiCleared ? "OK" : "FAILED", modeCleared ? "OK" : "FAILED");
+    return false;
+  }
+
+  savedWifiCredentials.ssid = "";
+  savedWifiCredentials.password = "";
+  savedWifiCredentialsAvailable = false;
+  operatingMode = ROBOT_MODE_LOCAL;
+  requestedOperatingMode = ROBOT_MODE_LOCAL;
+  connectionState = CONN_LOCAL_ACTIVE;
+  if (bleWifiConfigCharacteristic) bleWifiConfigCharacteristic->setValue("NONE");
+  if (bleWifiStatusCharacteristic) bleWifiStatusCharacteristic->setValue("FACTORY_RESET");
+
+  Serial.println(">> [FACTORY RESET] Robot configuration cleared. Restarting in brand-new Local Mode...");
+  delay(500);
+  ESP.restart();
   return true;
 }
 
@@ -1964,6 +2019,7 @@ void printMenu() {
   Serial.println("  c : Steer Center (90 deg)");
   Serial.println("  p : Toggle Water Pump     |  r : Reset Motor Shield");
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
+  Serial.println("  FACTORY-RESET            : Restore brand-new robot defaults (2-step confirm)");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
   Serial.println("  LED ON / LED OFF          : Switch LED strips");
   Serial.println("  AUDIO PLAY 1              : Play root track 1 (0001.mp3)");
@@ -1980,6 +2036,27 @@ void printMenu() {
 void executeSerialLine(String line) {
   line.trim();
   line.toUpperCase();
+  if (factoryResetConfirmationPending) {
+    if (millis() - factoryResetConfirmationAt > FACTORY_RESET_CONFIRM_TIMEOUT_MS) {
+      factoryResetConfirmationPending = false;
+      Serial.println(">> [FACTORY RESET] Confirmation expired. No settings were changed.");
+    } else if (line == "CONFIRM-FACTORY-RESET") {
+      factoryResetConfirmationPending = false;
+      performFactoryReset();
+      return;
+    } else {
+      factoryResetConfirmationPending = false;
+      Serial.println(">> [FACTORY RESET] Cancelled. No settings were changed.");
+    }
+  }
+  if (line == "FACTORY-RESET") {
+    factoryResetConfirmationPending = true;
+    factoryResetConfirmationAt = millis();
+    Serial.println(">> [FACTORY RESET] WARNING: This erases saved Wi-Fi and robot mode.");
+    Serial.println(">> Type CONFIRM-FACTORY-RESET within 15 seconds to continue.");
+    Serial.println(">> Cloud account ownership is not changed.");
+    return;
+  }
   if (line == "ESTOP" || line == "E-STOP") {
     triggerEmergencyStop("Serial console");
     return;
