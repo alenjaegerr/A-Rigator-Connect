@@ -2337,6 +2337,7 @@ void loop() {
         bleHardwareIdCharacteristic = nullptr;
       }
       mqttManager.stop();
+      mqttConfigured = mqttManager.begin(mqttConfig);
       WiFi.mode(WIFI_STA);
       WiFi.setAutoReconnect(true);
       WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
