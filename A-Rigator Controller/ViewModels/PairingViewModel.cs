@@ -378,9 +378,19 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 : "A-Rigator is connected and ready for local control.";
             SetStage(PairingStage.Result);
         }
-        catch (Exception)
+        catch (OperationCanceledException)
         {
-            ResultMessage = "We couldn't connect to A-Rigator yet. Check that your robot is turned on and try again.";
+            ResultMessage = "The connection check was cancelled. Try again when you're ready.";
+        }
+        catch (Exception ex)
+        {
+            // Keep the real failure visible during setup instead of hiding
+            // broker, subscription, TLS, and configuration errors behind one
+            // misleading BLE-style message.
+            var detail = string.IsNullOrWhiteSpace(ex.Message)
+                ? ex.GetType().Name
+                : ex.Message;
+            ResultMessage = $"Remote connection failed ({ex.GetType().Name}): {detail}";
         }
         finally
         {
