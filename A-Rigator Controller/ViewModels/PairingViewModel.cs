@@ -332,10 +332,24 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             // connection, while Remote uses the saved internet connection.
             await _robotCommunicationService.ConnectAsync();
             var status = await _robotCommunicationService.GetStatusAsync();
+
+            // MQTT subscription can complete just before the ESP32's next
+            // telemetry publication. Wait briefly instead of making the user
+            // press "Check connection" a second time.
+            if (status is null && _robotCommunicationService.PreferredConnectionMode == RobotConnectionMode.IoT)
+            {
+                var deadline = DateTimeOffset.UtcNow.AddSeconds(12);
+                while (status is null && DateTimeOffset.UtcNow < deadline)
+                {
+                    await Task.Delay(500);
+                    status = await _robotCommunicationService.GetStatusAsync();
+                }
+            }
+
             if (status is null)
             {
                 ResultMessage = _robotCommunicationService.PreferredConnectionMode == RobotConnectionMode.IoT
-                    ? "A-Rigator hasn't checked in yet. Make sure it's turned on and connected to Wi-Fi, then try again."
+                    ? "A-Rigator hasn't checked in yet. Check its Wi-Fi connection and try again."
                     : "A-Rigator hasn't responded yet. Move closer to your robot and try again.";
                 return;
             }
