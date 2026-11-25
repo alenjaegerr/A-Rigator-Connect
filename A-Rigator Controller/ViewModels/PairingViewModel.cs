@@ -50,7 +50,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
         ForgetSavedWifiCommand = new Command(async () => await ForgetSavedWifiAsync());
-        KeepSavedWifiCommand = new Command(async () => await ContinueLocallyAsync(), () => HasSavedWifiNetwork && !IsBusy);
+        KeepSavedWifiCommand = new Command(async () => await KeepSavedWifiAsync(), () => HasSavedWifiNetwork && !IsBusy);
     }
 
     public string ResultMessage
@@ -306,6 +306,23 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             : "Find A-Rigator nearby to connect locally.";
         SetStage(PairingStage.DiscoverRobot);
         await ScanForBleRobotsAsync();
+    }
+
+    private async Task KeepSavedWifiAsync()
+    {
+        if (IsBusy) return;
+
+        WifiPassword = string.Empty;
+        if (_isRemoteSetup)
+        {
+            _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.IoT;
+            OnPropertyChanged(nameof(SuccessfulResultMessage));
+            SetStage(PairingStage.VerifyConnection);
+            await ConfirmWifiConnectionAsync();
+            return;
+        }
+
+        await ContinueLocallyAsync();
     }
 
     private async Task ContinueLocallyAsync()
