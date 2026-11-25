@@ -39,13 +39,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         _accountService = accountService;
         BackToWifiSetupCommand = new Command(() => SetStage(PairingStage.ConfigureWifi));
         ConfirmWifiConnectionCommand = new Command(async () => await ConfirmWifiConnectionAsync());
-        ContinueWithBluetoothCommand = new Command(() =>
-        {
-            WifiPassword = string.Empty;
-            _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
-            OnPropertyChanged(nameof(SuccessfulResultMessage));
-            SetStage(PairingStage.VerifyConnection);
-        }, () => IsBleConnected && !IsBusy);
+        ContinueWithBluetoothCommand = new Command(async () => await ContinueLocallyAsync(), () => IsBleConnected && !IsBusy);
         OpenDashboardPreviewCommand = new Command(OpenDashboardPreview);
         OpenRemoteWifiSetupCommand = new Command(OpenRemoteWifiSetup);
         NotNowCommand = new Command(NotNow);
@@ -56,11 +50,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         ScanWifiNetworksCommand = new Command(async () => await ScanWifiNetworksAsync());
         ConnectRobotToWifiCommand = new Command(async () => await ConnectRobotToWifiAsync());
         ForgetSavedWifiCommand = new Command(async () => await ForgetSavedWifiAsync());
-        KeepSavedWifiCommand = new Command(() =>
-        {
-            WifiPassword = string.Empty;
-            SetStage(PairingStage.VerifyConnection);
-        }, () => HasSavedWifiNetwork && !IsBusy);
+        KeepSavedWifiCommand = new Command(async () => await ContinueLocallyAsync(), () => HasSavedWifiNetwork && !IsBusy);
     }
 
     public string ResultMessage
@@ -318,6 +308,17 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         await ScanForBleRobotsAsync();
     }
 
+    private async Task ContinueLocallyAsync()
+    {
+        if (IsBusy) return;
+
+        WifiPassword = string.Empty;
+        _robotCommunicationService.PreferredConnectionMode = RobotConnectionMode.BLE;
+        OnPropertyChanged(nameof(SuccessfulResultMessage));
+        SetStage(PairingStage.VerifyConnection);
+        await ConfirmWifiConnectionAsync();
+    }
+
     private async Task ConfirmWifiConnectionAsync()
     {
         if (IsBusy) return;
@@ -515,6 +516,7 @@ public sealed class PairingViewModel : INotifyPropertyChanged
             return;
         }
 
+        var verifyConnection = false;
         IsBusy = true;
         WifiScanStatusMessage = $"Connecting A-Rigator to {SelectedWifiNetwork.Ssid}...";
         try
@@ -539,9 +541,10 @@ public sealed class PairingViewModel : INotifyPropertyChanged
                 WifiScanStatusMessage = "Wi-Fi is ready. Checking A-Rigator's remote connection...";
 
                 SetStage(PairingStage.VerifyConnection);
+                verifyConnection = true;
             }
         }
-        catch (Exception ex)
+        catch
         {
             WifiScanStatusMessage = "We couldn't connect A-Rigator to that Wi-Fi network. Check the password and try again.";
         }
@@ -549,6 +552,9 @@ public sealed class PairingViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+
+        if (verifyConnection)
+            await ConfirmWifiConnectionAsync();
     }
 
     private async Task ForgetSavedWifiAsync()
