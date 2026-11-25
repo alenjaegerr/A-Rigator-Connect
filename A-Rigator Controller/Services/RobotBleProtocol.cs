@@ -60,6 +60,7 @@ internal static class RobotBleProtocol
         RobotControlCommand.PumpOn => "pump_on",
         RobotControlCommand.PumpOff => "pump_off",
         RobotControlCommand.ResetShield => "reset_shield",
+        RobotControlCommand.FactoryReset => "factory_reset",
         RobotControlCommand.Heartbeat => "heartbeat",
         RobotControlCommand.AutonomousStart => "autonomous_start",
         RobotControlCommand.AutonomousStop => "autonomous_stop",
