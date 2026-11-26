@@ -7,7 +7,7 @@ public partial class ControlPage : ContentPage
     public ControlPage(DashboardViewModel viewModel)
     {
         InitializeComponent();
-        Shell.SetTabBarIsVisible(this, true);
+        // Native Shell tabs stay hidden; this page renders BottomNavigationBar in XAML.
         BindingContext = viewModel;
     }
 }
