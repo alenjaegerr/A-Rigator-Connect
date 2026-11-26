@@ -101,6 +101,9 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Button Text="APP SETTINGS" Clicked="OnOpenSettingsClicked"
+                    MinimumHeightRequest="50" BackgroundColor="{AppThemeBinding Light=#E5EEE8, Dark=#2B3A30}"
+                    TextColor="{AppThemeBinding Light=#176B45, Dark=#A8E2BD}" />
             <Button Text="SAVE ACCOUNT SETTINGS" Command="{Binding SaveAccountCommand}"
                     MinimumHeightRequest="52" BackgroundColor="#176B45" TextColor="White" />
             <Button Text="SIGN IN WITH GOOGLE" Command="{Binding SignInCommand}"
