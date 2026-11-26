@@ -10,7 +10,7 @@
     <Grid>
       <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
-            <Image Source="gator_focused.svg" HeightRequest="104" HorizontalOptions="End" Aspect="AspectFit" />
+            <views:MascotStatusHeader />
             <VerticalStackLayout Spacing="4">
                 <Label Text="Manual Control" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Directly operate A-Rigator and monitor command feedback." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
