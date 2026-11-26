@@ -30,7 +30,20 @@
                             <Label Text="{Binding ConnectionDetails}" FontSize="11" TextColor="#B8D7C3" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Padding="10,7" BackgroundColor="#355B43" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
-                            <Label Text="{Binding ConnectionStatus}" FontSize="11" FontAttributes="Bold" TextColor="White" />
+                            <Grid ColumnDefinitions="9,Auto" ColumnSpacing="7">
+                                <Ellipse x:Name="ConnectionPulseDot"
+                                         WidthRequest="8"
+                                         HeightRequest="8"
+                                         Fill="#A6E51B"
+                                         VerticalOptions="Center"
+                                         Opacity="0.35" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding ConnectionStatus}"
+                                       FontSize="11"
+                                       FontAttributes="Bold"
+                                       TextColor="White"
+                                       VerticalOptions="Center" />
+                            </Grid>
                         </Border>
                     </Grid>
                     <Label Text="{Binding ConnectionModeDescription}" FontSize="13" TextColor="#D2E9DA" />
