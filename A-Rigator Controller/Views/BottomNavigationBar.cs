@@ -5,8 +5,8 @@ using Microsoft.Maui.Graphics;
 namespace A_Rigator_Controller.Views;
 
 /// <summary>
-/// Branded, full-colour bottom navigation. This deliberately replaces the
-/// monochrome native Shell tab icons while retaining Shell route navigation.
+/// Shared branded navigation surface. Shell continues to own route navigation,
+/// while this view replaces the platform-native tab strip on every main page.
 /// </summary>
 public sealed class BottomNavigationBar : ContentView
 {
@@ -21,6 +21,7 @@ public sealed class BottomNavigationBar : ContentView
 
     private readonly Dictionary<string, Border> _tabBorders = new();
     private readonly Dictionary<string, Label> _tabLabels = new();
+    private readonly Border _containerBorder;
 
     public string SelectedTab
     {
@@ -30,9 +31,9 @@ public sealed class BottomNavigationBar : ContentView
 
     public BottomNavigationBar()
     {
-        HeightRequest = 76;
+        HeightRequest = 78;
         HorizontalOptions = LayoutOptions.Fill;
-        BackgroundColor = Colors.White;
+        VerticalOptions = LayoutOptions.End;
 
         var grid = new Grid
         {
@@ -54,16 +55,20 @@ public sealed class BottomNavigationBar : ContentView
         AddTab(grid, 3, "Activity", "nav_activity.svg", "//main/activity");
         AddTab(grid, 4, "Profile", "nav_profile.svg", "//main/profile");
 
-        Content = new Border
+        _containerBorder = new Border
         {
-            BackgroundColor = Colors.White,
-            Stroke = new SolidColorBrush(Color.FromArgb("#DCE6DF")),
-            StrokeThickness = 1,
             Padding = 0,
+            StrokeThickness = 1,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(24) },
             Content = grid
         };
 
+        Content = _containerBorder;
+        ApplyTheme();
         RefreshSelection();
+
+        if (Application.Current is not null)
+            Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
     }
 
     private void AddTab(Grid grid, int column, string title, string icon, string route)
@@ -71,8 +76,8 @@ public sealed class BottomNavigationBar : ContentView
         var image = new Image
         {
             Source = ImageSource.FromFile(icon),
-            WidthRequest = 27,
-            HeightRequest = 27,
+            WidthRequest = 29,
+            HeightRequest = 29,
             Aspect = Aspect.AspectFit,
             HorizontalOptions = LayoutOptions.Center
         };
@@ -80,11 +85,10 @@ public sealed class BottomNavigationBar : ContentView
         var label = new Label
         {
             Text = title,
-            FontSize = 10,
+            FontSize = 11,
             FontAttributes = FontAttributes.Bold,
             HorizontalTextAlignment = TextAlignment.Center,
-            VerticalTextAlignment = TextAlignment.Center,
-            TextColor = Color.FromArgb("#718078")
+            VerticalTextAlignment = TextAlignment.Center
         };
 
         var stack = new VerticalStackLayout
@@ -99,9 +103,8 @@ public sealed class BottomNavigationBar : ContentView
         {
             Padding = new Thickness(2, 4),
             StrokeThickness = 0,
-            Stroke = new SolidColorBrush(Colors.Transparent),
-            BackgroundColor = Colors.Transparent,
-            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(12) },
+            Stroke = Colors.Transparent,
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(14) },
             Content = stack
         };
 
@@ -122,22 +125,51 @@ public sealed class BottomNavigationBar : ContentView
 
         grid.Children.Add(border);
         Grid.SetColumn(border, column);
-        Grid.SetRow(border, 0);
         _tabBorders[title] = border;
         _tabLabels[title] = label;
     }
 
+    private void OnRequestedThemeChanged(object? sender, AppThemeChangedEventArgs e)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            ApplyTheme();
+            RefreshSelection();
+        });
+    }
+
+    private void ApplyTheme()
+    {
+        var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+
+        _containerBorder.BackgroundColor = isDark
+            ? Color.FromArgb("#18251D")
+            : Colors.White;
+        _containerBorder.Stroke = new SolidColorBrush(Color.FromArgb(
+            isDark ? "#34483B" : "#DCE6DF"));
+
+        foreach (var (title, label) in _tabLabels)
+            label.TextColor = isDark
+                ? Color.FromArgb("#9AADA0")
+                : Color.FromArgb("#718078");
+    }
+
     private void RefreshSelection()
     {
+        var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+
         foreach (var (title, border) in _tabBorders)
         {
-            var selected = string.Equals(title, SelectedTab, StringComparison.OrdinalIgnoreCase);
+            var selected = string.Equals(
+                title, SelectedTab, StringComparison.OrdinalIgnoreCase);
+
             border.BackgroundColor = selected
-                ? Color.FromArgb("#E8F4EB")
+                ? Color.FromArgb(isDark ? "#294B37" : "#E8F4EB")
                 : Colors.Transparent;
+
             _tabLabels[title].TextColor = selected
-                ? Color.FromArgb("#176B45")
-                : Color.FromArgb("#718078");
+                ? Color.FromArgb(isDark ? "#A8E2BD" : "#176B45")
+                : Color.FromArgb(isDark ? "#9AADA0" : "#718078");
         }
     }
 }
