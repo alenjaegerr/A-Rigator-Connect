@@ -87,17 +87,16 @@ public partial class AppShell : Shell
         };
         accountTab.Items.Add(profileShellContent);
 
-        if (accountPage.BindingContext is AccountViewModel accountViewModel)
+        // AccountPage owns its view model. Keep Shell construction independent of page BindingContext state.
+        void RefreshProfileTabAvatar(string? path)
         {
-            void RefreshProfileTabAvatar(string? path)
-            {
-                accountTab.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
-                    ? ImageSource.FromFile(path)
-                    : ImageSource.FromFile("gator_avatar.svg");
-            }
-            RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
-            accountViewModel.AvatarChanged += (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path));
+            accountTab.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
+                ? ImageSource.FromFile(path)
+                : ImageSource.FromFile("gator_avatar.svg");
         }
+        RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
+        MessagingCenter.Subscribe<AccountPage, string?>(this, "ProfileAvatarChanged",
+            (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path)));
 
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
