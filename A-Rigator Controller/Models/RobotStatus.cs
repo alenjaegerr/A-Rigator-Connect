@@ -60,4 +60,13 @@ public sealed class RobotStatus
     public bool? LineGpio14 { get; init; }
 
     public bool? LineGpio27 { get; init; }
+
+    public int? SteeringLeftAngle { get; init; }
+    public int? SteeringCenterAngle { get; init; }
+    public int? SteeringRightAngle { get; init; }
+    public int? NozzleMinimumAngle { get; init; }
+    public int? NozzleCenterAngle { get; init; }
+    public int? NozzleMaximumAngle { get; init; }
+    public int? NozzleLeftSectorMaximumAngle { get; init; }
+    public int? NozzleRightSectorMinimumAngle { get; init; }
 }
