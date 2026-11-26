@@ -3,6 +3,7 @@ using A_Rigator_Controller.Services;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
 using Microsoft.Maui.Storage;
+using A_Rigator_Controller.ViewModels;
 
 namespace A_Rigator_Controller;
 
@@ -78,13 +79,26 @@ public partial class AppShell : Shell
         });
 
         var accountTab = new Tab { Title = "Profile", Route = "profile" };
-        accountTab.Items.Add(new ShellContent
+        var profileShellContent = new ShellContent
         {
             Title = "Profile",
             Route = "profile-content",
             Icon = ImageSource.FromFile("nav_account.png"),
             Content = accountPage
-        });
+        };
+        accountTab.Items.Add(profileShellContent);
+
+        if (accountPage.BindingContext is AccountViewModel accountViewModel)
+        {
+            void RefreshProfileTabAvatar(string? path)
+            {
+                profileShellContent.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
+                    ? ImageSource.FromFile(path)
+                    : ImageSource.FromFile("nav_account.png");
+            }
+            RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
+            accountViewModel.AvatarChanged += (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path));
+        }
 
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
