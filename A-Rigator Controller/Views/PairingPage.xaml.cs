@@ -39,8 +39,8 @@ public partial class PairingPage : ContentPage
         if (e.PropertyName != nameof(PairingViewModel.SetupStepLabel))
             return;
 
-        await SetupScrollView.FadeTo(0, 90, Easing.CubicInOut);
-        await SetupScrollView.FadeTo(1, 180, Easing.CubicInOut);
+        await SetupStage.FadeTo(0, 90, Easing.CubicInOut);
+        await SetupStage.FadeTo(1, 180, Easing.CubicInOut);
     }
 
     public event EventHandler? DashboardPreviewRequested;
