@@ -189,7 +189,6 @@ public sealed class AccountService : IAccountService
             throw new InvalidOperationException("Supabase configuration is missing.");
 
         var extension = contentType switch { "image/png" => "png", "image/webp" => "webp", _ => "jpg" };
-        var objectPath = $"{GoogleUserId}/avatar.{extension}";
         using var request = new HttpRequestMessage(HttpMethod.Post,
             $"{baseUrl}/storage/v1/object/profile-avatars/{Uri.EscapeDataString(GoogleUserId)}/avatar.{extension}");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
