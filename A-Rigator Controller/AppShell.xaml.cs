@@ -70,7 +70,7 @@ public partial class AppShell : Shell
         });
 
         var activityTab = new Tab { Title = "Activity", Route = "activity" };
-        systemTab.Items.Add(new ShellContent
+        activityTab.Items.Add(new ShellContent
         {
             Title = "Activity",
             Route = "activity-content",
