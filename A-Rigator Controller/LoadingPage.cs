@@ -44,7 +44,7 @@ public sealed class LoadingPage : ContentPage
         };
         _runner = new Image
         {
-            Source = ImageSource.FromFile("06_expression_working.png"),
+            Source = ImageSource.FromFile("gator_working.svg"),
             Aspect = Aspect.AspectFit,
             WidthRequest = 58,
             HeightRequest = 48,
@@ -57,14 +57,6 @@ public sealed class LoadingPage : ContentPage
             ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
             Children = { _runner },
             IsClippedToBounds = true
-        };
-        var activity = new ActivityIndicator
-        {
-            IsRunning = true,
-            Color = Color.FromArgb("#29A653"),
-            HorizontalOptions = LayoutOptions.Center,
-            WidthRequest = 28,
-            HeightRequest = 28
         };
         var footer = new Label
         {
@@ -85,7 +77,7 @@ public sealed class LoadingPage : ContentPage
                 brandLogo,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 intro, _statusText,
-                _track, activity,
+                _track,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 footer
             }
