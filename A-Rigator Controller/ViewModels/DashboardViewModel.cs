@@ -103,7 +103,27 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string RobotName => "A-Rigator";
 
-    public string Greeting => $"Hello, {_userProfileService.GetDisplayName()}!";
+    public string Greeting
+    {
+        get
+        {
+            var displayName = _userProfileService.GetDisplayName();
+            var firstName = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            return string.IsNullOrWhiteSpace(firstName) ? "Hello there!" : $"Hello, {firstName}!";
+        }
+    }
+
+    public string MascotImage
+    {
+        get
+        {
+            if (BatteryPercentage is int battery && battery <= 15) return "gator_low_battery.svg";
+            if (IsAutonomous) return "gator_working.svg";
+            if (RobotStatus == "IDLE") return "gator_sleeping.svg";
+            if (!IsConnected) return "gator_curious.svg";
+            return "gator_happy.svg";
+        }
+    }
 
     public string ConnectionStatus => _communicationService.ConnectionState switch
     {
@@ -857,6 +877,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
             {
                 _latestStatus = await _communicationService.GetStatusAsync(cancellationToken);
                 OnPropertyChanged(nameof(RobotStatus));
+                OnPropertyChanged(nameof(MascotImage));
                 OnPropertyChanged(nameof(ModeStatus));
                 OnPropertyChanged(nameof(PumpStatus));
                 OnPropertyChanged(nameof(HasBatteryReading));
@@ -993,6 +1014,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
         MainThread.BeginInvokeOnMainThread(() =>
         {
             OnPropertyChanged(nameof(ConnectionStatus));
+            OnPropertyChanged(nameof(MascotImage));
             OnPropertyChanged(nameof(ConnectionModeLabel));
             OnPropertyChanged(nameof(ConnectionDetails));
             OnPropertyChanged(nameof(IsDisconnectedNoticeVisible));
