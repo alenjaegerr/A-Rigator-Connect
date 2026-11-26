@@ -7,7 +7,8 @@ namespace A_Rigator_Controller
         public MainPage(DashboardViewModel viewModel)
         {
             InitializeComponent();
-            Shell.SetTabBarIsVisible(this, true);
+            // The page uses the shared branded BottomNavigationBar in XAML.
+            // Keep the native Shell tab bar hidden to prevent duplicate navigation.
             BindingContext = viewModel;
         }
 
