@@ -25,6 +25,11 @@ public partial class AccountPage : ContentPage
         _profileSync = profileSync;
     }
 
+    private async void OnOpenSettingsClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("settings");
+    }
+
     private async void OnImportProfilesClicked(object sender, EventArgs e)
     {
         try
