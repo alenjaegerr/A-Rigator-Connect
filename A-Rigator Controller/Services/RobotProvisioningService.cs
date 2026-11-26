@@ -126,6 +126,28 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         await SendBleEnvelopeAsync(RobotBleProtocol.SerializeProfile(profile), cancellationToken);
     }
 
+    public async Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        configuration.Validate();
+        var envelope = JsonSerializer.Serialize(new
+        {
+            version = RobotBleProtocol.Version,
+            commandId = Guid.NewGuid().ToString("N"),
+            command = "robot_config",
+            issuedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            payload = new
+            {
+                steeringLeft = configuration.SteeringLeftAngle, steeringCenter = configuration.SteeringCenterAngle,
+                steeringRight = configuration.SteeringRightAngle, nozzleMinimum = configuration.NozzleMinimumAngle,
+                nozzleCenter = configuration.NozzleCenterAngle, nozzleMaximum = configuration.NozzleMaximumAngle,
+                nozzleLeftSectorMaximum = configuration.NozzleLeftSectorMaximumAngle,
+                nozzleRightSectorMinimum = configuration.NozzleRightSectorMinimumAngle
+            }
+        });
+        await SendBleEnvelopeAsync(envelope, cancellationToken);
+    }
+
     public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
         SendCommandAsync(RobotControlCommand.ManualIrrigationStart, cancellationToken);
 
