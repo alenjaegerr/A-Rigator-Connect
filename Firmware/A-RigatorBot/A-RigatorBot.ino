@@ -678,6 +678,7 @@ DFRobotDFPlayerMini audioPlayer;
 bool audioAvailable = false;
 uint8_t audioVolume = 15;
 bool ledOutputEnabled = false;
+bool ledManualOverride = false;
 unsigned long ledPatternLastToggle = 0;
 bool ledPatternPhase = true;
 bool readyAnnouncementPending = false;
@@ -1191,7 +1192,7 @@ void serviceAudioAnnouncements() {
   // Give the startup cue time to finish before announcing readiness.
   // This is timer-driven so boot and the main control loop remain non-blocking.
   if (readyAnnouncementPending &&
-      millis() - startupAnnouncementAt >= 4000UL &&
+      millis() - startupAnnouncementAt >= 6000UL &&
       (int32_t)(warningAudioPriorityUntil - millis()) <= 0) {
     readyAnnouncementPending = false;
     playAudioTrack(2); // Robot ready: /mp3/0002.mp3
@@ -1204,6 +1205,7 @@ void serviceLedIndications() {
     setLedOutput(false);
     return;
   }
+  if (ledManualOverride) return;
 
   // The installed two-wire RGB strips retain their own color animation.
   // The ESP32 can only pulse their shared power through the MOSFET.
@@ -2139,7 +2141,7 @@ void printMenu() {
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
   Serial.println("  FACTORY-RESET            : Restore brand-new robot defaults (2-step confirm)");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
-  Serial.println("  LED ON / LED OFF          : Switch LED strips");
+  Serial.println("  LED ON / LED OFF / LED AUTO: Test strips or resume automatic indications");
   Serial.println("  AUDIO PLAY 1              : Play /mp3/0001.mp3 (tracks 1-7 are event sounds)");
   Serial.println("  AUDIO VOL 0-30            : Set DFPlayer volume");
   Serial.println("  AUDIO STOP                : Stop audio playback");
@@ -2204,6 +2206,7 @@ void executeSerialLine(String line) {
     return;
   }
   if (line == "LED ON") {
+    ledManualOverride = true;
     if (emergencyStopLatched) {
       Serial.println(">> [LED] Rejected: emergency stop is latched.");
     } else {
@@ -2213,8 +2216,14 @@ void executeSerialLine(String line) {
     return;
   }
   if (line == "LED OFF") {
+    ledManualOverride = true;
     setLedOutput(false);
     Serial.println(">> [LED] Output OFF.");
+    return;
+  }
+  if (line == "LED AUTO") {
+    ledManualOverride = false;
+    Serial.println(">> [LED] Automatic status indications resumed.");
     return;
   }
   if (line == "AUDIO STATUS") {
