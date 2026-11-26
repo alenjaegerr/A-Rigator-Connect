@@ -64,6 +64,7 @@ namespace A_Rigator_Controller
             builder.Services.AddTransient<AccountViewModel>();
 
             builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<TelemetryPage>();
             builder.Services.AddTransient<ControlPage>();
             builder.Services.AddTransient<AutonomousHubPage>();
             builder.Services.AddTransient<PathwayModePage>();
