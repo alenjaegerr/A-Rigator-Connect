@@ -116,12 +116,22 @@ public sealed class IrrigationProfileSyncCoordinator
     private async void OnProfilesChanged(object? sender, EventArgs e)
     {
         if (_applyingCloudChanges) return;
+
         Interlocked.Increment(ref _localChangeVersion);
         _syncPending = true;
-        if (_account.IsAuthenticated)
-            await SyncNowAsync();
-        else
-            StatusChanged?.Invoke(this, "Saved locally. Sign in to sync these irrigation profiles to your account.");
+        try
+        {
+            if (_account.IsAuthenticated)
+                await SyncNowAsync();
+            else
+                StatusChanged?.Invoke(this, "Saved locally. Sign in to sync these irrigation profiles to your account.");
+        }
+        catch (Exception ex)
+        {
+            // Event callbacks are async void; contain failures so profile edits
+            // remain successful even when cloud synchronization is unavailable.
+            System.Diagnostics.Debug.WriteLine($"[ProfileSync] Change-triggered sync failed: {ex}");
+        }
     }
 
     private async Task RetryPendingSyncAsync()
@@ -131,6 +141,18 @@ public sealed class IrrigationProfileSyncCoordinator
         {
             while (await timer.WaitForNextTickAsync())
             {
+                // Session restoration may fail during cold start (for example,
+                // before secure storage/network services are ready). Retry it
+                // periodically instead of permanently leaving cloud sync disabled.
+                if (!_account.IsAuthenticated)
+                {
+                    try { await _account.InitializeSessionAsync(); }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ProfileSync] Session restore retry failed: {ex}");
+                    }
+                }
+
                 if (_syncPending && _account.IsAuthenticated &&
                     Connectivity.Current.NetworkAccess == NetworkAccess.Internet)
                     await SyncNowAsync();
@@ -141,7 +163,20 @@ public sealed class IrrigationProfileSyncCoordinator
 
     private async void OnConnectivityChanged(object? sender, ConnectivityChangedEventArgs e)
     {
-        if (e.NetworkAccess == NetworkAccess.Internet && _account.IsAuthenticated)
-            await SyncNowAsync();
+        if (e.NetworkAccess != NetworkAccess.Internet) return;
+
+        try
+        {
+            if (!_account.IsAuthenticated)
+                await _account.InitializeSessionAsync();
+
+            if (_account.IsAuthenticated)
+                await SyncNowAsync();
+        }
+        catch (Exception ex)
+        {
+            // Connectivity callbacks must not surface unhandled async-void errors.
+            System.Diagnostics.Debug.WriteLine($"[ProfileSync] Connectivity-triggered sync failed: {ex}");
+        }
     }
 }
