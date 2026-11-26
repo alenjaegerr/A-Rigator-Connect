@@ -195,6 +195,20 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
         }, null, cancellationToken);
     }
 
+    public Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        configuration.Validate();
+        return PublishCommandAsync("robot_config", new
+        {
+            steeringLeft = configuration.SteeringLeftAngle, steeringCenter = configuration.SteeringCenterAngle,
+            steeringRight = configuration.SteeringRightAngle, nozzleMinimum = configuration.NozzleMinimumAngle,
+            nozzleCenter = configuration.NozzleCenterAngle, nozzleMaximum = configuration.NozzleMaximumAngle,
+            nozzleLeftSectorMaximum = configuration.NozzleLeftSectorMaximumAngle,
+            nozzleRightSectorMinimum = configuration.NozzleRightSectorMinimumAngle
+        }, null, cancellationToken);
+    }
+
     public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
         SendCommandAsync(RobotControlCommand.ManualIrrigationStart, cancellationToken);
 
