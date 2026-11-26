@@ -2,13 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             xmlns:views="clr-namespace:A_Rigator_Controller.Views"
              x:Class="A_Rigator_Controller.Views.AutonomousHubPage"
              x:DataType="viewmodels:DashboardViewModel"
              Title="Autonomous"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
-            <Image Source="gator_working.svg" HeightRequest="112" HorizontalOptions="End" Aspect="AspectFit" />
+            <views:MascotStatusHeader />
             <VerticalStackLayout Spacing="4">
                 <Label Text="Autonomous Operations" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Choose how A-Rigator should navigate. Each mode will have its own operating controls and live telemetry." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
