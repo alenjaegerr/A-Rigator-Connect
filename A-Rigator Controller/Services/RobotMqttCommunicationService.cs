@@ -235,7 +235,7 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 version = 1,
                 commandId,
                 command = commandName,
-                issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                issuedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 ttlMs,
                 payload
             };
