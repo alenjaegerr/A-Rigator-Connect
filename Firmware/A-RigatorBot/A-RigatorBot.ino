@@ -844,6 +844,7 @@ void serviceBleControlCommands() {
     const int nl = payload["nozzleLeftSectorMaximum"] | -1;
     const int nr = payload["nozzleRightSectorMinimum"] | -1;
     if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive || nozzleSweepActive ||
+        manualTerrainModeActive || manualMotorDir != CMD_STOP || pumpState ||
         !isRobotHardwareConfigurationValid(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
       bleCommandExecution = false;
       publishBleControlAck(commandId, "rejected", "INVALID_ROBOT_CONFIG",
@@ -1927,6 +1928,7 @@ void serviceMqttCommands() {
     const int nl = payload["nozzleLeftSectorMaximum"] | -1;
     const int nr = payload["nozzleRightSectorMinimum"] | -1;
     if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive || nozzleSweepActive ||
+        manualTerrainModeActive || manualMotorDir != CMD_STOP || pumpState ||
         !isRobotHardwareConfigurationValid(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
       bleCommandExecution = false;
       publishMqttCommandAck(commandId, "rejected", "INVALID_ROBOT_CONFIG",
