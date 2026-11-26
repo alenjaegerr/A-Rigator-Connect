@@ -757,8 +757,7 @@ bool audioAvailable = false;
 uint8_t audioVolume = 15;
 bool ledOutputEnabled = false;
 bool ledManualOverride = false;
-unsigned long ledPatternLastToggle = 0;
-bool ledPatternPhase = true;
+unsigned long ledControllerStartedAt = 0;
 bool readyAnnouncementPending = false;
 unsigned long startupAnnouncementAt = 0;
 unsigned long idleSoundStartedAt = 0;
@@ -1302,7 +1301,11 @@ void serviceBatteryWarnings() {
   }
 }
 
+// The LED wiring is not yet positively identified (three-wire strip, shared
+// MOSFET control). Keep this as conservative binary switching: do not apply
+// PWM or an addressable-LED protocol until the strip/controller labels are known.
 void setLedOutput(bool enabled) {
+  if (ledOutputEnabled == enabled) return;
   ledOutputEnabled = enabled;
   digitalWrite(LED_MOSFET_PIN, enabled ? HIGH : LOW);
 }
@@ -1359,53 +1362,109 @@ void serviceAudioAnnouncements() {
 }
 
 void serviceLedIndications() {
+  const unsigned long now = millis();
+
+  // Keep the strips electrically off throughout boot and briefly after the
+  // startup banner. This avoids adding LED load while peripherals/radios settle.
+  if (ledControllerStartedAt == 0 ||
+      now - ledControllerStartedAt < 1200UL) {
+    setLedOutput(false);
+    return;
+  }
+
   if (emergencyStopLatched) {
     setLedOutput(false);
     return;
   }
   if (ledManualOverride) return;
 
-  // All LED strips share one MOSFET output. Patterns are therefore encoded
-  // as power pulses; the strips retain their own built-in RGB animation.
-  const unsigned long now = millis();
-  unsigned long intervalMs = 0;
-  bool activePattern = false;
-  bool doublePulse = false;
+  // One MOSFET controls the shared LED load. Use low-duty binary status pulses
+  // rather than continuous illumination or rapid 50%-duty flashing. The phase
+  // clock resets only when the selected status changes.
+  enum LedPattern : uint8_t {
+    LED_PATTERN_OFF = 0,
+    LED_PATTERN_WARNING,
+    LED_PATTERN_IRRIGATION,
+    LED_PATTERN_BLE_PAIRING,
+    LED_PATTERN_WIFI,
+    LED_PATTERN_MQTT,
+    LED_PATTERN_CONNECTED,
+    LED_PATTERN_MOVEMENT
+  };
 
+  LedPattern pattern = LED_PATTERN_OFF;
   if (lowBatteryWarningActive || obstacleWasDetected) {
-    intervalMs = 180UL;                 // urgent warning: fast flash
-    activePattern = true;
+    pattern = LED_PATTERN_WARNING;
   } else if (irrigationSequenceActive) {
-    intervalMs = 260UL;                 // active watering: steady rhythmic pulse
-    activePattern = true;
+    pattern = LED_PATTERN_IRRIGATION;
   } else if (operatingMode == ROBOT_MODE_LOCAL && bleStackActive && !bleClientConnected) {
-    intervalMs = 140UL;                 // BLE pairing/discovery: fast flash
-    activePattern = true;
+    pattern = LED_PATTERN_BLE_PAIRING;
   } else if (operatingMode == ROBOT_MODE_REMOTE && WiFi.status() != WL_CONNECTED) {
-    intervalMs = 650UL;                 // Wi-Fi association: slow breathing pulse
-    activePattern = true;
+    pattern = LED_PATTERN_WIFI;
   } else if (operatingMode == ROBOT_MODE_REMOTE &&
              WiFi.status() == WL_CONNECTED && !mqttManager.connected()) {
-    intervalMs = 360UL;                 // MQTT handshake/reconnect
-    activePattern = true;
+    pattern = LED_PATTERN_MQTT;
   } else if (operatingMode == ROBOT_MODE_REMOTE && mqttManager.connected()) {
-    intervalMs = 1800UL;                // remote dashboard/cloud link: heartbeat double-pulse
-    activePattern = true;
-    doublePulse = true;
+    pattern = LED_PATTERN_CONNECTED;
+  } else if (manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW ||
+             (currentMode == MODE_AUTONOMOUS && activeAutonomousMode != AUTO_NONE)) {
+    pattern = LED_PATTERN_MOVEMENT;
   }
 
-  if (!activePattern) {
-    ledPatternPhase = true;
-    setLedOutput(true);
-    ledPatternLastToggle = now;
+  static LedPattern previousPattern = LED_PATTERN_OFF;
+  static unsigned long patternStartedAt = 0;
+  if (pattern != previousPattern) {
+    previousPattern = pattern;
+    patternStartedAt = now;
+  }
+
+  if (pattern == LED_PATTERN_OFF) {
+    setLedOutput(false);
     return;
   }
 
-  const unsigned long cycle = doublePulse ? intervalMs * 3UL : intervalMs * 2UL;
-  const unsigned long position = now % cycle;
-  const bool outputOn = doublePulse
-      ? (position < 130UL || (position >= intervalMs && position < intervalMs + 130UL))
-      : (position < intervalMs);
+  const unsigned long elapsed = now - patternStartedAt;
+  unsigned long cycleMs = 1000UL;
+  bool outputOn = false;
+
+  switch (pattern) {
+    case LED_PATTERN_WARNING:
+      // Short, distinct warning flashes; approximately 33% duty cycle.
+      cycleMs = 270UL;
+      outputOn = (elapsed % cycleMs) < 90UL;
+      break;
+    case LED_PATTERN_IRRIGATION:
+      // One brief indication per second; avoids continuous LED load.
+      cycleMs = 1000UL;
+      outputOn = (elapsed % cycleMs) < 100UL;
+      break;
+    case LED_PATTERN_BLE_PAIRING:
+      cycleMs = 1200UL;
+      outputOn = (elapsed % cycleMs) < 100UL;
+      break;
+    case LED_PATTERN_WIFI:
+      cycleMs = 1000UL;
+      outputOn = (elapsed % cycleMs) < 100UL;
+      break;
+    case LED_PATTERN_MQTT:
+      cycleMs = 700UL;
+      outputOn = (elapsed % cycleMs) < 100UL;
+      break;
+    case LED_PATTERN_CONNECTED: {
+      // Two short pulses followed by a longer quiet interval.
+      const unsigned long position = elapsed % 1500UL;
+      outputOn = position < 100UL || (position >= 250UL && position < 350UL);
+      break;
+    }
+    case LED_PATTERN_MOVEMENT:
+      cycleMs = 1000UL;
+      outputOn = (elapsed % cycleMs) < 80UL;
+      break;
+    default:
+      outputOn = false;
+      break;
+  }
+
   setLedOutput(outputOn);
 }
 
@@ -2740,7 +2799,9 @@ void setup() {
   // STAGE 7: Publish readiness only after essential hardware and local controls exist.
   controlsEnabled = true;
   driveMotor(CMD_BRAKE, 0.0);
-  setLedOutput(true);
+  // LED indications are enabled by the loop only after a short post-boot quiet
+  // period; never turn the shared LED load fully on during startup.
+  setLedOutput(false);
   printMenu();
   playAudioTrack(1); // Startup cue; audio is optional if DFPlayer was not detected.
   startupAnnouncementAt = millis();
@@ -2758,6 +2819,7 @@ void setup() {
   Serial.printf(" Audio           : %s\n", audioAvailable ? "READY" : "UNAVAILABLE");
   Serial.println(">> [POWER] Startup sequence complete; robot remains stopped.");
   Serial.println("==============================================");
+  ledControllerStartedAt = millis();
 }
 
 void loop() {
