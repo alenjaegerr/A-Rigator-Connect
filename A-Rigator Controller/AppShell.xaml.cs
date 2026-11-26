@@ -91,7 +91,7 @@ public partial class AppShell : Shell
         {
             void RefreshProfileTabAvatar(string? path)
             {
-                profileShellContent.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
+                accountTab.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
                     ? ImageSource.FromFile(path)
                     : ImageSource.FromFile("gator_avatar.svg");
             }
