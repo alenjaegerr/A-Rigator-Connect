@@ -26,7 +26,7 @@ public partial class AppShell : Shell
         _pairingPage = pairingPage;
         _robotCommunicationService = robotCommunicationService;
         Navigated += OnShellNavigated;
-        _ = profileSyncCoordinator.StartAsync();
+        Dispatcher.Dispatch(async () => await StartBackgroundServicesAsync(profileSyncCoordinator));
 
         // One shared dashboard view model owns the robot connection, telemetry
         // refresh and manual-control heartbeat across all operating destinations.
@@ -147,7 +147,7 @@ public partial class AppShell : Shell
         CurrentItem = hasCompletedSetup ? mainTabBar : setupTabBar;
         setupTabBar.CurrentItem = pairingTab;
         if (!hasCompletedSetup)
-            Dispatcher.Dispatch(async () => await pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false));
+            Dispatcher.Dispatch(async () => await BeginFirstTimeDiscoveryAsync(pairingPage));
     }
 
     public Task ShowDashboardAsync()
@@ -194,11 +194,46 @@ public partial class AppShell : Shell
 
     private async void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
     {
-        var page = CurrentPage;
-        if (page is null)
-            return;
+        try
+        {
+            var page = CurrentPage;
+            if (page is null)
+                return;
 
-        page.Opacity = 0;
-        await page.FadeTo(1, 220, Easing.CubicInOut);
+            page.Opacity = 0;
+            await page.FadeTo(1, 220, Easing.CubicInOut);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AppShell] Navigation transition failed: {ex}");
+        }
+    }
+
+    private static async Task StartBackgroundServicesAsync(
+        IrrigationProfileSyncCoordinator profileSyncCoordinator)
+    {
+        try
+        {
+            await profileSyncCoordinator.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            // Cloud profile synchronization is optional. It must never block
+            // navigation or local BLE operation when startup/network services fail.
+            System.Diagnostics.Debug.WriteLine($"[AppShell] Profile sync startup failed: {ex}");
+        }
+    }
+
+    private static async Task BeginFirstTimeDiscoveryAsync(PairingPage pairingPage)
+    {
+        try
+        {
+            await pairingPage.BeginDiscoveryFlowAsync(isRemoteSetup: false);
+        }
+        catch (Exception ex)
+        {
+            // Keep onboarding visible and record unexpected discovery failures.
+            System.Diagnostics.Debug.WriteLine($"[AppShell] First-run BLE discovery failed: {ex}");
+        }
     }
 }
