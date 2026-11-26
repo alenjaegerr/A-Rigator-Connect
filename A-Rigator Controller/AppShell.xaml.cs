@@ -17,6 +17,7 @@ public partial class AppShell : Shell
         AutonomousHubPage autonomousHubPage,
         PairingPage pairingPage,
         SettingsPage settingsPage,
+        TelemetryPage telemetryPage,
         AccountPage accountPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
         IrrigationProfileSyncCoordinator profileSyncCoordinator,
@@ -46,7 +47,7 @@ public partial class AppShell : Shell
         {
             Title = "Home",
             Route = "home-content",
-            Icon = ImageSource.FromFile("nav_home.png"),
+            Icon = ImageSource.FromFile("nav_home.svg"),
             Content = dashboardPage
         });
 
@@ -55,7 +56,7 @@ public partial class AppShell : Shell
         {
             Title = "Manual",
             Route = "manual-content",
-            Icon = ImageSource.FromFile("nav_control.png"),
+            Icon = ImageSource.FromFile("nav_control.svg"),
             Content = controlPage
         });
 
@@ -64,32 +65,32 @@ public partial class AppShell : Shell
         {
             Title = "Autonomous",
             Route = "autonomous-content",
-            Icon = ImageSource.FromFile("nav_auto.png"),
+            Icon = ImageSource.FromFile("nav_auto.svg"),
             Content = autonomousHubPage
         });
 
-        var systemTab = new Tab { Title = "System", Route = "system" };
+        var activityTab = new Tab { Title = "Activity", Route = "activity" };
         systemTab.Items.Add(new ShellContent
         {
-            Title = "System",
-            Route = "system-content",
-            Icon = ImageSource.FromFile("nav_settings.png"),
-            Content = settingsPage
+            Title = "Activity",
+            Route = "activity-content",
+            Icon = ImageSource.FromFile("nav_telemetry.svg"),
+            Content = telemetryPage
         });
 
-        var accountTab = new Tab { Title = "Account", Route = "account" };
+        var accountTab = new Tab { Title = "Profile", Route = "profile" };
         accountTab.Items.Add(new ShellContent
         {
-            Title = "Account",
-            Route = "account-content",
-            Icon = ImageSource.FromFile("nav_account.png"),
+            Title = "Profile",
+            Route = "profile-content",
+            Icon = ImageSource.FromFile("nav_account.svg"),
             Content = accountPage
         });
 
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
         mainTabBar.Items.Add(autonomousTab);
-        mainTabBar.Items.Add(systemTab);
+        mainTabBar.Items.Add(activityTab);
         mainTabBar.Items.Add(accountTab);
 
         // Keep onboarding isolated from the persistent five-tab application shell.
@@ -120,6 +121,7 @@ public partial class AppShell : Shell
         Routing.RegisterRoute("pathway", typeof(PathwayModePage));
         Routing.RegisterRoute("terrain", typeof(TerrainModePage));
         Routing.RegisterRoute("irrigation-profiles", typeof(IrrigationProfilesPage));
+        Routing.RegisterRoute("settings", typeof(SettingsPage));
 
         pairingPage.DashboardPreviewRequested += async (_, _) =>
         {
