@@ -143,45 +143,87 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
         return Task.FromResult(IsRobotResponsive ? _latestStatus : null);
     }
 
-    public async Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
+    public Task SendCommandAsync(RobotControlCommand command, CancellationToken cancellationToken = default)
     {
         var commandName = command switch
         {
             RobotControlCommand.Forward => "forward",
             RobotControlCommand.Reverse => "reverse",
+            RobotControlCommand.SteerLeft => "steer_left",
+            RobotControlCommand.SteerRight => "steer_right",
+            RobotControlCommand.SteerCenter => "steer_center",
+            RobotControlCommand.NozzleSweep => "nozzle_sweep",
+            RobotControlCommand.NozzleSweepLeft => "nozzle_sweep_left",
+            RobotControlCommand.NozzleSweepBack => "nozzle_sweep_back",
+            RobotControlCommand.NozzleSweepRight => "nozzle_sweep_right",
+            RobotControlCommand.NozzleSweepFull => "nozzle_sweep_full",
+            RobotControlCommand.NozzleSweepStop => "nozzle_sweep_stop",
+            RobotControlCommand.ManualIrrigationStart => "irrigation_start",
+            RobotControlCommand.ManualIrrigationStop => "irrigation_stop",
             RobotControlCommand.Stop => "stop",
             RobotControlCommand.PumpOn => "pump_on",
             RobotControlCommand.PumpOff => "pump_off",
+            RobotControlCommand.ResetShield => "reset_shield",
+            RobotControlCommand.FactoryReset => "factory_reset",
             RobotControlCommand.Heartbeat => "heartbeat",
             RobotControlCommand.AutonomousStart => "autonomous_start",
             RobotControlCommand.AutonomousStop => "autonomous_stop",
-            RobotControlCommand.FactoryReset => "factory_reset",
-            _ => throw new NotSupportedException(
-                $"'{command}' is not enabled for remote control yet. Use the local connection or wait for the next firmware command rollout.")
+            RobotControlCommand.PathwayStart => "pathway_start",
+            RobotControlCommand.PathwayStop => "pathway_stop",
+            RobotControlCommand.TerrainStart => "terrain_start",
+            RobotControlCommand.TerrainBiasLeft => "terrain_bias_left",
+            RobotControlCommand.TerrainBiasRight => "terrain_bias_right",
+            RobotControlCommand.TerrainBiasCenter => "terrain_bias_center",
+            RobotControlCommand.TerrainStop => "terrain_stop",
+            RobotControlCommand.ManualTerrainStart => "manual_terrain_start",
+            RobotControlCommand.ManualTerrainStop => "manual_terrain_stop",
+            _ => throw new NotSupportedException($"'{command}' has no MQTT wire mapping.")
         };
+        return PublishCommandAsync(commandName, new { }, command, cancellationToken);
+    }
 
+    public Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        profile.ApplyDirectionMode();
+        return PublishCommandAsync("irrigation_profile", new
+        {
+            left = profile.LeftDurationSeconds,
+            back = profile.BackDurationSeconds,
+            right = profile.RightDurationSeconds,
+            repeat = profile.RepeatCount
+        }, null, cancellationToken);
+    }
+
+    public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendCommandAsync(RobotControlCommand.ManualIrrigationStart, cancellationToken);
+
+    public Task StopManualIrrigationAsync(CancellationToken cancellationToken = default) =>
+        SendCommandAsync(RobotControlCommand.ManualIrrigationStop, cancellationToken);
+
+    private async Task PublishCommandAsync(string commandName, object payload, RobotControlCommand? command,
+        CancellationToken cancellationToken)
+    {
         await EnsureConnectedAsync(cancellationToken);
-
         var commandId = Guid.NewGuid().ToString("N");
         var acknowledgement = new TaskCompletionSource<MqttCommandAck>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!_pendingAcks.TryAdd(commandId, acknowledgement))
             throw new InvalidOperationException("Could not register the remote command acknowledgement.");
-
         try
         {
-            var ttlMs = command is RobotControlCommand.Stop
-                or RobotControlCommand.PumpOff
-                or RobotControlCommand.AutonomousStop
-                ? 5000
-                : 1500;
+            var ttlMs = command is RobotControlCommand.Stop or RobotControlCommand.PumpOff
+                or RobotControlCommand.AutonomousStop or RobotControlCommand.PathwayStop
+                or RobotControlCommand.TerrainStop or RobotControlCommand.ManualIrrigationStop
+                or RobotControlCommand.NozzleSweepStop or RobotControlCommand.ManualTerrainStop
+                ? 5000 : 1500;
             var envelope = new
             {
                 version = 1,
                 commandId,
-                                command = commandName,
+                command = commandName,
                 issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
                 ttlMs,
-                payload = new { }
+                payload
             };
             var json = JsonSerializer.Serialize(envelope, JsonOptions);
             var message = new MqttApplicationMessageBuilder()
@@ -189,12 +231,10 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 .WithPayload(json)
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.AtLeastOnce)
                 .Build();
-
             await _client.PublishAsync(message, cancellationToken);
             var completed = await Task.WhenAny(acknowledgement.Task, Task.Delay(TimeSpan.FromSeconds(4), cancellationToken));
             if (completed != acknowledgement.Task)
                 throw new TimeoutException("The robot did not acknowledge the remote command. Check its internet connection and try again.");
-
             var ack = await acknowledgement.Task;
             if (!string.Equals(ack.Status, "executed", StringComparison.OrdinalIgnoreCase) &&
                 !(command == RobotControlCommand.FactoryReset && string.Equals(ack.Status, "accepted", StringComparison.OrdinalIgnoreCase)))
@@ -211,14 +251,6 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
         }
     }
 
-    public Task ApplyIrrigationProfileAsync(IrrigationProfile profile, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Irrigation profile commands are not enabled over MQTT yet.");
-
-    public Task StartManualIrrigationAsync(CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Manual irrigation commands are not enabled over MQTT yet.");
-
-    public Task StopManualIrrigationAsync(CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException("Manual irrigation commands are not enabled over MQTT yet.");
 
     public void SetRobotAddress(string address)
     {
