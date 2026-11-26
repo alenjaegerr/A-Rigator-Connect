@@ -132,7 +132,7 @@
                     BackgroundColor="{AppThemeBinding Light=White, Dark=#1C2B23}"
                     Stroke="{AppThemeBinding Light=#DCE8DF, Dark=#34483B}"
                     StrokeShape="RoundRectangle 20">
-                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto" RowSpacing="8">
+                <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto" RowSpacing="7">
                     <VerticalStackLayout Grid.Row="0" Spacing="3">
                         <Label Text="Connect A-Rigator to Wi-Fi"
                                FontSize="20"
@@ -143,7 +143,7 @@
                                TextColor="{AppThemeBinding Light=#637269, Dark=#AABBB0}" />
                     </VerticalStackLayout>
 
-                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="5">
                         <VerticalStackLayout Spacing="2">
                             <Label Text="{Binding SavedWifiStatusMessage}"
                                    FontSize="11"
@@ -165,6 +165,17 @@
                                 CornerRadius="10"
                                 BackgroundColor="#E7F2EA"
                                 TextColor="{AppThemeBinding Light=#176B45, Dark=#176B45}" />
+                        <Button Grid.Column="2"
+                                Text="Forget"
+                                Command="{Binding ForgetSavedWifiCommand}"
+                                IsVisible="{Binding HasSavedWifiNetwork}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                MinimumHeightRequest="38"
+                                Padding="8,6"
+                                FontSize="11"
+                                CornerRadius="10"
+                                BackgroundColor="#F8EAEA"
+                                TextColor="#8B3A3A" />
                     </Grid>
 
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
@@ -232,7 +243,7 @@
                         <Button Text="Connect A-Rigator"
                                 Command="{Binding ConnectRobotToWifiCommand}"
                                 IsEnabled="{Binding CanSubmitWifiCredentials}"
-                                MinimumHeightRequest="48"
+                                MinimumHeightRequest="46"
                                 Padding="8,6"
                                 FontSize="13"
                                 CornerRadius="12"
@@ -243,13 +254,22 @@
                                 Text="Continue locally"
                                 Command="{Binding ContinueWithBluetoothCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
-                                MinimumHeightRequest="48"
+                                MinimumHeightRequest="46"
                                 Padding="8,6"
                                 FontSize="13"
                                 CornerRadius="12"
                                 BackgroundColor="#EEF3EF"
                                 TextColor="{AppThemeBinding Light=#35443B, Dark=#D8E7DC}" />
                     </Grid>
+                    <Button Grid.Row="6"
+                            Text="Back"
+                            Command="{Binding StartOverCommand}"
+                            MinimumHeightRequest="38"
+                            Padding="8,4"
+                            FontSize="12"
+                            CornerRadius="10"
+                            BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light=#637269, Dark=#AABBB0}" />
                 </Grid>
             </Border>
 
