@@ -16,7 +16,6 @@ public partial class AppShell : Shell
         ControlPage controlPage,
         AutonomousHubPage autonomousHubPage,
         PairingPage pairingPage,
-        SettingsPage settingsPage,
         TelemetryPage telemetryPage,
         AccountPage accountPage,
         RemoteWifiSetupPage remoteWifiSetupPage,
@@ -51,19 +50,19 @@ public partial class AppShell : Shell
             Content = dashboardPage
         });
 
-        var manualTab = new Tab { Title = "Manual", Route = "manual" };
+        var manualTab = new Tab { Title = "Control", Route = "manual" };
         manualTab.Items.Add(new ShellContent
         {
-            Title = "Manual",
+            Title = "Control",
             Route = "manual-content",
             Icon = ImageSource.FromFile("nav_control.png"),
             Content = controlPage
         });
 
-        var autonomousTab = new Tab { Title = "Auto", Route = "autonomous" };
+        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous" };
         autonomousTab.Items.Add(new ShellContent
         {
-            Title = "Autonomous",
+            Title = "Automate",
             Route = "autonomous-content",
             Icon = ImageSource.FromFile("nav_auto.png"),
             Content = autonomousHubPage
