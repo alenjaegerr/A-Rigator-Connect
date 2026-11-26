@@ -19,8 +19,13 @@ public partial class SettingsPage : ContentPage
         _robotCommunicationService = robotCommunicationService;
         _robotProvisioningService = robotProvisioningService;
         Appearing += OnSettingsPageAppearing;
-        Shell.SetTabBarIsVisible(this, true);
+        Shell.SetTabBarIsVisible(this, false);
         DarkModeSwitch.IsToggled = Application.Current?.UserAppTheme == AppTheme.Dark;
+    }
+
+    private async void OnBackToProfileClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//main/profile");
     }
 
     private void OnDarkModeToggled(object? sender, ToggledEventArgs e)
