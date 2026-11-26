@@ -5,7 +5,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-app-factory-reset2"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-staggered-power-startup"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -2614,29 +2614,60 @@ void setup() {
   Serial.begin(115200);
   delay(BOOT_POWER_SETTLE_MS);
 
+  Serial.println();
+  Serial.println(">> [POWER] Staggered startup sequence beginning.");
+
+  // STAGE 1: Establish safe GPIO states before energizing peripherals.
+  pinMode(PUMP_RELAY_PIN, OUTPUT);
+  digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
+  pinMode(LED_MOSFET_PIN, OUTPUT);
+  digitalWrite(LED_MOSFET_PIN, LOW);
+  pinMode(SHIELD_RST_PIN, OUTPUT);
+  digitalWrite(SHIELD_RST_PIN, LOW);
   pinMode(LINE_LEFT_PIN, INPUT);
   pinMode(LINE_RIGHT_PIN, INPUT);
   pinMode(OBSTACLE_TRIG_PIN, OUTPUT);
+  digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   pinMode(OBSTACLE_ECHO_PIN, INPUT);
 
-  pinMode(PUMP_RELAY_PIN, OUTPUT);
-  digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
-
-  pinMode(LED_MOSFET_PIN, OUTPUT);
-  digitalWrite(LED_MOSFET_PIN, LOW);
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
-  initializeAudio();
-  // Startup playback disabled during audio diagnostics; use AUDIO PLAY 1.
+  readBatteryVoltage();
+  Serial.printf(">> [POWER] Initial battery reading: %s%.2f V\n",
+                batteryVoltageValid ? "" : "unavailable (", batteryVoltage);
+  delay(400);
 
+  // STAGE 2: Bring up the motor controller with propulsion explicitly stopped.
+  i2cBusInitialized = Wire.begin(SDA_PIN, SCL_PIN);
+  if (i2cBusInitialized) {
+    Wire.setClock(10000);
+    delay(150);
+    initializeMotorShield();
+    driveMotor(CMD_BRAKE, 0.0);
+  } else {
+    motorShieldInitialized = false;
+    Serial.println(">> [I2C] Bus initialization failed. Continuing without motor shield.");
+  }
+  delay(500);
+
+  // STAGE 3: Initialize each servo separately to avoid simultaneous startup motion.
   pinMode(STEER_SERVO_PIN, OUTPUT);
-  pinMode(NOZZLE_SERVO_PIN, OUTPUT);
+  digitalWrite(STEER_SERVO_PIN, LOW);
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
+  Serial.println(">> [POWER] Steering servo initialized.");
+  delay(500);
+
+  pinMode(NOZZLE_SERVO_PIN, OUTPUT);
+  digitalWrite(NOZZLE_SERVO_PIN, LOW);
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
+  Serial.println(">> [POWER] Nozzle servo initialized.");
+  delay(500);
 
-  pinMode(SHIELD_RST_PIN, OUTPUT);
-  digitalWrite(SHIELD_RST_PIN, LOW);
+  // STAGE 4: Audio is optional and starts only after the drive/servo loads settle.
+  initializeAudio();
+  delay(300);
 
+  // STAGE 5: Read persisted connectivity settings before enabling radios.
   if (wifiCredentialStore.begin()) {
     savedWifiCredentialsAvailable = wifiCredentialStore.load(savedWifiCredentials);
     Serial.println(savedWifiCredentialsAvailable
@@ -2646,9 +2677,6 @@ void setup() {
     Serial.println(">> Could not open Wi-Fi credential storage. BLE local control remains available.");
   }
 
-
-  // Resolve persisted mode BEFORE selecting a transport. A robot without
-  // credentials cannot enter Remote Mode, regardless of a stale NVS setting.
   const RobotOperatingMode defaultMode = savedWifiCredentialsAvailable
     ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL;
   if (!connectionModeStore.begin(defaultMode)) {
@@ -2662,21 +2690,31 @@ void setup() {
     connectionModeStore.save(ROBOT_MODE_LOCAL);
   }
 
-  // MQTT is optional and is initialized before the selected mode is activated.
   mqttConfig = makeRobotMqttConfig();
-  mqttConfigured = mqttManager.begin(mqttConfig);
+  mqttConfigured = false;
+
+  // STAGE 6: Start exactly one preferred transport after local hardware is ready.
   if (operatingMode == ROBOT_MODE_LOCAL) {
-    if (!startBleDiscovery()) Serial.println(">> BLE startup failed.");
     WiFi.mode(WIFI_OFF);
-    mqttManager.stop();
+    if (!startBleDiscovery()) Serial.println(">> BLE startup failed; local serial control remains available.");
     connectionState = CONN_LOCAL_ACTIVE;
   } else {
+    mqttConfigured = mqttManager.begin(mqttConfig);
     WiFi.mode(WIFI_STA);
     WiFi.setAutoReconnect(true);
     WiFi.begin(savedWifiCredentials.ssid.c_str(), savedWifiCredentials.password.c_str());
     connectionState = CONN_WIFI_CONNECTING;
   }
+  delay(300);
+
+  // STAGE 7: Publish readiness only after essential hardware and local controls exist.
   controlsEnabled = true;
+  driveMotor(CMD_BRAKE, 0.0);
+  setLedOutput(true);
+  printMenu();
+  playAudioTrack(1); // Startup cue; audio is optional if DFPlayer was not detected.
+  startupAnnouncementAt = millis();
+  readyAnnouncementPending = audioAvailable;
 
   Serial.println();
   Serial.println("==============================================");
@@ -2686,27 +2724,10 @@ void setup() {
   Serial.printf(" Connection state: %s\n", connectionStateName());
   Serial.printf(" Wi-Fi provisioned: %s\n", savedWifiCredentialsAvailable ? "YES" : "NO");
   Serial.printf(" MQTT configured : %s\n", mqttConfigured ? "YES" : "NO");
+  Serial.printf(" Motor shield    : %s\n", motorShieldInitialized ? "READY" : "UNAVAILABLE");
+  Serial.printf(" Audio           : %s\n", audioAvailable ? "READY" : "UNAVAILABLE");
+  Serial.println(">> [POWER] Startup sequence complete; robot remains stopped.");
   Serial.println("==============================================");
-  Serial.println(mqttConfigured
-    ? ">> Demo MQTT configuration loaded."
-    : ">> MQTT configuration invalid; Local Mode remains available.");
-
-  i2cBusInitialized = Wire.begin(SDA_PIN, SCL_PIN);
-  if (i2cBusInitialized) {
-    Wire.setClock(10000);
-    delay(100);
-    initializeMotorShield();
-  } else {
-    motorShieldInitialized = false;
-    Serial.println(">> [I2C] Bus initialization failed. Continuing without motor shield.");
-  }
-
-  driveMotor(CMD_STOP, 0.0);
-  setLedOutput(true); // Normal ready/operating indication; warning states pulse the strips.
-  printMenu();
-  playAudioTrack(1); // Startup: /mp3/0001.mp3
-  startupAnnouncementAt = millis();
-  readyAnnouncementPending = true;
 }
 
 void loop() {
