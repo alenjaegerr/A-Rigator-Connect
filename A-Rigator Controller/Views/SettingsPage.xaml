@@ -39,6 +39,35 @@
                     <Button Text="FORGET SAVED WI-FI NETWORK" Clicked="OnForgetWifiClicked" MinimumHeightRequest="48" BackgroundColor="#8B3A3A" TextColor="White" />
                 </VerticalStackLayout>
             </Border>
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ROBOT HARDWARE CALIBRATION" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="Servo travel" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
+                    <Label Text="These values are stored by the ESP32 and shared by BLE and MQTT. Start conservatively and test with the wheels lifted and pump disabled." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Label Text="STEERING (degrees)" FontSize="12" FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <VerticalStackLayout><Label Text="Left" FontSize="12"/><Entry x:Name="SteeringLeftEntry" Keyboard="Numeric" Text="15" Placeholder="15"/></VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1"><Label Text="Center" FontSize="12"/><Entry x:Name="SteeringCenterEntry" Keyboard="Numeric" Text="90" Placeholder="90"/></VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2"><Label Text="Right" FontSize="12"/><Entry x:Name="SteeringRightEntry" Keyboard="Numeric" Text="165" Placeholder="165"/></VerticalStackLayout>
+                    </Grid>
+                    <Label Text="NOZZLE (degrees)" FontSize="12" FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <VerticalStackLayout><Label Text="Minimum" FontSize="12"/><Entry x:Name="NozzleMinimumEntry" Keyboard="Numeric" Text="30" Placeholder="30"/></VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1"><Label Text="Center" FontSize="12"/><Entry x:Name="NozzleCenterEntry" Keyboard="Numeric" Text="90" Placeholder="90"/></VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2"><Label Text="Maximum" FontSize="12"/><Entry x:Name="NozzleMaximumEntry" Keyboard="Numeric" Text="150" Placeholder="150"/></VerticalStackLayout>
+                    </Grid>
+                    <Label Text="NOZZLE SECTORS (degrees)" FontSize="12" FontAttributes="Bold" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <VerticalStackLayout><Label Text="Left sector end" FontSize="12"/><Entry x:Name="NozzleLeftSectorEntry" Keyboard="Numeric" Text="70" Placeholder="70"/></VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1"><Label Text="Right sector start" FontSize="12"/><Entry x:Name="NozzleRightSectorEntry" Keyboard="Numeric" Text="110" Placeholder="110"/></VerticalStackLayout>
+                    </Grid>
+                    <Label x:Name="HardwareConfigStatusLabel" Text="Connect to A-Rigator to load its current calibration." FontSize="12" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Button Text="LOAD FROM ROBOT" Clicked="OnLoadHardwareConfigClicked" BackgroundColor="#52615A" TextColor="White" />
+                        <Button x:Name="SaveHardwareConfigButton" Grid.Column="1" Text="SAVE TO ROBOT" Clicked="OnSaveHardwareConfigClicked" BackgroundColor="#176B45" TextColor="White" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#E6C9C5, Dark=#69413C}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="DEVICE RESET" FontSize="12" FontAttributes="Bold" TextColor="#B5473C" />
