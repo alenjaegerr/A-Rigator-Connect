@@ -16,7 +16,7 @@
                     <Label Text="{Binding Greeting}" FontSize="29" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#172A20, Dark=#EAF4EC}" />
                     <Label Text="Your little irrigation companion." FontSize="14" TextColor="{AppThemeBinding Light=#637269, Dark=#AABBB0}" />
                 </VerticalStackLayout>
-                <Image Grid.Column="1" Source="gator_happy.svg" WidthRequest="112" HeightRequest="96" Aspect="AspectFit" VerticalOptions="Center" />
+                <Image Grid.Column="1" Source="gator_robot.svg" WidthRequest="132" HeightRequest="104" Aspect="AspectFit" VerticalOptions="Center" />
             </Grid>
 
             <Border Padding="17" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#23382B}" StrokeThickness="0" StrokeShape="RoundRectangle 22">
