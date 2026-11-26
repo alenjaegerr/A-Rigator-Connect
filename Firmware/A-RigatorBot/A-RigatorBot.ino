@@ -1649,17 +1649,14 @@ void serviceMqttCommands() {
   const uint32_t issuedAt = document["issuedAt"] | 0;
   const uint32_t ttlMs = document["ttlMs"] | 0;
 
-  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 ||
-      command.length() == 0) {
+  if (version != 1 || commandId.length() < 8 || commandId.length() > 64 || command.length() == 0) {
     publishMqttCommandAck(commandId, "rejected", "INVALID_ENVELOPE", "Command envelope is invalid");
     return;
   }
-
   if (mqttCommandWasProcessed(commandId)) {
     publishMqttCommandAck(commandId, "duplicate", "DUPLICATE_ID", "Command ID was already processed");
     return;
   }
-
   const time_t nowEpoch = time(nullptr);
   if (nowEpoch < 1700000000) {
     publishMqttCommandAck(commandId, "rejected", "CLOCK_UNSYNCED", "Robot clock is not synchronized");
@@ -1667,8 +1664,9 @@ void serviceMqttCommands() {
   }
 
   const bool isStop = command == "stop" || command == "pump_off" ||
-                      command == "autonomous_stop" || command == "pathway_stop" ||
-                      command == "terrain_stop" || command == "irrigation_stop";
+      command == "autonomous_stop" || command == "pathway_stop" ||
+      command == "terrain_stop" || command == "irrigation_stop" ||
+      command == "nozzle_sweep_stop" || command == "manual_terrain_stop";
   const uint32_t maxTtl = isStop ? MQTT_MAX_STOP_TTL_MS : MQTT_MAX_MOVEMENT_TTL_MS;
   if (issuedAt == 0 || ttlMs == 0 || ttlMs > maxTtl ||
       nowEpoch < issuedAt || (uint64_t)(nowEpoch - issuedAt) * 1000ULL > ttlMs) {
@@ -1677,13 +1675,12 @@ void serviceMqttCommands() {
     return;
   }
 
-  // Mark before execution so QoS 1 redelivery cannot repeat a physical action.
   rememberMqttCommand(commandId);
-  if (command == "autonomous_start" || command == "autonomous_stop") {
-    // An autonomous task is owned by the robot after it starts, not by the
-    // lifetime of the phone's MQTT session.
+  if (command == "autonomous_start" || command == "autonomous_stop" ||
+      command == "pathway_start" || command == "pathway_stop" ||
+      command == "terrain_start" || command == "terrain_stop") {
     manualControlViaMqtt = false;
-  } else if (command != "heartbeat") {
+  } else if (command != "heartbeat" && command != "irrigation_profile") {
     manualControlViaMqtt = true;
   }
 
@@ -1693,44 +1690,108 @@ void serviceMqttCommands() {
     performFactoryReset();
     return;
   }
-
   if (command == "switch_local") {
     publishMqttCommandAck(commandId, "accepted", "MODE_SWITCHING", "Switching to Local Mode");
     requestOperatingMode(ROBOT_MODE_LOCAL);
     return;
-  } else if (command == "stop") {
-    handleStop();
-  } else if (command == "autonomous_start") {
-    if (emergencyStopLatched) {
-      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
-      return;
-    }
-    handleAutonomousStart();
-  } else if (command == "autonomous_stop") {
-    handleAutonomousStop();
-  } else if (command == "forward" || command == "reverse") {
-    if (emergencyStopLatched) {
-      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
-      return;
-    }
-    setManualMotorDirection(command == "forward" ? CMD_CW : CMD_CCW,
-                            command == "forward" ? "forward" : "reverse");
-  } else if (command == "pump_off") {
-    handlePumpOff();
-  } else if (command == "pump_on") {
-    if (emergencyStopLatched) {
-      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
-      return;
-    }
-    handlePumpOn();
-  } else if (command == "heartbeat") {
-    handleHeartbeat();
-  } else {
-    publishMqttCommandAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled for remote execution yet");
+  }
+
+  // Match BLE's safety gate and reuse the same hardware handlers.
+  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
+    publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
     return;
   }
 
-  publishMqttCommandAck(commandId, "executed", "OK", "Command accepted by robot");
+  bool supported = true;
+  bleCommandRejected = false;
+  bleCommandExecution = true;
+  if (command == "irrigation_profile") {
+    JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
+    const int left = payload["left"] | -1;
+    const int back = payload["back"] | -1;
+    const int right = payload["right"] | -1;
+    const int repeat = payload["repeat"] | -1;
+    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive ||
+        left < 0 || left > 60 || back < 0 || back > 60 ||
+        right < 0 || right > 60 || repeat < 1 || repeat > 20 ||
+        (left == 0 && back == 0 && right == 0)) {
+      bleCommandExecution = false;
+      publishMqttCommandAck(commandId, "rejected", "INVALID_PROFILE",
+          "Profile values are invalid or irrigation is currently active");
+      return;
+    }
+    irrigationLeftSeconds = left;
+    irrigationBackSeconds = back;
+    irrigationRightSeconds = right;
+    irrigationRepeatCount = repeat;
+  } else if (command == "forward") {
+    setManualMotorDirection(CMD_CW, "forward");
+  } else if (command == "reverse") {
+    setManualMotorDirection(CMD_CCW, "reverse");
+  } else if (command == "stop") {
+    handleStop();
+  } else if (command == "pump_on") {
+    handlePumpOn();
+  } else if (command == "pump_off") {
+    handlePumpOff();
+  } else if (command == "heartbeat") {
+    handleHeartbeat();
+  } else if (command == "steer_left") {
+    handleSteerLeft();
+  } else if (command == "steer_right") {
+    handleSteerRight();
+  } else if (command == "steer_center") {
+    handleSteerCenter();
+  } else if (command == "nozzle_sweep" || command == "nozzle_sweep_full") {
+    handleFullNozzleSweep();
+  } else if (command == "nozzle_sweep_left") {
+    handleLeftNozzleSweep();
+  } else if (command == "nozzle_sweep_back") {
+    handleBackNozzleSweep();
+  } else if (command == "nozzle_sweep_right") {
+    handleRightNozzleSweep();
+  } else if (command == "nozzle_sweep_stop") {
+    handleNozzleSweepStop();
+  } else if (command == "irrigation_start") {
+    handleIrrigationStart();
+  } else if (command == "irrigation_stop") {
+    handleIrrigationStop();
+  } else if (command == "autonomous_start") {
+    handleAutonomousStart();
+  } else if (command == "autonomous_stop") {
+    handleAutonomousStop();
+  } else if (command == "pathway_start") {
+    handlePathwayStart();
+  } else if (command == "pathway_stop") {
+    handlePathwayStop();
+  } else if (command == "terrain_start") {
+    handleTerrainStart();
+  } else if (command == "terrain_bias_left") {
+    handleTerrainBiasLeft();
+  } else if (command == "terrain_bias_right") {
+    handleTerrainBiasRight();
+  } else if (command == "terrain_bias_center") {
+    handleTerrainBiasCenter();
+  } else if (command == "terrain_stop") {
+    handleTerrainStop();
+  } else if (command == "manual_terrain_start") {
+    handleManualTerrainStart();
+  } else if (command == "manual_terrain_stop") {
+    handleManualTerrainStop();
+  } else if (command == "reset_shield") {
+    handleResetShield();
+  } else {
+    supported = false;
+  }
+
+  bleCommandExecution = false;
+  if (!supported) {
+    publishMqttCommandAck(commandId, "rejected", "UNSUPPORTED_COMMAND", "Command is not enabled for remote execution yet");
+  } else if (bleCommandRejected) {
+    publishMqttCommandAck(commandId, "rejected", "COMMAND_REJECTED", "Robot safety or operating-state checks rejected the command");
+  } else {
+    publishMqttCommandAck(commandId, "executed", "OK", "Command accepted by robot");
+  }
 }
 
 void enforceAutonomousControlTimeout() {
