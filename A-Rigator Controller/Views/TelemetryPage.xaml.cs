@@ -7,7 +7,7 @@ public partial class TelemetryPage : ContentPage
     public TelemetryPage(DashboardViewModel viewModel)
     {
         InitializeComponent();
-        Shell.SetTabBarIsVisible(this, true);
+        // Native Shell tabs stay hidden; this page renders BottomNavigationBar in XAML.
         BindingContext = viewModel;
     }
 }
