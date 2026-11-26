@@ -7,6 +7,8 @@ public sealed class LoadingPage : ContentPage
 {
     private readonly Action _onComplete;
     private readonly Label _statusText;
+    private readonly Image _runner;
+    private readonly Grid _track;
     private bool _started;
     private bool _isLeaving;
 
@@ -40,6 +42,22 @@ public sealed class LoadingPage : ContentPage
             TextColor = Color.FromArgb("#5D7063"),
             HorizontalTextAlignment = TextAlignment.Center
         };
+        _runner = new Image
+        {
+            Source = ImageSource.FromFile("gator_working.svg"),
+            Aspect = Aspect.AspectFit,
+            WidthRequest = 58,
+            HeightRequest = 48,
+            HorizontalOptions = LayoutOptions.Start,
+            VerticalOptions = LayoutOptions.Center
+        };
+        _track = new Grid
+        {
+            HeightRequest = 52,
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
+            Children = { _runner },
+            IsClippedToBounds = true
+        };
         var activity = new ActivityIndicator
         {
             IsRunning = true,
@@ -67,7 +85,7 @@ public sealed class LoadingPage : ContentPage
                 brandLogo,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 intro, _statusText,
-                activity,
+                _track, activity,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 footer
             }
@@ -88,9 +106,37 @@ public sealed class LoadingPage : ContentPage
         _started = true;
         try
         {
-            // The native splash has already shown the same bundled A-Rigator
-            // logo. Keep this branded hand-off calm and lightweight.
-            await Task.Delay(650);
+            await WaitForTrackLayoutAsync();
+            if (_isLeaving)
+                return;
+
+            // The official baby-alligator mascot makes one smooth left-to-right
+            // journey. Four gentle hops over 1.6 seconds give each up/down
+            // bounce a 0.4-second cycle without competing TranslateTo calls.
+            var travelDistance = Math.Max(0, _track.Width - _runner.Width);
+            if (travelDistance > 1)
+            {
+                var journey = new Animation(progress =>
+                {
+                    _runner.TranslationX = travelDistance * progress;
+                    const double bounceCycles = 4;
+                    _runner.TranslationY =
+                        -Math.Abs(Math.Sin(progress * bounceCycles * Math.PI)) * 7;
+                });
+
+                var completed = new TaskCompletionSource<bool>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                journey.Commit(
+                    this,
+                    "StartupMascotJourney",
+                    rate: 16,
+                    length: 1600,
+                    easing: Easing.Linear,
+                    finished: (_, _) => completed.TrySetResult(true));
+
+                await completed.Task;
+            }
+
             if (_isLeaving)
                 return;
 
@@ -112,10 +158,30 @@ public sealed class LoadingPage : ContentPage
         }
     }
 
+    private async Task WaitForTrackLayoutAsync()
+    {
+        if (_track.Width > _runner.Width)
+            return;
+
+        var layoutReady = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        EventHandler? sizeChanged = null;
+        sizeChanged = (_, _) =>
+        {
+            if (_track.Width > _runner.Width)
+                layoutReady.TrySetResult(true);
+        };
+
+        _track.SizeChanged += sizeChanged;
+        await Task.WhenAny(layoutReady.Task, Task.Delay(3000));
+        _track.SizeChanged -= sizeChanged;
+    }
+
     protected override void OnDisappearing()
     {
         _isLeaving = true;
         Content?.CancelAnimations();
+        this.AbortAnimation("StartupMascotJourney");
         base.OnDisappearing();
     }
 
