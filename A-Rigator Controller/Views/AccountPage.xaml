@@ -9,9 +9,9 @@
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#121814}">
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="18">
-            <Label Text="Account" FontSize="30" FontAttributes="Bold"
+            <Label Text="Profile" FontSize="30" FontAttributes="Bold"
                    TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-            <Label Text="Manage your personal account, robot identity, and saved irrigation profiles."
+            <Label Text="Your account, your robot, and your app preferences."
                    FontSize="15" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
 
             <Border Padding="18" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}"
