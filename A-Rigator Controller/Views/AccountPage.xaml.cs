@@ -20,6 +20,8 @@ public partial class AccountPage : ContentPage
         InitializeComponent();
         BindingContext = viewModel;
         MascotHeader.BindingContext = dashboardViewModel;
+        viewModel.AvatarChanged += (_, path) =>
+            MessagingCenter.Send(this, "ProfileAvatarChanged", path);
         _profiles = profiles;
         _account = account;
         _robotConfiguration = robotConfiguration;
