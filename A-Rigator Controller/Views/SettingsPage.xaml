@@ -8,6 +8,7 @@
              BackgroundColor="{AppThemeBinding Light=#F1F6F2, Dark=#101A14}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
+            <Image Source="gator_focused.svg" HeightRequest="104" HorizontalOptions="End" Aspect="AspectFit" />
             <Button Text="‹  BACK TO PROFILE" Clicked="OnBackToProfileClicked"
                     HorizontalOptions="Start" MinimumHeightRequest="40"
                     BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
