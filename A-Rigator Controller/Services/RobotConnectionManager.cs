@@ -95,6 +95,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             await _activeTransport.DisconnectAsync(cancellationToken);
 
         _activeTransport = null;
+        _hasConnectedSuccessfully = false;
         SetConnectionState(ConnectionState.Disconnected);
     }
 
