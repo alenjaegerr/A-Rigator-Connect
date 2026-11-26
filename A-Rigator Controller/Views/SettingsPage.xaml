@@ -8,8 +8,11 @@
              BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
+            <Button Text="‹  BACK TO PROFILE" Clicked="OnBackToProfileClicked"
+                    HorizontalOptions="Start" MinimumHeightRequest="40"
+                    BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
             <VerticalStackLayout Spacing="4">
-                <Label Text="System &amp; Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
+                <Label Text="Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                 <Label Text="Manage app appearance, robot connectivity, and system diagnostics." FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
             </VerticalStackLayout>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
