@@ -47,7 +47,7 @@ public partial class AppShell : Shell
         {
             Title = "Home",
             Route = "home-content",
-            Icon = ImageSource.FromFile("nav_home.svg"),
+            Icon = ImageSource.FromFile("nav_home.png"),
             Content = dashboardPage
         });
 
@@ -56,7 +56,7 @@ public partial class AppShell : Shell
         {
             Title = "Manual",
             Route = "manual-content",
-            Icon = ImageSource.FromFile("nav_control.svg"),
+            Icon = ImageSource.FromFile("nav_control.png"),
             Content = controlPage
         });
 
@@ -65,7 +65,7 @@ public partial class AppShell : Shell
         {
             Title = "Autonomous",
             Route = "autonomous-content",
-            Icon = ImageSource.FromFile("nav_auto.svg"),
+            Icon = ImageSource.FromFile("nav_auto.png"),
             Content = autonomousHubPage
         });
 
@@ -74,7 +74,7 @@ public partial class AppShell : Shell
         {
             Title = "Activity",
             Route = "activity-content",
-            Icon = ImageSource.FromFile("nav_telemetry.svg"),
+            Icon = ImageSource.FromFile("nav_telemetry.png"),
             Content = telemetryPage
         });
 
@@ -83,7 +83,7 @@ public partial class AppShell : Shell
         {
             Title = "Profile",
             Route = "profile-content",
-            Icon = ImageSource.FromFile("nav_account.svg"),
+            Icon = ImageSource.FromFile("nav_account.png"),
             Content = accountPage
         });
 
