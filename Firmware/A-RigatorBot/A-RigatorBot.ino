@@ -614,8 +614,10 @@ float lastShieldMotorSpeed = 0.0;
 #define RELAY_OFF           HIGH
 
 #define STEER_CENTER        90
-#define STEER_LEFT          45
-#define STEER_RIGHT         135
+// Expanded steering command travel for sharper left/right response.
+// Verify the steering linkage clears the chassis at both endpoints with wheels raised.
+#define STEER_LEFT          15
+#define STEER_RIGHT         165
 
 #define NOZZLE_CENTER           90
 // Start with a conservative 120-degree command range; validate physical clearance
