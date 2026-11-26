@@ -125,11 +125,11 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (BatteryPercentage is int battery && battery <= 15) return "gator_low_battery.svg";
-            if (IsAutonomous) return "gator_working.svg";
-            if (RobotStatus == "IDLE") return "gator_sleeping.svg";
-            if (!IsConnected) return "gator_curious.svg";
-            return "gator_happy.svg";
+            if (BatteryPercentage is int battery && battery <= 15) return "mascot_low_battery.png";
+            if (IsAutonomous) return "mascot_working.png";
+            if (RobotStatus == "IDLE") return "mascot_sleeping.png";
+            if (!IsConnected) return "mascot_curious.png";
+            return "mascot_happy.png";
         }
     }
 
