@@ -107,9 +107,17 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
     {
         get
         {
+            // A fresh install has no saved display name. Treat that as an
+            // expected onboarding state instead of allowing a null binding value
+            // to crash MainPage while MAUI evaluates the Greeting binding.
             var displayName = _userProfileService.GetDisplayName();
-            var firstName = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
-            return string.IsNullOrWhiteSpace(firstName) ? "Hello there!" : $"Hello, {firstName}!";
+            var firstName = displayName?
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .FirstOrDefault();
+
+            return string.IsNullOrWhiteSpace(firstName)
+                ? "Hello there!"
+                : $"Hello, {firstName}!";
         }
     }
 
