@@ -29,6 +29,7 @@ bool mqttConfigured = false;
 // uses a short session lease because the ESP32's broker connection can outlive the phone.
 static const unsigned long REMOTE_MANUAL_CONTROL_TIMEOUT_MS = 1500;
 volatile bool bleClientDisconnectedPending = false;
+volatile bool bleClientConnected = false;
 bool manualControlViaMqtt = false;
 static const unsigned long BOOT_POWER_SETTLE_MS = 1500;
 RobotWifiCredentialStore wifiCredentialStore;
@@ -133,7 +134,13 @@ String bleControlAssembly;
 int bleControlExpectedLength = -1;
 
 class RobotBleServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* server) override {
+    bleClientConnected = true;
+    Serial.println(">> BLE client connected.");
+  }
+
   void onDisconnect(BLEServer* server) override {
+    bleClientConnected = false;
     // ESP32 BLE stops advertising while a central is connected. Restart so
     // the app can reconnect after leaving range or closing the session.
     bleClientDisconnectedPending = true;
@@ -683,6 +690,14 @@ unsigned long ledPatternLastToggle = 0;
 bool ledPatternPhase = true;
 bool readyAnnouncementPending = false;
 unsigned long startupAnnouncementAt = 0;
+unsigned long idleSoundStartedAt = 0;
+unsigned long lastPersonalitySoundAt = 0;
+bool wasRobotMoving = false;
+bool wasAutonomousIrrigating = false;
+static const unsigned long IDLE_SOUND_DELAY_MS = 90000UL;
+static const unsigned long IDLE_SOUND_REPEAT_MS = 180000UL;
+static const unsigned long MOVEMENT_SOUND_COOLDOWN_MS = 45000UL;
+static const unsigned long IRRIGATION_CHATTER_INTERVAL_MS = 75000UL;
 float batteryVoltage = 0.0f;
 bool batteryVoltageValid = false;
 unsigned long lastBatteryRead = 0;
@@ -1189,14 +1204,53 @@ void setLedOutput(bool enabled) {
 }
 
 void serviceAudioAnnouncements() {
+  const unsigned long now = millis();
+
   // Give the startup cue time to finish before announcing readiness.
-  // This is timer-driven so boot and the main control loop remain non-blocking.
-  if (readyAnnouncementPending &&
-      millis() - startupAnnouncementAt >= 6000UL &&
-      (int32_t)(warningAudioPriorityUntil - millis()) <= 0) {
+  if (readyAnnouncementPending && now - startupAnnouncementAt >= 6000UL &&
+      (int32_t)(warningAudioPriorityUntil - now) <= 0) {
     readyAnnouncementPending = false;
     playAudioTrack(2); // Robot ready: /mp3/0002.mp3
     Serial.println(">> [AUDIO] Ready announcement triggered.");
+  }
+
+  const bool moving = !irrigationSequenceActive &&
+      (manualMotorDir == CMD_CW || manualMotorDir == CMD_CCW ||
+       (currentMode == MODE_AUTONOMOUS && activeAutonomousMode != AUTO_NONE));
+  const bool irrigatingAutonomously =
+      currentMode == MODE_AUTONOMOUS && irrigationSequenceActive;
+
+  if (moving && !wasRobotMoving &&
+      now - lastPersonalitySoundAt >= MOVEMENT_SOUND_COOLDOWN_MS) {
+    playAudioTrack(9); // Gator movement quip: /mp3/0009.mp3
+    lastPersonalitySoundAt = now;
+  }
+  wasRobotMoving = moving;
+
+  if (irrigatingAutonomously && !wasAutonomousIrrigating) {
+    playAudioTrack(10); // Gator irrigation quip: /mp3/0010.mp3
+    lastPersonalitySoundAt = now;
+  } else if (irrigatingAutonomously &&
+             now - lastPersonalitySoundAt >= IRRIGATION_CHATTER_INTERVAL_MS) {
+    playAudioTrack(10); // Occasional irrigation chatter, never every loop.
+    lastPersonalitySoundAt = now;
+  }
+  wasAutonomousIrrigating = irrigatingAutonomously;
+
+  const bool idle = currentMode == MODE_MANUAL && !irrigationSequenceActive &&
+      manualMotorDir != CMD_CW && manualMotorDir != CMD_CCW &&
+      !pumpState && !nozzleSweepActive && !manualTerrainModeActive &&
+      !emergencyStopLatched;
+  if (!idle) {
+    idleSoundStartedAt = 0;
+  } else {
+    if (idleSoundStartedAt == 0) idleSoundStartedAt = now;
+    if (now - idleSoundStartedAt >= IDLE_SOUND_DELAY_MS &&
+        (lastPersonalitySoundAt == 0 ||
+         now - lastPersonalitySoundAt >= IDLE_SOUND_REPEAT_MS)) {
+      playAudioTrack(8); // Idle gator quip: /mp3/0008.mp3
+      lastPersonalitySoundAt = now;
+    }
   }
 }
 
@@ -1207,23 +1261,48 @@ void serviceLedIndications() {
   }
   if (ledManualOverride) return;
 
-  // The installed two-wire RGB strips retain their own color animation.
-  // The ESP32 can only pulse their shared power through the MOSFET.
-  const bool warningActive = lowBatteryWarningActive || obstacleWasDetected;
+  // All LED strips share one MOSFET output. Patterns are therefore encoded
+  // as power pulses; the strips retain their own built-in RGB animation.
   const unsigned long now = millis();
+  unsigned long intervalMs = 0;
+  bool activePattern = false;
+  bool doublePulse = false;
 
-  if (!warningActive) {
+  if (lowBatteryWarningActive || obstacleWasDetected) {
+    intervalMs = 180UL;                 // urgent warning: fast flash
+    activePattern = true;
+  } else if (irrigationSequenceActive) {
+    intervalMs = 260UL;                 // active watering: steady rhythmic pulse
+    activePattern = true;
+  } else if (operatingMode == ROBOT_MODE_LOCAL && bleStackActive && !bleClientConnected) {
+    intervalMs = 140UL;                 // BLE pairing/discovery: fast flash
+    activePattern = true;
+  } else if (operatingMode == ROBOT_MODE_REMOTE && WiFi.status() != WL_CONNECTED) {
+    intervalMs = 650UL;                 // Wi-Fi association: slow breathing pulse
+    activePattern = true;
+  } else if (operatingMode == ROBOT_MODE_REMOTE &&
+             WiFi.status() == WL_CONNECTED && !mqttManager.connected()) {
+    intervalMs = 360UL;                 // MQTT handshake/reconnect
+    activePattern = true;
+  } else if (operatingMode == ROBOT_MODE_REMOTE && mqttManager.connected()) {
+    intervalMs = 1800UL;                // remote dashboard/cloud link: heartbeat double-pulse
+    activePattern = true;
+    doublePulse = true;
+  }
+
+  if (!activePattern) {
     ledPatternPhase = true;
     setLedOutput(true);
     ledPatternLastToggle = now;
     return;
   }
 
-  if (now - ledPatternLastToggle >= 300UL) {
-    ledPatternLastToggle = now;
-    ledPatternPhase = !ledPatternPhase;
-    setLedOutput(ledPatternPhase);
-  }
+  const unsigned long cycle = doublePulse ? intervalMs * 3UL : intervalMs * 2UL;
+  const unsigned long position = now % cycle;
+  const bool outputOn = doublePulse
+      ? (position < 130UL || (position >= intervalMs && position < intervalMs + 130UL))
+      : (position < intervalMs);
+  setLedOutput(outputOn);
 }
 
 void readBatteryVoltage() {
@@ -2142,7 +2221,7 @@ void printMenu() {
   Serial.println("  FACTORY-RESET            : Restore brand-new robot defaults (2-step confirm)");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
   Serial.println("  LED ON / LED OFF / LED AUTO: Test strips or resume automatic indications");
-  Serial.println("  AUDIO PLAY 1              : Play /mp3/0001.mp3 (tracks 1-7 are event sounds)");
+  Serial.println("  AUDIO PLAY 1-10           : Test event and personality tracks in /mp3");
   Serial.println("  AUDIO VOL 0-30            : Set DFPlayer volume");
   Serial.println("  AUDIO STOP                : Stop audio playback");
   Serial.println("  AUDIO STATUS              : Show audio module status");
