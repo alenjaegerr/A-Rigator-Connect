@@ -57,13 +57,87 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         if (_connectedDevice is null)
             throw new InvalidOperationException("Discover and pair with A-Rigator over Bluetooth before using local control.");
 
-        if (_connectedDevice.State != DeviceState.Connected)
+        if (_connectedDevice.State == DeviceState.Connected)
         {
-            SetTransportState(ConnectionState.Connecting);
-            await _adapter.ConnectToDeviceAsync(_connectedDevice, cancellationToken: cancellationToken);
+            SetTransportState(ConnectionState.Connected);
+            return;
         }
 
-        SetTransportState(ConnectionState.Connected);
+        SetTransportState(ConnectionState.Reconnecting);
+        var rememberedDevice = _connectedDevice;
+        var rememberedId = rememberedDevice.Id;
+
+        try
+        {
+            // First try the previously paired device handle. This is the fastest
+            // path when Android still has a valid GATT device reference.
+            await _adapter.ConnectToDeviceAsync(
+                rememberedDevice,
+                cancellationToken: cancellationToken);
+            _connectedDevice = rememberedDevice;
+            SetTransportState(ConnectionState.Connected);
+            Debug.WriteLine("[BLE] Reconnected using the remembered device handle.");
+            return;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[BLE] Cached-device reconnect failed; rediscovering A-Rigator: {ex}");
+        }
+
+        // Android can invalidate a GATT handle after a link drop. Rediscover the
+        // same BLE identity instead of permanently retrying a stale IDevice.
+        IDevice? rediscoveredDevice = null;
+        void OnDeviceDiscovered(object? sender, DeviceEventArgs args)
+        {
+            if (args.Device.Id == rememberedId ||
+                string.Equals(args.Device.Name, "A-Rigator", StringComparison.OrdinalIgnoreCase))
+            {
+                rediscoveredDevice = args.Device;
+            }
+        }
+
+        _adapter.DeviceDiscovered += OnDeviceDiscovered;
+        try
+        {
+            if (_adapter.IsScanning)
+                await _adapter.StopScanningForDevicesAsync();
+
+            _adapter.ScanTimeout = 5000;
+            await _adapter.StartScanningForDevicesAsync(cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            _adapter.DeviceDiscovered -= OnDeviceDiscovered;
+            if (_adapter.IsScanning)
+                await _adapter.StopScanningForDevicesAsync();
+        }
+
+        if (rediscoveredDevice is null)
+        {
+            SetTransportState(ConnectionState.Reconnecting);
+            throw new InvalidOperationException(
+                "A-Rigator is not currently advertising nearby. The app will keep trying automatically.");
+        }
+
+        try
+        {
+            await _adapter.ConnectToDeviceAsync(
+                rediscoveredDevice,
+                cancellationToken: cancellationToken);
+            _connectedDevice = rediscoveredDevice;
+            _discoveredDevices[rediscoveredDevice.Id.ToString("D")] = rediscoveredDevice;
+            SetTransportState(ConnectionState.Connected);
+            Debug.WriteLine("[BLE] Reconnected after rediscovering A-Rigator.");
+        }
+        catch
+        {
+            SetTransportState(ConnectionState.Reconnecting);
+            throw;
+        }
     }
 
     public async Task<RobotStatus?> GetStatusAsync(CancellationToken cancellationToken = default)
