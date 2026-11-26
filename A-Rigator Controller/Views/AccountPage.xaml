@@ -9,6 +9,7 @@
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#121814}">
     <ScrollView>
         <VerticalStackLayout Padding="24" Spacing="18">
+            <Image Source="gator_avatar.svg" HeightRequest="116" HorizontalOptions="End" Aspect="AspectFit" />
             <Label Text="Profile" FontSize="30" FontAttributes="Bold"
                    TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
             <Label Text="Your account, your robot, and your app preferences."
@@ -62,7 +63,7 @@
                             <Image Source="{Binding RobotAvatarPath}" Aspect="AspectFit" Margin="3">
                                 <Image.Triggers>
                                     <DataTrigger TargetType="Image" Binding="{Binding HasRobotAvatar}" Value="False">
-                                        <Setter Property="Source" Value="arigator_robot.png" />
+                                        <Setter Property="Source" Value="gator_avatar.svg" />
                                     </DataTrigger>
                                 </Image.Triggers>
                             </Image>
