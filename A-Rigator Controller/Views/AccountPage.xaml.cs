@@ -13,12 +13,13 @@ public partial class AccountPage : ContentPage
     private readonly IRemoteRobotConfigurationStore _robotConfiguration;
     private readonly IrrigationProfileSyncCoordinator _profileSync;
 
-    public AccountPage(AccountViewModel viewModel, IrrigationProfileService profiles,
+    public AccountPage(AccountViewModel viewModel, DashboardViewModel dashboardViewModel, IrrigationProfileService profiles,
         IAccountService account, IRemoteRobotConfigurationStore robotConfiguration,
         IrrigationProfileSyncCoordinator profileSync)
     {
         InitializeComponent();
         BindingContext = viewModel;
+        MascotHeader.BindingContext = dashboardViewModel;
         _profiles = profiles;
         _account = account;
         _robotConfiguration = robotConfiguration;
