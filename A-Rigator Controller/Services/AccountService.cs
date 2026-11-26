@@ -35,6 +35,7 @@ public sealed class AccountService : IAccountService
     public string? DisplayName { get; private set; }
     public string? RobotName { get; private set; }
     public string? Email { get; private set; }
+    public string? AvatarUrl { get; private set; }
     public string? AccessToken { get; private set; }
     public string? RefreshToken { get; private set; }
 
@@ -87,6 +88,7 @@ public sealed class AccountService : IAccountService
         GoogleUserId = user.id;
         DisplayName = user.name;
         Email = user.email;
+        AvatarUrl = user.avatarUrl;
         IsAuthenticated = true;
         await LoadCloudAccountSettingsAsync(cancellationToken);
     }
@@ -119,6 +121,7 @@ public sealed class AccountService : IAccountService
             GoogleUserId = user.id;
             DisplayName = user.name;
             Email = user.email;
+            AvatarUrl = user.avatarUrl;
             IsAuthenticated = true;
             await LoadCloudAccountSettingsAsync(cancellationToken);
         }
@@ -165,6 +168,42 @@ public sealed class AccountService : IAccountService
                 null, response.StatusCode);
 
         await SignOutAsync(cancellationToken);
+    }
+
+    public async Task<string> UploadProfileAvatarAsync(Stream image, string contentType, CancellationToken cancellationToken = default)
+    {
+        if (!IsAuthenticated || string.IsNullOrWhiteSpace(AccessToken) || string.IsNullOrWhiteSpace(GoogleUserId))
+            throw new InvalidOperationException("Sign in with Google to back up your profile picture.");
+
+        if (contentType is not ("image/jpeg" or "image/png" or "image/webp"))
+            throw new InvalidOperationException("Choose a JPG, PNG, or WEBP image.");
+
+        using var memory = new MemoryStream();
+        await image.CopyToAsync(memory, cancellationToken);
+        if (memory.Length is 0 or > 5 * 1024 * 1024)
+            throw new InvalidOperationException("Profile pictures must be smaller than 5 MB.");
+        memory.Position = 0;
+
+        var baseUrl = _supabaseConfigService.Url?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(_supabaseConfigService.AnonKey))
+            throw new InvalidOperationException("Supabase configuration is missing.");
+
+        var extension = contentType switch { "image/png" => "png", "image/webp" => "webp", _ => "jpg" };
+        var objectPath = $"{GoogleUserId}/avatar.{extension}";
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{baseUrl}/storage/v1/object/profile-avatars/{Uri.EscapeDataString(GoogleUserId)}/avatar.{extension}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+        request.Headers.TryAddWithoutValidation("apikey", _supabaseConfigService.AnonKey);
+        request.Headers.TryAddWithoutValidation("x-upsert", "true");
+        request.Content = new StreamContent(memory);
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException($"Profile picture upload failed ({(int)response.StatusCode}): {body}", null, response.StatusCode);
+
+        AvatarUrl = $"{baseUrl}/storage/v1/object/public/profile-avatars/{GoogleUserId}/avatar.{extension}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+        return AvatarUrl;
     }
 
     public async Task SaveAccountSettingsAsync(
@@ -283,6 +322,7 @@ public sealed class AccountService : IAccountService
         DisplayName = null;
         RobotName = null;
         Email = null;
+        AvatarUrl = null;
         AccessToken = null;
         RefreshToken = null;
     }
@@ -356,6 +396,7 @@ public sealed class AccountService : IAccountService
             : null;
 
         string? displayName = null;
+        string? avatarUrl = null;
 
         if (userJson.TryGetProperty("user_metadata", out var metadata) &&
             metadata.ValueKind == JsonValueKind.Object)
@@ -366,6 +407,9 @@ public sealed class AccountService : IAccountService
             if (string.IsNullOrWhiteSpace(displayName) &&
                 metadata.TryGetProperty("name", out var name))
                 displayName = name.GetString();
+
+            if (metadata.TryGetProperty("avatar_url", out var avatar)) avatarUrl = avatar.GetString();
+            if (string.IsNullOrWhiteSpace(avatarUrl) && metadata.TryGetProperty("picture", out var picture)) avatarUrl = picture.GetString();
         }
 
         displayName = string.IsNullOrWhiteSpace(displayName)
@@ -379,11 +423,12 @@ public sealed class AccountService : IAccountService
                 "Supabase returned incomplete user information.");
         }
 
-        return new SupabaseUserInfo(id, displayName, email);
+        return new SupabaseUserInfo(id, displayName, email, avatarUrl);
     }
 
     private sealed record SupabaseUserInfo(
         string id,
         string name,
-        string email);
+        string email,
+        string? avatarUrl);
 }
