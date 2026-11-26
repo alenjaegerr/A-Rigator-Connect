@@ -87,16 +87,11 @@ public partial class AppShell : Shell
         };
         accountTab.Items.Add(profileShellContent);
 
-        // AccountPage owns its view model. Keep Shell construction independent of page BindingContext state.
-        void RefreshProfileTabAvatar(string? path)
-        {
-            accountTab.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
-                ? ImageSource.FromFile(path)
-                : ImageSource.FromFile("gator_avatar.svg");
-        }
-        RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
-        MessagingCenter.Subscribe<AccountPage, string?>(this, "ProfileAvatarChanged",
-            (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path)));
+        // Keep the Shell tab icon on the bundled brand asset. User-uploaded
+        // profile photos remain visible inside AccountPage; feeding arbitrary
+        // file paths to the native Shell tab renderer can produce a square/
+        // invalid icon after sign-in on Android.
+        accountTab.Icon = ImageSource.FromFile("gator_avatar.svg");
 
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
