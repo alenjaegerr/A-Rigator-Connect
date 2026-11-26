@@ -188,9 +188,8 @@ public sealed class AccountService : IAccountService
         if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(_supabaseConfigService.AnonKey))
             throw new InvalidOperationException("Supabase configuration is missing.");
 
-        var extension = contentType switch { "image/png" => "png", "image/webp" => "webp", _ => "jpg" };
         using var request = new HttpRequestMessage(HttpMethod.Post,
-            $"{baseUrl}/storage/v1/object/profile-avatars/{Uri.EscapeDataString(GoogleUserId)}/avatar.{extension}");
+            $"{baseUrl}/storage/v1/object/profile-avatars/{Uri.EscapeDataString(GoogleUserId)}/avatar");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
         request.Headers.TryAddWithoutValidation("apikey", _supabaseConfigService.AnonKey);
         request.Headers.TryAddWithoutValidation("x-upsert", "true");
@@ -201,7 +200,7 @@ public sealed class AccountService : IAccountService
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException($"Profile picture upload failed ({(int)response.StatusCode}): {body}", null, response.StatusCode);
 
-        AvatarUrl = $"{baseUrl}/storage/v1/object/public/profile-avatars/{GoogleUserId}/avatar.{extension}?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+        AvatarUrl = $"{baseUrl}/storage/v1/object/public/profile-avatars/{GoogleUserId}/avatar?v={DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
         return AvatarUrl;
     }
 
