@@ -1191,7 +1191,8 @@ void serviceAudioAnnouncements() {
   // Give the startup cue time to finish before announcing readiness.
   // This is timer-driven so boot and the main control loop remain non-blocking.
   if (readyAnnouncementPending &&
-      millis() - startupAnnouncementAt >= 4000UL) {
+      millis() - startupAnnouncementAt >= 4000UL &&
+      (int32_t)(warningAudioPriorityUntil - millis()) <= 0) {
     readyAnnouncementPending = false;
     playAudioTrack(2); // Robot ready: /mp3/0002.mp3
     Serial.println(">> [AUDIO] Ready announcement triggered.");
@@ -2139,7 +2140,7 @@ void printMenu() {
   Serial.println("  FACTORY-RESET            : Restore brand-new robot defaults (2-step confirm)");
   Serial.println("  t : Read Sensors          |  STATUS : Print system status");
   Serial.println("  LED ON / LED OFF          : Switch LED strips");
-  Serial.println("  AUDIO PLAY 1              : Play root track 1 (0001.mp3)");
+  Serial.println("  AUDIO PLAY 1              : Play /mp3/0001.mp3 (tracks 1-7 are event sounds)");
   Serial.println("  AUDIO VOL 0-30            : Set DFPlayer volume");
   Serial.println("  AUDIO STOP                : Stop audio playback");
   Serial.println("  AUDIO STATUS              : Show audio module status");
