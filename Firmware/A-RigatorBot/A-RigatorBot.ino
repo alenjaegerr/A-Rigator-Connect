@@ -2327,7 +2327,7 @@ void printMenu() {
   Serial.println("==============================================");
   Serial.println("  w : Forward (100% Power)  |  x : Reverse (100% Power)");
   Serial.println("  s : Stop (Coast)          |  b : Hard Brake");
-  Serial.println("  a : Steer Left (45 deg)   |  d : Steer Right (135 deg)");
+  Serial.println("  a : Steer Left (15 deg)   |  d : Steer Right (165 deg)");
   Serial.println("  c : Steer Center (90 deg)");
   Serial.println("  p : Toggle Water Pump     |  r : Reset Motor Shield");
   Serial.println("  q : Forget Router Wi-Fi   |  m : Toggle Autonomous Mode");
@@ -2522,7 +2522,7 @@ void executeCommand(char cmd) {
 
 	case 'a': case 'A':
       manualTerrainModeActive = false;
-	  Serial.println(">> [CMD] Steer: LEFT (45 deg)");
+	  Serial.println(">> [CMD] Steer: LEFT (15 deg)");
 	  writeServo(STEER_SERVO_PIN, STEER_LEFT);
 	  break;
 
@@ -2534,7 +2534,7 @@ void executeCommand(char cmd) {
 
 	case 'd': case 'D':
       manualTerrainModeActive = false;
-	  Serial.println(">> [CMD] Steer: RIGHT (135 deg)");
+	  Serial.println(">> [CMD] Steer: RIGHT (165 deg)");
 	  writeServo(STEER_SERVO_PIN, STEER_RIGHT);
 	  break;
 
