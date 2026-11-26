@@ -41,48 +41,48 @@ public partial class AppShell : Shell
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
 
-        var homeTab = new Tab { Title = "Home", Route = "home" };
+        var homeTab = new Tab { Title = "Home", Route = "home", Icon = ImageSource.FromFile("gator_happy.svg") };
         homeTab.Items.Add(new ShellContent
         {
             Title = "Home",
             Route = "home-content",
-            Icon = ImageSource.FromFile("nav_home.svg"),
+            
             Content = dashboardPage
         });
 
-        var manualTab = new Tab { Title = "Control", Route = "manual" };
+        var manualTab = new Tab { Title = "Control", Route = "manual", Icon = ImageSource.FromFile("gator_focused.svg") };
         manualTab.Items.Add(new ShellContent
         {
             Title = "Control",
             Route = "manual-content",
-            Icon = ImageSource.FromFile("nav_control.svg"),
+            
             Content = controlPage
         });
 
-        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous" };
+        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous", Icon = ImageSource.FromFile("gator_working.svg") };
         autonomousTab.Items.Add(new ShellContent
         {
             Title = "Automate",
             Route = "autonomous-content",
-            Icon = ImageSource.FromFile("nav_auto.svg"),
+            
             Content = autonomousHubPage
         });
 
-        var activityTab = new Tab { Title = "Activity", Route = "activity" };
+        var activityTab = new Tab { Title = "Activity", Route = "activity", Icon = ImageSource.FromFile("gator_curious.svg") };
         activityTab.Items.Add(new ShellContent
         {
             Title = "Activity",
             Route = "activity-content",
-            Icon = ImageSource.FromFile("nav_telemetry.svg"),
+            
             Content = telemetryPage
         });
 
-        var accountTab = new Tab { Title = "Profile", Route = "profile" };
+        var accountTab = new Tab { Title = "Profile", Route = "profile", Icon = ImageSource.FromFile("gator_avatar.svg") };
         var profileShellContent = new ShellContent
         {
             Title = "Profile",
             Route = "profile-content",
-            Icon = ImageSource.FromFile("nav_account.svg"),
+            
             Content = accountPage
         };
         accountTab.Items.Add(profileShellContent);
@@ -93,7 +93,7 @@ public partial class AppShell : Shell
             {
                 profileShellContent.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
                     ? ImageSource.FromFile(path)
-                    : ImageSource.FromFile("nav_account.svg");
+                    : ImageSource.FromFile("gator_avatar.svg");
             }
             RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
             accountViewModel.AvatarChanged += (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path));
