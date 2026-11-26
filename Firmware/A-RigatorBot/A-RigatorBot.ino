@@ -47,6 +47,7 @@ bool pendingModeTransition = false;
 RobotOperatingMode requestedOperatingMode = ROBOT_MODE_LOCAL;
 unsigned long modeTransitionAt = 0;
 bool bleStackActive = false;
+Preferences robotHardwarePreferences;
 bool performFactoryReset();
 static const unsigned long MODE_TRANSITION_ACK_GRACE_MS = 900;
 static const unsigned long FACTORY_RESET_CONFIRM_TIMEOUT_MS = 15000;
@@ -613,19 +614,71 @@ float lastShieldMotorSpeed = 0.0;
 #define RELAY_ON            LOW
 #define RELAY_OFF           HIGH
 
-#define STEER_CENTER        90
-// Expanded steering command travel for sharper left/right response.
-// Verify the steering linkage clears the chassis at both endpoints with wheels raised.
-#define STEER_LEFT          15
-#define STEER_RIGHT         165
+int steeringLeftAngle = 15;
+int steeringCenterAngle = 90;
+int steeringRightAngle = 165;
+int nozzleMinimumAngle = 30;
+int nozzleCenterAngle = 90;
+int nozzleMaximumAngle = 150;
+int nozzleLeftSectorMaximumAngle = 70;
+int nozzleRightSectorMinimumAngle = 110;
+#define STEER_CENTER steeringCenterAngle
+#define STEER_LEFT steeringLeftAngle
+#define STEER_RIGHT steeringRightAngle
+#define NOZZLE_CENTER nozzleCenterAngle
+#define NOZZLE_MIN_SWEEP nozzleMinimumAngle
+#define NOZZLE_MAX_SWEEP nozzleMaximumAngle
+#define NOZZLE_LEFT_SECTOR_MAX nozzleLeftSectorMaximumAngle
+#define NOZZLE_RIGHT_SECTOR_MIN nozzleRightSectorMinimumAngle
 
-#define NOZZLE_CENTER           90
-// Start with a conservative 120-degree command range; validate physical clearance
-// before increasing it further on the assembled nozzle mechanism.
-#define NOZZLE_MIN_SWEEP        30
-#define NOZZLE_MAX_SWEEP        150
-#define NOZZLE_LEFT_SECTOR_MAX  70
-#define NOZZLE_RIGHT_SECTOR_MIN 110
+bool isRobotHardwareConfigurationValid(
+  int steerLeft, int steerCenter, int steerRight,
+  int nozzleMin, int nozzleCenter, int nozzleMax,
+  int nozzleLeft, int nozzleRight) {
+  return steerLeft >= 0 && steerLeft < steerCenter && steerCenter < steerRight && steerRight <= 180 &&
+         nozzleMin >= 0 && nozzleMin < nozzleLeft && nozzleLeft <= nozzleCenter &&
+         nozzleCenter < nozzleRight && nozzleRight < nozzleMax && nozzleMax <= 180;
+}
+
+void loadRobotHardwareConfiguration() {
+  robotHardwarePreferences.begin("arig-hw", false);
+  steeringLeftAngle = robotHardwarePreferences.getInt("st_left", 15);
+  steeringCenterAngle = robotHardwarePreferences.getInt("st_center", 90);
+  steeringRightAngle = robotHardwarePreferences.getInt("st_right", 165);
+  nozzleMinimumAngle = robotHardwarePreferences.getInt("nz_min", 30);
+  nozzleCenterAngle = robotHardwarePreferences.getInt("nz_center", 90);
+  nozzleMaximumAngle = robotHardwarePreferences.getInt("nz_max", 150);
+  nozzleLeftSectorMaximumAngle = robotHardwarePreferences.getInt("nz_left", 70);
+  nozzleRightSectorMinimumAngle = robotHardwarePreferences.getInt("nz_right", 110);
+  if (!isRobotHardwareConfigurationValid(steeringLeftAngle, steeringCenterAngle, steeringRightAngle,
+      nozzleMinimumAngle, nozzleCenterAngle, nozzleMaximumAngle,
+      nozzleLeftSectorMaximumAngle, nozzleRightSectorMinimumAngle)) {
+    steeringLeftAngle = 15; steeringCenterAngle = 90; steeringRightAngle = 165;
+    nozzleMinimumAngle = 30; nozzleCenterAngle = 90; nozzleMaximumAngle = 150;
+    nozzleLeftSectorMaximumAngle = 70; nozzleRightSectorMinimumAngle = 110;
+    Serial.println(">> [CONFIG] Invalid saved servo calibration; using safe defaults.");
+  }
+}
+
+bool saveRobotHardwareConfiguration(
+  int steerLeft, int steerCenter, int steerRight,
+  int nozzleMin, int nozzleCenter, int nozzleMax,
+  int nozzleLeft, int nozzleRight) {
+  if (!isRobotHardwareConfigurationValid(steerLeft, steerCenter, steerRight,
+      nozzleMin, nozzleCenter, nozzleMax, nozzleLeft, nozzleRight)) return false;
+  steeringLeftAngle = steerLeft; steeringCenterAngle = steerCenter; steeringRightAngle = steerRight;
+  nozzleMinimumAngle = nozzleMin; nozzleCenterAngle = nozzleCenter; nozzleMaximumAngle = nozzleMax;
+  nozzleLeftSectorMaximumAngle = nozzleLeft; nozzleRightSectorMinimumAngle = nozzleRight;
+  robotHardwarePreferences.putInt("st_left", steeringLeftAngle);
+  robotHardwarePreferences.putInt("st_center", steeringCenterAngle);
+  robotHardwarePreferences.putInt("st_right", steeringRightAngle);
+  robotHardwarePreferences.putInt("nz_min", nozzleMinimumAngle);
+  robotHardwarePreferences.putInt("nz_center", nozzleCenterAngle);
+  robotHardwarePreferences.putInt("nz_max", nozzleMaximumAngle);
+  robotHardwarePreferences.putInt("nz_left", nozzleLeftSectorMaximumAngle);
+  robotHardwarePreferences.putInt("nz_right", nozzleRightSectorMinimumAngle);
+  return true;
+}
 
 #define OBSTACLE_STOP_CM    25
 
@@ -780,7 +833,29 @@ void serviceBleControlCommands() {
   bool supported = true;
   bleCommandRejected = false;
   bleCommandExecution = true;
-  if (command == "irrigation_profile") {
+  if (command == "robot_config") {
+    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
+    const int sl = payload["steeringLeft"] | -1;
+    const int sc = payload["steeringCenter"] | -1;
+    const int sr = payload["steeringRight"] | -1;
+    const int nmin = payload["nozzleMinimum"] | -1;
+    const int nc = payload["nozzleCenter"] | -1;
+    const int nmax = payload["nozzleMaximum"] | -1;
+    const int nl = payload["nozzleLeftSectorMaximum"] | -1;
+    const int nr = payload["nozzleRightSectorMinimum"] | -1;
+    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive || nozzleSweepActive ||
+        !isRobotHardwareConfigurationValid(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
+      bleCommandExecution = false;
+      publishBleControlAck(commandId, "rejected", "INVALID_ROBOT_CONFIG",
+                           "Configuration is invalid or a motion/irrigation task is active");
+      return;
+    }
+    if (!saveRobotHardwareConfiguration(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
+      bleCommandExecution = false;
+      publishBleControlAck(commandId, "rejected", "CONFIG_SAVE_FAILED", "Could not persist robot configuration");
+      return;
+    }
+  } else if (command == "irrigation_profile") {
     JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
     const int left = payload["left"] | -1;
     const int back = payload["back"] | -1;
@@ -905,6 +980,14 @@ void publishBleTelemetryIfDue() {
   doc["obstacleDistanceCm"] = getObstacleDistanceCM();
   doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
   doc["manualControlTimeoutMs"] = REMOTE_MANUAL_CONTROL_TIMEOUT_MS;
+  doc["steeringLeftAngle"] = STEER_LEFT;
+  doc["steeringCenterAngle"] = STEER_CENTER;
+  doc["steeringRightAngle"] = STEER_RIGHT;
+  doc["nozzleMinimumAngle"] = NOZZLE_MIN_SWEEP;
+  doc["nozzleCenterAngle"] = NOZZLE_CENTER;
+  doc["nozzleMaximumAngle"] = NOZZLE_MAX_SWEEP;
+  doc["nozzleLeftSectorMaximumAngle"] = NOZZLE_LEFT_SECTOR_MAX;
+  doc["nozzleRightSectorMinimumAngle"] = NOZZLE_RIGHT_SECTOR_MIN;
   doc["lineGpio14"] = digitalRead(14) == HIGH;
   doc["lineGpio27"] = digitalRead(27) == HIGH;
   doc["connectionMode"] = operatingMode == ROBOT_MODE_REMOTE ? "IoT" : "BLE";
@@ -2484,6 +2567,7 @@ void executeCommand(char cmd) {
 // 8. SETUP & LOOP
 // ============================================================================
 void setup() {
+  loadRobotHardwareConfiguration();
   Serial.begin(115200);
   delay(BOOT_POWER_SETTLE_MS);
 
