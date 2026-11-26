@@ -7,8 +7,8 @@
              x:DataType="viewmodels:DashboardViewModel"
              Title="Telemetry"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
-    <Grid>
-      <ScrollView>
+    <Grid RowDefinitions="*,Auto">
+      <ScrollView Grid.Row="0">
         <VerticalStackLayout Padding="20" Spacing="18">
             <views:MascotStatusHeader />
             <VerticalStackLayout Spacing="4">
@@ -110,6 +110,7 @@
             </Border>
         </VerticalStackLayout>
       </ScrollView>
-      <views:ConnectionOverlay IsBusy="{Binding IsConnecting}" />
+      <views:ConnectionOverlay Grid.Row="0" IsBusy="{Binding IsConnecting}" />
+        <views:BottomNavigationBar Grid.Row="1" SelectedTab="Activity" />
     </Grid>
 </ContentPage>
