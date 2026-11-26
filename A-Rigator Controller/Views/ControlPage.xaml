@@ -6,6 +6,7 @@
              x:Class="A_Rigator_Controller.Views.ControlPage"
              x:DataType="viewmodels:DashboardViewModel"
              Title="Manual"
+             Shell.TabBarIsVisible="False"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
     <Grid RowDefinitions="*,Auto">
       <ScrollView Grid.Row="0">
