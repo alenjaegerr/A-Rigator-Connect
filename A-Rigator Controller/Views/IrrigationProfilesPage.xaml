@@ -2,12 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             xmlns:views="clr-namespace:A_Rigator_Controller.Views"
              x:Class="A_Rigator_Controller.Views.IrrigationProfilesPage"
              x:DataType="viewmodels:IrrigationProfilesViewModel"
              Title="Profiles"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
+            <views:MascotStatusHeader x:Name="MascotHeader" />
             <VerticalStackLayout Spacing="4">
                 <Label Text="Irrigation Profiles" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Choose how the rear-facing nozzle sweeps, then set how long each selected direction receives water." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
