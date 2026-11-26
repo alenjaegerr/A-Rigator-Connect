@@ -1415,11 +1415,30 @@ void readBatteryVoltage() {
   lastBatteryRead = now;
 
   uint32_t totalMilliVolts = 0;
+  uint8_t validSamples = 0;
   for (uint8_t i = 0; i < 10; ++i) {
-    totalMilliVolts += analogReadMilliVolts(BATTERY_ADC_PIN);
+    const uint32_t sampleMilliVolts = analogReadMilliVolts(BATTERY_ADC_PIN);
+    // A zero/invalid ADC result must not be interpreted as a depleted battery.
+    if (sampleMilliVolts > 0 && sampleMilliVolts <= 3300) {
+      totalMilliVolts += sampleMilliVolts;
+      ++validSamples;
+    }
   }
 
-  const float adcVoltage = (totalMilliVolts / 10.0f) / 1000.0f;
+  // Require a stable set of ADC samples before enabling voltage-based warnings.
+  // This prevents an unconfigured/disconnected ADC input from falsely latching
+  // the low-battery LED/audio indication during startup.
+  if (validSamples < 8) {
+    batteryVoltageValid = false;
+    return;
+  }
+
+  const float adcVoltage = (totalMilliVolts / (float)validSamples) / 1000.0f;
+  if (adcVoltage < 0.05f || adcVoltage > 3.30f) {
+    batteryVoltageValid = false;
+    return;
+  }
+
   batteryVoltage = adcVoltage * BATTERY_DIVIDER_RATIO;
   batteryVoltageValid = true;
   serviceBatteryWarnings();
@@ -2615,7 +2634,6 @@ void executeCommand(char cmd) {
 // 8. SETUP & LOOP
 // ============================================================================
 void setup() {
-  loadRobotHardwareConfiguration();
   Serial.begin(115200);
   delay(BOOT_POWER_SETTLE_MS);
 
@@ -2634,6 +2652,10 @@ void setup() {
   pinMode(OBSTACLE_TRIG_PIN, OUTPUT);
   digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   pinMode(OBSTACLE_ECHO_PIN, INPUT);
+  pinMode(BATTERY_ADC_PIN, INPUT);
+
+  // Load persisted calibration only after Serial and safe output states are ready.
+  loadRobotHardwareConfiguration();
 
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
