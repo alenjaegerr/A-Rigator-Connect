@@ -56,7 +56,7 @@ public sealed class BottomNavigationBar : ContentView
         Content = new Border
         {
             BackgroundColor = Colors.White,
-            Stroke = Color.FromArgb("#DCE6DF"),
+            Stroke = new SolidColorBrush(Color.FromArgb("#DCE6DF")),
             StrokeThickness = 1,
             Padding = 0,
             Content = grid
@@ -98,9 +98,9 @@ public sealed class BottomNavigationBar : ContentView
         {
             Padding = new Thickness(2, 4),
             StrokeThickness = 0,
-            Stroke = Colors.Transparent,
+            Stroke = new SolidColorBrush(Colors.Transparent),
             BackgroundColor = Colors.Transparent,
-            StrokeShape = new RoundRectangle { CornerRadius = 12 },
+            StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(12) },
             Content = stack
         };
 
