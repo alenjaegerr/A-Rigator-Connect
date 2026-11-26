@@ -37,6 +37,12 @@
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
                     <Entry Text="{Binding DisplayName, Mode=TwoWay}" Placeholder="Your name"
                            TextColor="{AppThemeBinding Light=#17231C, Dark=#E7F0E9}" />
+                    <Label Text="Sign in with Google to back up your profile picture and restore it when you reinstall A-Rigator Connect. Without sign-in, it stays only on this device."
+                           IsVisible="{Binding IsGuest}" FontSize="12"
+                           TextColor="{AppThemeBinding Light=#8A641C, Dark=#E8C77A}" />
+                    <Label Text="Your profile picture is backed up to your account."
+                           IsVisible="{Binding IsAuthenticated}" FontSize="12"
+                           TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
                     <Label Text="Email address" FontSize="12"
                            TextColor="{AppThemeBinding Light=#718078, Dark=#91A196}" />
                     <Label Text="{Binding EmailAddress}" FontSize="14"
