@@ -15,26 +15,17 @@ public sealed class LoadingPage : ContentPage
     public LoadingPage(Action onComplete)
     {
         _onComplete = onComplete;
-        BackgroundColor = Color.FromArgb("#F3F6F3");
+        BackgroundColor = Colors.White;
         Shell.SetNavBarIsVisible(this, false);
 
-        var brand = new Label
+        var brandLogo = new Image
         {
-            Text = "A-RIGATOR",
-            FontSize = 31,
-            FontAttributes = FontAttributes.Bold,
-            CharacterSpacing = 2,
-            TextColor = Color.FromArgb("#176B3A"),
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        var subtitle = new Label
-        {
-            Text = "CONNECT",
-            FontSize = 13,
-            FontAttributes = FontAttributes.Bold,
-            CharacterSpacing = 6,
-            TextColor = Color.FromArgb("#4F6958"),
-            HorizontalTextAlignment = TextAlignment.Center
+            Source = ImageSource.FromFile("applogo.svg"),
+            Aspect = Aspect.AspectFit,
+            WidthRequest = 270,
+            HeightRequest = 256,
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center
         };
         var intro = new Label
         {
@@ -46,14 +37,14 @@ public sealed class LoadingPage : ContentPage
         };
         _statusText = new Label
         {
-            Text = "Preparing A-Rigator Connect",
+            Text = "Preparing your robot companion",
             FontSize = 13,
             TextColor = Color.FromArgb("#5D7063"),
             HorizontalTextAlignment = TextAlignment.Center
         };
         _alligator = new Image
         {
-            Source = "alligator_runner.svg",
+            Source = "gator_working.svg",
             Aspect = Aspect.AspectFit,
             WidthRequest = 58,
             HeightRequest = 34,
@@ -92,9 +83,8 @@ public sealed class LoadingPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill,
             Children =
             {
-                new Label { Text = "〰", FontSize = 34, TextColor = Color.FromArgb("#29A653"), HorizontalTextAlignment = TextAlignment.Center },
-                brand, subtitle,
-                new BoxView { HeightRequest = 26, Opacity = 0 },
+                brandLogo,
+                new BoxView { HeightRequest = 12, Opacity = 0 },
                 intro, _statusText,
                 _track, activity,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
@@ -104,20 +94,7 @@ public sealed class LoadingPage : ContentPage
         Content = new Grid
         {
             Padding = new Thickness(8),
-            Children =
-            {
-                new Border
-                {
-                    Stroke = Color.FromArgb("#DDE8DF"),
-                    StrokeThickness = 1,
-                    BackgroundColor = Colors.White,
-                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = new CornerRadius(28) },
-                    Padding = new Thickness(8),
-                    Content = content,
-                    VerticalOptions = LayoutOptions.Center,
-                    HorizontalOptions = LayoutOptions.Fill
-                }
-            }
+            Children = { content }
         };
     }
 
