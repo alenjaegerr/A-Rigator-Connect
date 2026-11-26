@@ -12,6 +12,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
     private readonly IReadOnlyList<IRobotTransport> _transports;
     private IRobotTransport? _activeTransport;
     private ConnectionState _connectionState = ConnectionState.Disconnected;
+    private bool _hasConnectedSuccessfully;
     private IRemoteRobotHealth? RemoteHealth => _transports.OfType<IRemoteRobotHealth>().FirstOrDefault();
 
     private RobotConnectionMode _preferredConnectionMode =
@@ -53,6 +54,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
             _preferredConnectionMode = value;
             Preferences.Set("arigator_preferred_connection_mode", value.ToString());
             _activeTransport = null;
+            _hasConnectedSuccessfully = false;
             SetConnectionState(ConnectionState.Disconnected);
         }
     }
@@ -180,7 +182,9 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
 
     private async Task<IRobotTransport> ConnectPreferredTransportAsync(CancellationToken cancellationToken)
     {
-        SetConnectionState(ConnectionState.Connecting);
+        SetConnectionState(_hasConnectedSuccessfully
+            ? ConnectionState.Reconnecting
+            : ConnectionState.Connecting);
         var transport = GetPreferredTransport();
 
         try
@@ -197,6 +201,7 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
                 await transport.ConnectAsync(cancellationToken);
 
             _activeTransport = transport;
+            _hasConnectedSuccessfully = true;
             SetConnectionState(ConnectionState.Connected);
             return transport;
         }
@@ -208,7 +213,11 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
         catch
         {
             _activeTransport = null;
-            SetConnectionState(ConnectionState.Disconnected);
+            // Keep the session in a recoverable state. DashboardViewModel's
+            // monitor retries the preferred transport until it reconnects.
+            SetConnectionState(_hasConnectedSuccessfully
+                ? ConnectionState.Reconnecting
+                : ConnectionState.Disconnected);
             throw;
         }
     }
