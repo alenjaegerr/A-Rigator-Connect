@@ -156,6 +156,90 @@ public partial class SettingsPage : ContentPage
         }
     }
 
+    private async void OnLoadHardwareConfigClicked(object sender, EventArgs e)
+    {
+        HardwareConfigStatusLabel.Text = "Reading calibration from A-Rigator…";
+        try
+        {
+            var status = await _robotCommunicationService.GetStatusAsync();
+            if (status is null ||
+                status.SteeringLeftAngle is null || status.SteeringCenterAngle is null || status.SteeringRightAngle is null ||
+                status.NozzleMinimumAngle is null || status.NozzleCenterAngle is null || status.NozzleMaximumAngle is null ||
+                status.NozzleLeftSectorMaximumAngle is null || status.NozzleRightSectorMinimumAngle is null)
+                throw new InvalidOperationException("The connected firmware does not report hardware calibration. Update the ESP32 firmware first.");
+
+            SteeringLeftEntry.Text = status.SteeringLeftAngle.Value.ToString();
+            SteeringCenterEntry.Text = status.SteeringCenterAngle.Value.ToString();
+            SteeringRightEntry.Text = status.SteeringRightAngle.Value.ToString();
+            NozzleMinimumEntry.Text = status.NozzleMinimumAngle.Value.ToString();
+            NozzleCenterEntry.Text = status.NozzleCenterAngle.Value.ToString();
+            NozzleMaximumEntry.Text = status.NozzleMaximumAngle.Value.ToString();
+            NozzleLeftSectorEntry.Text = status.NozzleLeftSectorMaximumAngle.Value.ToString();
+            NozzleRightSectorEntry.Text = status.NozzleRightSectorMinimumAngle.Value.ToString();
+            HardwareConfigStatusLabel.Text = "Loaded the robot's current saved calibration.";
+        }
+        catch (Exception ex)
+        {
+            HardwareConfigStatusLabel.Text = $"Couldn't load robot calibration: {ex.Message}";
+        }
+    }
+
+    private async void OnSaveHardwareConfigClicked(object sender, EventArgs e)
+    {
+        if (!TryReadAngle(SteeringLeftEntry, out var steerLeft) ||
+            !TryReadAngle(SteeringCenterEntry, out var steerCenter) ||
+            !TryReadAngle(SteeringRightEntry, out var steerRight) ||
+            !TryReadAngle(NozzleMinimumEntry, out var nozzleMin) ||
+            !TryReadAngle(NozzleCenterEntry, out var nozzleCenter) ||
+            !TryReadAngle(NozzleMaximumEntry, out var nozzleMax) ||
+            !TryReadAngle(NozzleLeftSectorEntry, out var nozzleLeft) ||
+            !TryReadAngle(NozzleRightSectorEntry, out var nozzleRight))
+        {
+            await DisplayAlert("Invalid calibration", "Enter whole-number servo angles from 0 to 180.", "OK");
+            return;
+        }
+
+        var configuration = new RobotHardwareConfiguration
+        {
+            SteeringLeftAngle = steerLeft,
+            SteeringCenterAngle = steerCenter,
+            SteeringRightAngle = steerRight,
+            NozzleMinimumAngle = nozzleMin,
+            NozzleCenterAngle = nozzleCenter,
+            NozzleMaximumAngle = nozzleMax,
+            NozzleLeftSectorMaximumAngle = nozzleLeft,
+            NozzleRightSectorMinimumAngle = nozzleRight
+        };
+
+        try
+        {
+            configuration.Validate();
+            var confirmed = await DisplayAlert(
+                "Apply robot calibration?",
+                "The ESP32 will validate and save these values. Servo movement may be sharp; keep the wheels lifted, keep the pump off, and check linkage clearance before driving.",
+                "Apply",
+                "Cancel");
+            if (!confirmed) return;
+
+            SaveHardwareConfigButton.IsEnabled = false;
+            SaveHardwareConfigButton.Text = "SAVING…";
+            await _robotCommunicationService.ApplyHardwareConfigurationAsync(configuration);
+            HardwareConfigStatusLabel.Text = "Robot acknowledged the calibration update. Reload to verify the saved values.";
+        }
+        catch (Exception ex)
+        {
+            HardwareConfigStatusLabel.Text = $"Calibration was not applied: {ex.Message}";
+        }
+        finally
+        {
+            SaveHardwareConfigButton.IsEnabled = true;
+            SaveHardwareConfigButton.Text = "SAVE TO ROBOT";
+        }
+    }
+
+    private static bool TryReadAngle(Entry entry, out int value) =>
+        int.TryParse(entry.Text, out value) && value is >= 0 and <= 180;
+
     private async void OnCheckFirmwareSourceClicked(object sender, EventArgs e)
     {
         CheckFirmwareSourceButton.IsEnabled = false;
