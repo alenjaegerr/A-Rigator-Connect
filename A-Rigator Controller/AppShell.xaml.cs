@@ -46,7 +46,7 @@ public partial class AppShell : Shell
         {
             Title = "Home",
             Route = "home-content",
-            Icon = ImageSource.FromFile("nav_home.png"),
+            Icon = ImageSource.FromFile("nav_home.svg"),
             Content = dashboardPage
         });
 
@@ -55,7 +55,7 @@ public partial class AppShell : Shell
         {
             Title = "Control",
             Route = "manual-content",
-            Icon = ImageSource.FromFile("nav_control.png"),
+            Icon = ImageSource.FromFile("nav_control.svg"),
             Content = controlPage
         });
 
@@ -64,7 +64,7 @@ public partial class AppShell : Shell
         {
             Title = "Automate",
             Route = "autonomous-content",
-            Icon = ImageSource.FromFile("nav_auto.png"),
+            Icon = ImageSource.FromFile("nav_auto.svg"),
             Content = autonomousHubPage
         });
 
@@ -73,7 +73,7 @@ public partial class AppShell : Shell
         {
             Title = "Activity",
             Route = "activity-content",
-            Icon = ImageSource.FromFile("nav_telemetry.png"),
+            Icon = ImageSource.FromFile("nav_telemetry.svg"),
             Content = telemetryPage
         });
 
@@ -82,7 +82,7 @@ public partial class AppShell : Shell
         {
             Title = "Profile",
             Route = "profile-content",
-            Icon = ImageSource.FromFile("nav_account.png"),
+            Icon = ImageSource.FromFile("nav_account.svg"),
             Content = accountPage
         };
         accountTab.Items.Add(profileShellContent);
@@ -93,7 +93,7 @@ public partial class AppShell : Shell
             {
                 profileShellContent.Icon = !string.IsNullOrWhiteSpace(path) && File.Exists(path)
                     ? ImageSource.FromFile(path)
-                    : ImageSource.FromFile("nav_account.png");
+                    : ImageSource.FromFile("nav_account.svg");
             }
             RefreshProfileTabAvatar(Preferences.Default.Get<string?>("arigator.account.avatar", null));
             accountViewModel.AvatarChanged += (_, path) => MainThread.BeginInvokeOnMainThread(() => RefreshProfileTabAvatar(path));
