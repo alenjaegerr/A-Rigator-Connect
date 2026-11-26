@@ -119,7 +119,9 @@ public sealed class BottomNavigationBar : ContentView
         };
         border.GestureRecognizers.Add(tap);
 
-        grid.Add(border, column, 0);
+        grid.Children.Add(border);
+        Grid.SetColumn(border, column);
+        Grid.SetRow(border, 0);
         _tabBorders[title] = border;
         _tabLabels[title] = label;
     }
