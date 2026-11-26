@@ -135,6 +135,7 @@
                         <VerticalStackLayout Spacing="3">
                             <Label Text="WATER RESERVOIR" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                             <Label Text="How much water is left?" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
+                            <Label Text="Your gator is keeping an eye on the tank." FontSize="11" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                         </VerticalStackLayout>
                         <Border Grid.Column="1" Padding="9,6" BackgroundColor="{AppThemeBinding Light=#FFF0D3, Dark=#3B3020}" StrokeThickness="0" StrokeShape="RoundRectangle 10" VerticalOptions="Center">
                             <Label Text="SENSOR PENDING" FontSize="9" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
@@ -188,7 +189,7 @@
                                 </VerticalStackLayout>
                                 <Label Grid.Column="2" Text="{Binding BatteryStatus}" FontSize="25" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" VerticalOptions="Center" />
                             </Grid>
-                            <ProgressBar Progress="{Binding BatteryProgress}" ProgressColor="#39A96B" BackgroundColor="{AppThemeBinding Light=#DCE6DF, Dark=#405447}" HeightRequest="10" />
+                            <ProgressBar Progress="{Binding BatteryProgress}" ProgressColor="#FFD34E" BackgroundColor="{AppThemeBinding Light=#DCE6DF, Dark=#405447}" HeightRequest="10" />
                             <Grid ColumnDefinitions="*,Auto">
                                 <Label Text="{Binding BatteryVoltageStatus}" FontSize="14" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                                 <Label Grid.Column="1" Text="LIVE VOLTAGE" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" VerticalOptions="Center" />
@@ -203,7 +204,7 @@
                 <Label Text="{Binding ControlAccessMessage}" FontSize="13" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#72510D, Dark=#F4D58D}" />
             </Border>
 
-            <Label Text="A-Rigator Connect · Your little robot companion" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+            <Label Text="A-Rigator Connect · Growing smarter, one watering at a time" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
         </VerticalStackLayout>
       </ScrollView>
       <views:ConnectionOverlay IsBusy="{Binding IsConnecting}" />
