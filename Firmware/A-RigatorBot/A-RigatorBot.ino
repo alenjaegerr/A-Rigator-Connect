@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <ArduinoJson.h>
 #include <time.h>
+#include <sys/time.h>
 #include <Preferences.h>
 
 // Firmware version reported through BLE telemetry and MQTT.
@@ -1245,7 +1246,7 @@ void playAudioTrack(uint16_t trackNumber) {
   if (!isWarning && (int32_t)(warningAudioPriorityUntil - now) > 0) return;
   if (isWarning) warningAudioPriorityUntil = now + WARNING_AUDIO_PRIORITY_MS;
 
-  audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
+  audioPlayer.play(trackNumber); // Root SD-card file: 0001.mp3, 0002.mp3, ...
 }
 
 void serviceObstacleAudioAlert(float distanceCm) {
@@ -1872,7 +1873,7 @@ void serviceMqttCommands() {
   const int version = document["version"] | 0;
   const String commandId = document["commandId"] | "";
   const String command = document["command"] | "";
-  const uint32_t issuedAt = document["issuedAt"] | 0;
+  const uint64_t issuedAtMs = document["issuedAtMs"] | 0ULL;
   const uint32_t ttlMs = document["ttlMs"] | 0;
 
   if (version != 1 || commandId.length() < 8 || commandId.length() > 64 || command.length() == 0) {
@@ -1894,8 +1895,12 @@ void serviceMqttCommands() {
       command == "terrain_stop" || command == "irrigation_stop" ||
       command == "nozzle_sweep_stop" || command == "manual_terrain_stop";
   const uint32_t maxTtl = isStop ? MQTT_MAX_STOP_TTL_MS : MQTT_MAX_MOVEMENT_TTL_MS;
-  if (issuedAt == 0 || ttlMs == 0 || ttlMs > maxTtl ||
-      nowEpoch < issuedAt || (uint64_t)(nowEpoch - issuedAt) * 1000ULL > ttlMs) {
+  struct timeval commandTime;
+  gettimeofday(&commandTime, nullptr);
+  const uint64_t nowEpochMs = (uint64_t)commandTime.tv_sec * 1000ULL +
+      (uint64_t)commandTime.tv_usec / 1000ULL;
+  if (issuedAtMs == 0 || ttlMs == 0 || ttlMs > maxTtl ||
+      nowEpochMs < issuedAtMs || nowEpochMs - issuedAtMs > ttlMs) {
     rememberMqttCommand(commandId);
     publishMqttCommandAck(commandId, "expired", "COMMAND_EXPIRED", "Command has expired or has an invalid lifetime");
     return;
@@ -2461,8 +2466,8 @@ void executeSerialLine(String line) {
       } else if (track < 1 || track > 99) {
         Serial.println(">> [AUDIO] Track must be 1-99 (root file: 0001.mp3, etc.).");
       } else {
-        audioPlayer.playMp3Folder(track);
-        Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\n", track);
+        audioPlayer.play(track);
+        Serial.printf(">> [AUDIO] Play request sent for root file %04d.mp3.\n", track);
       }
     } else if (action == "VOL") {
       const int requestedVolume = value.toInt();
