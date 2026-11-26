@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Security.Authentication;
 using A_Rigator_Controller.Models;
 using MQTTnet;
 using MQTTnet.Client;
@@ -97,9 +96,11 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 .WithCredentials(_options.Username, _options.Password)
                 .WithTlsOptions(tls => tls
                     .UseTls()
-                    // Let the platform negotiate a mutually supported TLS version.
-                    // Keep the broker hostname for SNI and normal certificate validation.
-                    .WithTargetHost(_options.BrokerHost))
+                    // Keep SNI and hostname validation bound to the provisioned broker host.
+                    // Mozilla roots are consulted only if platform validation reports
+                    // a chain-only error; hostname mismatches are always rejected.
+                    .WithTargetHost(_options.BrokerHost)
+                    .WithCertificateValidationHandler(MozillaRootCertificateValidator.Validate))
                 .WithCleanSession()
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
                 .Build();
