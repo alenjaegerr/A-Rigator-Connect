@@ -7,8 +7,8 @@
              x:DataType="viewmodels:DashboardViewModel"
              Title="Home"
              BackgroundColor="{AppThemeBinding Light=#F1F6F2, Dark=#101A14}">
-    <Grid>
-      <ScrollView>
+    <Grid RowDefinitions="*,Auto">
+      <ScrollView Grid.Row="0">
         <VerticalStackLayout Padding="20" Spacing="18">
             <VerticalStackLayout Spacing="3">
                 <Label Text="A-RIGATOR CONNECT" FontSize="11" FontAttributes="Bold" CharacterSpacing="1.1" TextColor="{AppThemeBinding Light=#176B45, Dark=#A6E51B}" />
@@ -202,6 +202,7 @@
             <Label Text="A-Rigator Connect · Growing smarter, one watering at a time" FontSize="12" HorizontalTextAlignment="Center" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
         </VerticalStackLayout>
       </ScrollView>
-      <views:ConnectionOverlay IsBusy="{Binding IsConnecting}" />
+      <views:ConnectionOverlay Grid.Row="0" IsBusy="{Binding IsConnecting}" />
+        <views:BottomNavigationBar Grid.Row="1" SelectedTab="Home" />
     </Grid>
 </ContentPage>
