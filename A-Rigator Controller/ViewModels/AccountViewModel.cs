@@ -232,18 +232,24 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     {
         if (!IsAuthenticated) return;
         var cloudUrl = Preferences.Default.Get<string?>("arigator.account.avatar.cloud", null);
-        var sourceUrl = !string.IsNullOrWhiteSpace(cloudUrl) ? cloudUrl : _account.AvatarUrl;
-        if (string.IsNullOrWhiteSpace(sourceUrl)) return;
-        try
+        var storageUrl = !string.IsNullOrWhiteSpace(_account.GoogleUserId)
+            ? $"{Preferences.Default.Get<string?>("supabase_url", "https://pcgbyowcqpgtkfbdfwfb.supabase.co").TrimEnd('/')}/storage/v1/object/public/profile-avatars/{_account.GoogleUserId}/avatar"
+            : null;
+        foreach (var sourceUrl in new[] { cloudUrl, storageUrl, _account.AvatarUrl }.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct())
         {
-            var bytes = await AvatarHttpClient.GetByteArrayAsync(sourceUrl);
-            if (bytes.Length is 0 or > 5 * 1024 * 1024) return;
-            var path = Path.Combine(FileSystem.AppDataDirectory, "account-avatar-synced.jpg");
-            await File.WriteAllBytesAsync(path, bytes);
-            AvatarPath = path;
-            Preferences.Default.Set("arigator.account.avatar", path);
+            try
+            {
+                var bytes = await AvatarHttpClient.GetByteArrayAsync(sourceUrl!);
+                if (bytes.Length is 0 or > 5 * 1024 * 1024) continue;
+                var path = Path.Combine(FileSystem.AppDataDirectory, "account-avatar-synced.img");
+                await File.WriteAllBytesAsync(path, bytes);
+                AvatarPath = path;
+                Preferences.Default.Set("arigator.account.avatar", path);
+                if (sourceUrl == storageUrl) Preferences.Default.Set("arigator.account.avatar.cloud", sourceUrl);
+                return;
+            }
+            catch { /* Try the next available avatar source. */ }
         }
-        catch { /* Keep the previously cached avatar when the network is unavailable. */ }
     }
 
     private async Task SyncProfilesAsync()
