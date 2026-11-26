@@ -5,23 +5,23 @@
              x:Class="A_Rigator_Controller.Views.SettingsPage"
              x:DataType="viewmodels:DashboardViewModel"
              Title=""
-             BackgroundColor="{AppThemeBinding Light=#F3F6F3, Dark=#121814}">
+             BackgroundColor="{AppThemeBinding Light={StaticResource CanvasLight}, Dark={StaticResource CanvasDark}}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="16">
             <Button Text="‹  BACK TO PROFILE" Clicked="OnBackToProfileClicked"
                     HorizontalOptions="Start" MinimumHeightRequest="40"
                     BackgroundColor="Transparent" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
             <VerticalStackLayout Spacing="4">
-                <Label Text="Settings" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#176B45, Dark=#8ED6AC}" />
-                <Label Text="Manage app appearance, robot connectivity, and system diagnostics." FontSize="14" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                <Label Text="Settings" FontSize="30" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimaryLight}, Dark={StaticResource TextPrimaryDark}}" />
+                <Label Text="Make A-Rigator feel right for you. Manage appearance, connections and robot care." FontSize="14" TextColor="{AppThemeBinding Light={StaticResource TextSecondaryLight}, Dark={StaticResource TextSecondaryDark}}" />
             </VerticalStackLayout>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="APPEARANCE" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                         <VerticalStackLayout Spacing="4" VerticalOptions="Center">
-                            <Label Text="Dark mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
-                            <Label Text="Use a darker color scheme throughout supported app screens." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                            <Label Text="Dark mode" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource TextPrimaryLight}, Dark={StaticResource TextPrimaryDark}}" />
+                            <Label Text="Give the app a darker, easier-on-the-eyes look." FontSize="13" TextColor="{AppThemeBinding Light={StaticResource TextSecondaryLight}, Dark={StaticResource TextSecondaryDark}}" />
                         </VerticalStackLayout>
                         <Switch x:Name="DarkModeSwitch" Grid.Column="1" VerticalOptions="Center" Toggled="OnDarkModeToggled" />
                     </Grid>
