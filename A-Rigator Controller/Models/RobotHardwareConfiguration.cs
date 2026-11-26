@@ -6,9 +6,9 @@ public sealed class RobotHardwareConfiguration
     public int SteeringLeftAngle { get; set; } = 15;
     public int SteeringCenterAngle { get; set; } = 90;
     public int SteeringRightAngle { get; set; } = 165;
-    public int NozzleMinimumAngle { get; set; } = 30;
+    public int NozzleMinimumAngle { get; set; } = 15;
     public int NozzleCenterAngle { get; set; } = 90;
-    public int NozzleMaximumAngle { get; set; } = 150;
+    public int NozzleMaximumAngle { get; set; } = 165;
     public int NozzleLeftSectorMaximumAngle { get; set; } = 70;
     public int NozzleRightSectorMinimumAngle { get; set; } = 110;
 
