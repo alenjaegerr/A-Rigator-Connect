@@ -128,6 +128,14 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
         await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
     }
 
+    public async Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        configuration.Validate();
+        var transport = await GetActiveTransportAsync(cancellationToken);
+        await transport.ApplyHardwareConfigurationAsync(configuration, cancellationToken);
+    }
+
     public async Task StartManualIrrigationAsync(CancellationToken cancellationToken = default)
     {
         var transport = await GetActiveTransportAsync(cancellationToken);
