@@ -1061,9 +1061,11 @@ bool performFactoryReset() {
 
   const bool wifiCleared = wifiCredentialStore.clear();
   const bool modeCleared = connectionModeStore.clear();
-  if (!wifiCleared || !modeCleared) {
-    Serial.printf(">> [FACTORY RESET] FAILED (Wi-Fi store: %s, mode store: %s). Do not power off; retry after checking storage.\n",
-      wifiCleared ? "OK" : "FAILED", modeCleared ? "OK" : "FAILED");
+  const bool hardwareConfigCleared = robotHardwarePreferences.clear();
+  if (!wifiCleared || !modeCleared || !hardwareConfigCleared) {
+    Serial.printf(">> [FACTORY RESET] FAILED (Wi-Fi store: %s, mode store: %s, hardware config: %s). Do not power off; retry after checking storage.\n",
+      wifiCleared ? "OK" : "FAILED", modeCleared ? "OK" : "FAILED",
+      hardwareConfigCleared ? "OK" : "FAILED");
     return false;
   }
 
@@ -1888,7 +1890,8 @@ void serviceMqttCommands() {
       command == "pathway_start" || command == "pathway_stop" ||
       command == "terrain_start" || command == "terrain_stop") {
     manualControlViaMqtt = false;
-  } else if (command != "heartbeat" && command != "irrigation_profile") {
+  } else if (command != "heartbeat" && command != "irrigation_profile" &&
+             command != "robot_config") {
     manualControlViaMqtt = true;
   }
 
@@ -1913,7 +1916,30 @@ void serviceMqttCommands() {
   bool supported = true;
   bleCommandRejected = false;
   bleCommandExecution = true;
-  if (command == "irrigation_profile") {
+  if (command == "robot_config") {
+    JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
+    const int sl = payload["steeringLeft"] | -1;
+    const int sc = payload["steeringCenter"] | -1;
+    const int sr = payload["steeringRight"] | -1;
+    const int nmin = payload["nozzleMinimum"] | -1;
+    const int nc = payload["nozzleCenter"] | -1;
+    const int nmax = payload["nozzleMaximum"] | -1;
+    const int nl = payload["nozzleLeftSectorMaximum"] | -1;
+    const int nr = payload["nozzleRightSectorMinimum"] | -1;
+    if (currentMode == MODE_AUTONOMOUS || irrigationSequenceActive || nozzleSweepActive ||
+        !isRobotHardwareConfigurationValid(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
+      bleCommandExecution = false;
+      publishMqttCommandAck(commandId, "rejected", "INVALID_ROBOT_CONFIG",
+          "Configuration is invalid or a motion/irrigation task is active");
+      return;
+    }
+    if (!saveRobotHardwareConfiguration(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
+      bleCommandExecution = false;
+      publishMqttCommandAck(commandId, "rejected", "CONFIG_SAVE_FAILED",
+          "Could not persist robot configuration");
+      return;
+    }
+  } else if (command == "irrigation_profile") {
     JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
     const int left = payload["left"] | -1;
     const int back = payload["back"] | -1;
