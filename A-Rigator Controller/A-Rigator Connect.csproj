@@ -53,7 +53,11 @@
 		<MauiImage Include="Resources\Branding\*.svg" Exclude="Resources\Branding\appicon.svg" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 		
-		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+		<!-- Embedded Mozilla NSS CA bundle used by the MQTT TLS validator. -->
+        <EmbeddedResource Include="Resources\\Raw\\cacert.pem"
+                          LogicalName="A_Rigator_Controller.Resources.Raw.cacert.pem" />
+
+        <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
