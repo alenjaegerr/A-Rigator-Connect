@@ -6,7 +6,26 @@
 
     <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
+    <!-- A-Rigator brand palette -->
     <Color x:Key="Primary">#176B45</Color>
+    <Color x:Key="GatorLime">#A6E51B</Color>
+    <Color x:Key="GatorGreen">#176B45</Color>
+    <Color x:Key="GatorDeep">#123D2B</Color>
+    <Color x:Key="GatorForest">#164C35</Color>
+    <Color x:Key="WaterBlue">#25A9E8</Color>
+    <Color x:Key="WaterLight">#DDF4FC</Color>
+    <Color x:Key="EnergyYellow">#FFD34E</Color>
+    <Color x:Key="WarmCream">#F4F7F1</Color>
+    <Color x:Key="SurfaceLight">#FFFFFF</Color>
+    <Color x:Key="SurfaceDark">#1C2B23</Color>
+    <Color x:Key="CanvasLight">#F1F6F2</Color>
+    <Color x:Key="CanvasDark">#101A14</Color>
+    <Color x:Key="TextPrimaryLight">#172A20</Color>
+    <Color x:Key="TextPrimaryDark">#EAF4EC</Color>
+    <Color x:Key="TextSecondaryLight">#637269</Color>
+    <Color x:Key="TextSecondaryDark">#AABBB0</Color>
+    <Color x:Key="OutlineLight">#DCE8DF</Color>
+    <Color x:Key="OutlineDark">#34483B</Color>
     <Color x:Key="PrimaryDark">#0F4D33</Color>
     <Color x:Key="PrimaryDarkText">White</Color>
     <Color x:Key="Secondary">#D8E9DF</Color>
@@ -28,6 +47,9 @@
     <Color x:Key="Gray900">#212121</Color>
     <Color x:Key="Gray950">#141414</Color>
 
+    <SolidColorBrush x:Key="GatorLimeBrush" Color="{StaticResource GatorLime}"/>
+    <SolidColorBrush x:Key="WaterBlueBrush" Color="{StaticResource WaterBlue}"/>
+    <SolidColorBrush x:Key="EnergyYellowBrush" Color="{StaticResource EnergyYellow}"/>
     <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
     <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
     <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
