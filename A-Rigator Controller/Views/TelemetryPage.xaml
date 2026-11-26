@@ -10,6 +10,7 @@
     <Grid>
       <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
+            <Image Source="gator_curious.svg" HeightRequest="104" HorizontalOptions="End" Aspect="AspectFit" />
             <VerticalStackLayout Spacing="4">
                 <Label Text="Robot Telemetry" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Live values reported by the robot firmware." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
