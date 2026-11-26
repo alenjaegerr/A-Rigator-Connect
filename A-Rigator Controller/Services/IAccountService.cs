@@ -12,6 +12,10 @@ public interface IAccountService
 
     string? Email { get; }
 
+    string? AvatarUrl { get; }
+
+    Task<string> UploadProfileAvatarAsync(Stream image, string contentType, CancellationToken cancellationToken = default);
+
     string? AccessToken { get; }
 
     string? RefreshToken { get; }
