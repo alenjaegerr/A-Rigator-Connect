@@ -10,21 +10,34 @@
     <Grid>
       <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                <VerticalStackLayout Spacing="3">
-                    <Label Text="A-RIGATOR CONNECT" FontSize="11" FontAttributes="Bold" CharacterSpacing="1.1" TextColor="{AppThemeBinding Light=#176B45, Dark=#A6E51B}" />
-                    <Label Text="{Binding Greeting}" FontSize="29" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#172A20, Dark=#EAF4EC}" />
-                    <Label Text="Your little irrigation companion." FontSize="14" TextColor="{AppThemeBinding Light=#637269, Dark=#AABBB0}" />
-                </VerticalStackLayout>
-                <Image Grid.Column="1" Source="gator_robot.svg" WidthRequest="132" HeightRequest="104" Aspect="AspectFit" VerticalOptions="Center" />
-            </Grid>
+            <VerticalStackLayout Spacing="3">
+                <Label Text="A-RIGATOR CONNECT" FontSize="11" FontAttributes="Bold" CharacterSpacing="1.1" TextColor="{AppThemeBinding Light=#176B45, Dark=#A6E51B}" />
+                <Label Text="{Binding Greeting}" FontSize="29" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#172A20, Dark=#EAF4EC}" />
+                <Label Text="Your little irrigation companion." FontSize="14" TextColor="{AppThemeBinding Light=#637269, Dark=#AABBB0}" />
+            </VerticalStackLayout>
+
+            <!-- Mascot status header: live water and battery readings flank the character. -->
+            <Border Padding="12,14" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#1C3327}" Stroke="{AppThemeBinding Light=#2D7953, Dark=#385B43}" StrokeThickness="1" StrokeShape="RoundRectangle 24">
+                <Grid ColumnDefinitions="*,1.15*,*" ColumnSpacing="6" VerticalOptions="Center">
+                    <VerticalStackLayout Grid.Column="0" Spacing="5" VerticalOptions="Center" HorizontalOptions="Center">
+                        <Label Text="💧" FontSize="25" HorizontalTextAlignment="Center" />
+                        <Label Text="WATER" FontSize="10" FontAttributes="Bold" CharacterSpacing="0.8" TextColor="#BDEBFA" HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding WaterStatus}" FontSize="12" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center" />
+                        <Label Text="Sensor pending" FontSize="9" TextColor="#B8D7C3" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                    <Image Grid.Column="1" Source="{Binding MascotImage}" HeightRequest="126" Aspect="AspectFit" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <VerticalStackLayout Grid.Column="2" Spacing="5" VerticalOptions="Center" HorizontalOptions="Center">
+                        <Label Text="⚡" FontSize="25" HorizontalTextAlignment="Center" TextColor="#FFD34E" />
+                        <Label Text="POWER" FontSize="10" FontAttributes="Bold" CharacterSpacing="0.8" TextColor="#FFE39A" HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding BatteryStatus}" FontSize="12" FontAttributes="Bold" TextColor="White" HorizontalTextAlignment="Center" />
+                        <ProgressBar Progress="{Binding BatteryProgress}" ProgressColor="#FFD34E" BackgroundColor="#526A55" HeightRequest="7" WidthRequest="66" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
 
             <Border Padding="17" BackgroundColor="{AppThemeBinding Light=#173D2B, Dark=#23382B}" StrokeThickness="0" StrokeShape="RoundRectangle 22">
                 <VerticalStackLayout Spacing="10">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label Text="YOUR A-RIGATOR" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" TextColor="#C7E8D2" />
-                        <Image Grid.Column="1" Source="{Binding MascotImage}" WidthRequest="76" HeightRequest="76" Aspect="AspectFit" VerticalOptions="Center" />
-                    </Grid>
+                    <Label Text="ROBOT STATUS" FontSize="11" FontAttributes="Bold" CharacterSpacing="1" TextColor="#C7E8D2" />
                     <Grid ColumnDefinitions="*,Auto">
                         <VerticalStackLayout Spacing="3">
                             <Label Text="{Binding RobotStatus}" FontSize="30" FontAttributes="Bold" TextColor="White" />
