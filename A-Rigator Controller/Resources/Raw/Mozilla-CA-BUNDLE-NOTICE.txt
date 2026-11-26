@@ -1,0 +1,8 @@
+Mozilla CA root bundle
+
+Source: certifi 2026.10.23
+Upstream: https://github.com/certifi/python-certifi
+The PEM certificates are extracted from Mozilla's NSS root certificate store.
+License: Mozilla Public License 2.0 (MPL-2.0). See Mozilla-CA-LICENSE.txt.
+
+Update procedure: refresh cacert.pem from a reviewed certifi release, update the version here, review the upstream license and bundle changes, and ship it with an app update. Do not replace this bundle with a broker leaf/intermediate certificate.
