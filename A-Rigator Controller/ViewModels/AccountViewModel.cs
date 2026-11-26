@@ -231,6 +231,26 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     private async Task LoadAccountAvatarAsync()
     {
         if (!IsAuthenticated) return;
+        var localCustomAvatar = Preferences.Default.Get<bool>("arigator.account.avatar.custom", false);
+        if (localCustomAvatar && !string.IsNullOrWhiteSpace(AvatarPath) && File.Exists(AvatarPath))
+        {
+            try
+            {
+                await using var localUpload = File.OpenRead(AvatarPath);
+                var extension = Path.GetExtension(AvatarPath).ToLowerInvariant();
+                var contentType = extension switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
+                var backedUpUrl = await _account.UploadProfileAvatarAsync(localUpload, contentType);
+                Preferences.Default.Set("arigator.account.avatar.cloud", backedUpUrl);
+                SyncStatus = "Your profile picture is backed up to your Google-linked A-Rigator account.";
+                return;
+            }
+            catch (Exception ex)
+            {
+                SyncStatus = $"Your picture is still saved on this device. Cloud backup will retry later: {ex.Message}";
+                return;
+            }
+        }
+
         var cloudUrl = Preferences.Default.Get<string?>("arigator.account.avatar.cloud", null);
         var storageUrl = !string.IsNullOrWhiteSpace(_account.GoogleUserId)
             ? $"{Preferences.Default.Get<string?>("supabase_url", "https://pcgbyowcqpgtkfbdfwfb.supabase.co").TrimEnd('/')}/storage/v1/object/public/profile-avatars/{_account.GoogleUserId}/avatar"
