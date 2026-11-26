@@ -78,9 +78,15 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         try
         {
             var service = await _connectedDevice.GetServiceAsync(RobotBleProtocol.ServiceUuid, cancellationToken);
-            var characteristic = await service.GetCharacteristicAsync(RobotBleProtocol.TelemetryCharacteristicUuid, cancellationToken);
+            if (service is null)
+                throw new InvalidOperationException(
+                    "The connected A-Rigator does not expose the expected BLE robot service. Verify the ESP32 firmware BLE service UUID and reconnect.");
+
+            var characteristic = await service.GetCharacteristicAsync(
+                RobotBleProtocol.TelemetryCharacteristicUuid, cancellationToken);
             if (characteristic is null)
-                throw new InvalidOperationException("This firmware does not expose BLE robot telemetry. Update the ESP32 firmware.");
+                throw new InvalidOperationException(
+                    "The connected A-Rigator BLE service does not expose robot telemetry. Verify the ESP32 firmware telemetry characteristic UUID and reconnect.");
             var result = await characteristic.ReadAsync(cancellationToken);
             var json = Encoding.UTF8.GetString(result.data);
             var statusOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
