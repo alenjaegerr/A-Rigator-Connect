@@ -5,6 +5,25 @@
              x:Class="A_Rigator_Controller.App">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Keep shared brand tokens at application scope for reliable StaticResource lookup. -->
+            <Color x:Key="GatorLime">#A6E51B</Color>
+            <Color x:Key="GatorGreen">#176B45</Color>
+            <Color x:Key="GatorDeep">#123D2B</Color>
+            <Color x:Key="GatorForest">#164C35</Color>
+            <Color x:Key="WaterBlue">#25A9E8</Color>
+            <Color x:Key="WaterLight">#DDF4FC</Color>
+            <Color x:Key="EnergyYellow">#FFD34E</Color>
+            <Color x:Key="WarmCream">#F4F7F1</Color>
+            <Color x:Key="SurfaceLight">#FFFFFF</Color>
+            <Color x:Key="SurfaceDark">#1C2B23</Color>
+            <Color x:Key="CanvasLight">#F1F6F2</Color>
+            <Color x:Key="CanvasDark">#101A14</Color>
+            <Color x:Key="TextPrimaryLight">#172A20</Color>
+            <Color x:Key="TextPrimaryDark">#EAF4EC</Color>
+            <Color x:Key="TextSecondaryLight">#637269</Color>
+            <Color x:Key="TextSecondaryDark">#AABBB0</Color>
+            <Color x:Key="OutlineLight">#DCE8DF</Color>
+            <Color x:Key="OutlineDark">#34483B</Color>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
