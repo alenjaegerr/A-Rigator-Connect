@@ -3,7 +3,6 @@ using A_Rigator_Controller.Services;
 using A_Rigator_Controller.ViewModels;
 using A_Rigator_Controller.Views;
 using Microsoft.Maui.Storage;
-using A_Rigator_Controller.ViewModels;
 
 namespace A_Rigator_Controller;
 
