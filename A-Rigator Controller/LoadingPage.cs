@@ -105,38 +105,47 @@ public sealed class LoadingPage : ContentPage
             return;
 
         _started = true;
-        await WaitForTrackLayoutAsync();
-
-        if (_isLeaving)
-            return;
-
-        // Keep the runner moving in a visible zigzag while the app finishes starting.
-        var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
-        if (travelDistance > 1)
+        try
         {
-            _alligator.TranslationX = 0;
-            _alligator.TranslationY = 0;
+            await WaitForTrackLayoutAsync();
+            if (_isLeaving)
+                return;
 
-            for (var pass = 0; pass < 3 && !_isLeaving; pass++)
+            // Keep the runner moving while the app finishes starting.
+            var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
+            if (travelDistance > 1)
             {
-                await _alligator.TranslateTo(travelDistance, -7, 420, Easing.CubicInOut);
-                if (_isLeaving) return;
-                await _alligator.TranslateTo(0, 7, 420, Easing.CubicInOut);
-                if (_isLeaving) return;
+                _alligator.TranslationX = 0;
+                _alligator.TranslationY = 0;
+
+                for (var pass = 0; pass < 3 && !_isLeaving; pass++)
+                {
+                    await _alligator.TranslateTo(travelDistance, -7, 420, Easing.CubicInOut);
+                    if (_isLeaving) return;
+                    await _alligator.TranslateTo(0, 7, 420, Easing.CubicInOut);
+                    if (_isLeaving) return;
+                }
             }
+
+            if (_isLeaving)
+                return;
+
+            _statusText.Text = "App ready — robot discovery is available.";
+            await Task.Delay(180);
+            if (_isLeaving)
+                return;
+
+            await Content.FadeTo(0, 220, Easing.CubicInOut);
+            if (!_isLeaving)
+                _onComplete();
         }
-
-        if (_isLeaving)
-            return;
-
-        _statusText.Text = "App ready — robot discovery is available.";
-        await Task.Delay(180);
-        if (_isLeaving)
-            return;
-
-        await Content.FadeTo(0, 220, Easing.CubicInOut);
-        if (!_isLeaving)
-            _onComplete();
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[LoadingPage] Startup animation failed: {ex}");
+            // Decorative startup animation must never block entry into the application.
+            if (!_isLeaving)
+                _onComplete();
+        }
     }
 
     protected override void OnDisappearing()
