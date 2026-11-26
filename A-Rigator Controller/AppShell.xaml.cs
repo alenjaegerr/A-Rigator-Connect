@@ -41,7 +41,7 @@ public partial class AppShell : Shell
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
 
-        var homeTab = new Tab { Title = "Home", Route = "home", };
+        var homeTab = new Tab { Title = "Home", Route = "home" };
         homeTab.Items.Add(new ShellContent
         {
             Title = "Home",
@@ -50,7 +50,7 @@ public partial class AppShell : Shell
             Content = dashboardPage
         });
 
-        var manualTab = new Tab { Title = "Control", Route = "manual", };
+        var manualTab = new Tab { Title = "Control", Route = "manual" };
         manualTab.Items.Add(new ShellContent
         {
             Title = "Control",
@@ -59,7 +59,7 @@ public partial class AppShell : Shell
             Content = controlPage
         });
 
-        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous", };
+        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous" };
         autonomousTab.Items.Add(new ShellContent
         {
             Title = "Automate",
@@ -68,7 +68,7 @@ public partial class AppShell : Shell
             Content = autonomousHubPage
         });
 
-        var activityTab = new Tab { Title = "Activity", Route = "activity", };
+        var activityTab = new Tab { Title = "Activity", Route = "activity" };
         activityTab.Items.Add(new ShellContent
         {
             Title = "Activity",
@@ -77,7 +77,7 @@ public partial class AppShell : Shell
             Content = telemetryPage
         });
 
-        var accountTab = new Tab { Title = "Profile", Route = "profile", };
+        var accountTab = new Tab { Title = "Profile", Route = "profile" };
         var profileShellContent = new ShellContent
         {
             Title = "Profile",
