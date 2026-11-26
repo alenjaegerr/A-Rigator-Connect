@@ -7,8 +7,6 @@ public sealed class LoadingPage : ContentPage
 {
     private readonly Action _onComplete;
     private readonly Label _statusText;
-    private readonly Image _alligator;
-    private readonly Grid _track;
     private bool _started;
     private bool _isLeaving;
 
@@ -22,8 +20,8 @@ public sealed class LoadingPage : ContentPage
         {
             Source = ImageSource.FromFile("applogo.svg"),
             Aspect = Aspect.AspectFit,
-            WidthRequest = 270,
-            HeightRequest = 256,
+            WidthRequest = 292,
+            HeightRequest = 278,
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center
         };
@@ -42,23 +40,6 @@ public sealed class LoadingPage : ContentPage
             TextColor = Color.FromArgb("#5D7063"),
             HorizontalTextAlignment = TextAlignment.Center
         };
-        _alligator = new Image
-        {
-            Source = "gator_working.svg",
-            Aspect = Aspect.AspectFit,
-            WidthRequest = 58,
-            HeightRequest = 34,
-            HorizontalOptions = LayoutOptions.Start,
-            VerticalOptions = LayoutOptions.Center
-        };
-        _track = new Grid
-        {
-            HeightRequest = 48,
-            ColumnDefinitions = { new ColumnDefinition(GridLength.Star) },
-            Children = { _alligator },
-            IsClippedToBounds = true
-        };
-
         var activity = new ActivityIndicator
         {
             IsRunning = true,
@@ -86,7 +67,7 @@ public sealed class LoadingPage : ContentPage
                 brandLogo,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 intro, _statusText,
-                _track, activity,
+                activity,
                 new BoxView { HeightRequest = 12, Opacity = 0 },
                 footer
             }
@@ -107,26 +88,9 @@ public sealed class LoadingPage : ContentPage
         _started = true;
         try
         {
-            await WaitForTrackLayoutAsync();
-            if (_isLeaving)
-                return;
-
-            // Keep the runner moving while the app finishes starting.
-            var travelDistance = Math.Max(0, _track.Width - _alligator.Width);
-            if (travelDistance > 1)
-            {
-                _alligator.TranslationX = 0;
-                _alligator.TranslationY = 0;
-
-                for (var pass = 0; pass < 3 && !_isLeaving; pass++)
-                {
-                    await _alligator.TranslateTo(travelDistance, -7, 420, Easing.CubicInOut);
-                    if (_isLeaving) return;
-                    await _alligator.TranslateTo(0, 7, 420, Easing.CubicInOut);
-                    if (_isLeaving) return;
-                }
-            }
-
+            // The native splash has already shown the same bundled A-Rigator
+            // logo. Keep this branded hand-off calm and lightweight.
+            await Task.Delay(650);
             if (_isLeaving)
                 return;
 
@@ -151,26 +115,8 @@ public sealed class LoadingPage : ContentPage
     protected override void OnDisappearing()
     {
         _isLeaving = true;
-        _alligator.CancelAnimations();
         Content?.CancelAnimations();
         base.OnDisappearing();
     }
 
-    private async Task WaitForTrackLayoutAsync()
-    {
-        if (_track.Width > _alligator.Width)
-            return;
-
-        var layoutReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        EventHandler? sizeChanged = null;
-        sizeChanged = (_, _) =>
-        {
-            if (_track.Width > _alligator.Width)
-                layoutReady.TrySetResult(true);
-        };
-
-        _track.SizeChanged += sizeChanged;
-        await Task.WhenAny(layoutReady.Task, Task.Delay(3000));
-        _track.SizeChanged -= sizeChanged;
-    }
 }
