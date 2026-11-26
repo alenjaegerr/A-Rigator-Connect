@@ -2633,8 +2633,11 @@ void setup() {
   analogReadResolution(12);
   analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db);
   readBatteryVoltage();
-  Serial.printf(">> [POWER] Initial battery reading: %s%.2f V\n",
-                batteryVoltageValid ? "" : "unavailable (", batteryVoltage);
+  if (batteryVoltageValid) {
+    Serial.printf(">> [POWER] Initial battery reading: %.2f V\n", batteryVoltage);
+  } else {
+    Serial.println(">> [POWER] Initial battery reading unavailable; voltage-based load decisions are disabled.");
+  }
   delay(400);
 
   // STAGE 2: Bring up the motor controller with propulsion explicitly stopped.
