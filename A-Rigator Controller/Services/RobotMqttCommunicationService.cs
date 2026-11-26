@@ -97,8 +97,8 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
                 .WithCredentials(_options.Username, _options.Password)
                 .WithTlsOptions(tls => tls
                     .UseTls()
-                    // Pin the supported protocol and SNI host explicitly for Android's TLS provider.
-                    .WithSslProtocols(SslProtocols.Tls12)
+                    // Let the platform negotiate a mutually supported TLS version.
+                    // Keep the broker hostname for SNI and normal certificate validation.
                     .WithTargetHost(_options.BrokerHost))
                 .WithCleanSession()
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(30))
