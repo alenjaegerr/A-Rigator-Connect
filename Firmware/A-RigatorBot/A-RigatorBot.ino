@@ -645,16 +645,30 @@ void loadRobotHardwareConfiguration() {
   steeringLeftAngle = robotHardwarePreferences.getInt("st_left", 15);
   steeringCenterAngle = robotHardwarePreferences.getInt("st_center", 90);
   steeringRightAngle = robotHardwarePreferences.getInt("st_right", 165);
-  nozzleMinimumAngle = robotHardwarePreferences.getInt("nz_min", 30);
+  nozzleMinimumAngle = robotHardwarePreferences.getInt("nz_min", 15);
   nozzleCenterAngle = robotHardwarePreferences.getInt("nz_center", 90);
-  nozzleMaximumAngle = robotHardwarePreferences.getInt("nz_max", 150);
+  nozzleMaximumAngle = robotHardwarePreferences.getInt("nz_max", 165);
   nozzleLeftSectorMaximumAngle = robotHardwarePreferences.getInt("nz_left", 70);
   nozzleRightSectorMinimumAngle = robotHardwarePreferences.getInt("nz_right", 110);
+
+  // Migrate only the previous factory-default nozzle calibration. Preserve any
+  // user-customized calibration already stored on the robot.
+  const int hardwareConfigVersion = robotHardwarePreferences.getInt("cfg_ver", 1);
+  if (hardwareConfigVersion < 2) {
+    if (nozzleMinimumAngle == 30 && nozzleCenterAngle == 90 &&
+        nozzleMaximumAngle == 150 && nozzleLeftSectorMaximumAngle == 70 &&
+        nozzleRightSectorMinimumAngle == 110) {
+      nozzleMinimumAngle = 15;
+      nozzleMaximumAngle = 165;
+    }
+    robotHardwarePreferences.putInt("cfg_ver", 2);
+  }
+
   if (!isRobotHardwareConfigurationValid(steeringLeftAngle, steeringCenterAngle, steeringRightAngle,
       nozzleMinimumAngle, nozzleCenterAngle, nozzleMaximumAngle,
       nozzleLeftSectorMaximumAngle, nozzleRightSectorMinimumAngle)) {
     steeringLeftAngle = 15; steeringCenterAngle = 90; steeringRightAngle = 165;
-    nozzleMinimumAngle = 30; nozzleCenterAngle = 90; nozzleMaximumAngle = 150;
+    nozzleMinimumAngle = 15; nozzleCenterAngle = 90; nozzleMaximumAngle = 165;
     nozzleLeftSectorMaximumAngle = 70; nozzleRightSectorMinimumAngle = 110;
     Serial.println(">> [CONFIG] Invalid saved servo calibration; using safe defaults.");
   }
@@ -677,6 +691,7 @@ bool saveRobotHardwareConfiguration(
   robotHardwarePreferences.putInt("nz_max", nozzleMaximumAngle);
   robotHardwarePreferences.putInt("nz_left", nozzleLeftSectorMaximumAngle);
   robotHardwarePreferences.putInt("nz_right", nozzleRightSectorMinimumAngle);
+  robotHardwarePreferences.putInt("cfg_ver", 2);
   return true;
 }
 
