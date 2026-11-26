@@ -93,11 +93,8 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         IDevice? rediscoveredDevice = null;
         void OnDeviceDiscovered(object? sender, DeviceEventArgs args)
         {
-            if (args.Device.Id == rememberedId ||
-                string.Equals(args.Device.Name, "A-Rigator", StringComparison.OrdinalIgnoreCase))
-            {
+            if (args.Device.Id == rememberedId)
                 rediscoveredDevice = args.Device;
-            }
         }
 
         _adapter.DeviceDiscovered += OnDeviceDiscovered;
