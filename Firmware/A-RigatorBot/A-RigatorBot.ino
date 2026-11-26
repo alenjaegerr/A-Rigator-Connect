@@ -678,6 +678,10 @@ DFRobotDFPlayerMini audioPlayer;
 bool audioAvailable = false;
 uint8_t audioVolume = 15;
 bool ledOutputEnabled = false;
+unsigned long ledPatternLastToggle = 0;
+bool ledPatternPhase = true;
+bool readyAnnouncementPending = false;
+unsigned long startupAnnouncementAt = 0;
 float batteryVoltage = 0.0f;
 bool batteryVoltageValid = false;
 unsigned long lastBatteryRead = 0;
@@ -1122,7 +1126,7 @@ void playAudioTrack(uint16_t trackNumber) {
   if (!isWarning && (int32_t)(warningAudioPriorityUntil - now) > 0) return;
   if (isWarning) warningAudioPriorityUntil = now + WARNING_AUDIO_PRIORITY_MS;
 
-  audioPlayer.play(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
+  audioPlayer.playMp3Folder(trackNumber); // /mp3/0001.mp3, /mp3/0002.mp3, ...
 }
 
 void serviceObstacleAudioAlert(float distanceCm) {
@@ -1183,6 +1187,42 @@ void setLedOutput(bool enabled) {
   digitalWrite(LED_MOSFET_PIN, enabled ? HIGH : LOW);
 }
 
+void serviceAudioAnnouncements() {
+  // Give the startup cue time to finish before announcing readiness.
+  // This is timer-driven so boot and the main control loop remain non-blocking.
+  if (readyAnnouncementPending &&
+      millis() - startupAnnouncementAt >= 4000UL) {
+    readyAnnouncementPending = false;
+    playAudioTrack(2); // Robot ready: /mp3/0002.mp3
+    Serial.println(">> [AUDIO] Ready announcement triggered.");
+  }
+}
+
+void serviceLedIndications() {
+  if (emergencyStopLatched) {
+    setLedOutput(false);
+    return;
+  }
+
+  // The installed two-wire RGB strips retain their own color animation.
+  // The ESP32 can only pulse their shared power through the MOSFET.
+  const bool warningActive = lowBatteryWarningActive || obstacleWasDetected;
+  const unsigned long now = millis();
+
+  if (!warningActive) {
+    ledPatternPhase = true;
+    setLedOutput(true);
+    ledPatternLastToggle = now;
+    return;
+  }
+
+  if (now - ledPatternLastToggle >= 300UL) {
+    ledPatternLastToggle = now;
+    ledPatternPhase = !ledPatternPhase;
+    setLedOutput(ledPatternPhase);
+  }
+}
+
 void readBatteryVoltage() {
   const unsigned long now = millis();
   if (now - lastBatteryRead < BATTERY_SAMPLE_INTERVAL_MS) return;
@@ -1223,6 +1263,7 @@ void triggerEmergencyStop(const char* source) {
   writeServo(STEER_SERVO_PIN, STEER_CENTER);
   writeServo(NOZZLE_SERVO_PIN, NOZZLE_CENTER);
   setLedOutput(false);
+  if (audioAvailable) audioPlayer.stop();
   playAudioTrack(7);
   Serial.printf(">> [EMERGENCY STOP] Latched by %s. Explicit reset required.\n", source);
 }
@@ -2203,7 +2244,7 @@ void executeSerialLine(String line) {
       } else if (track < 1 || track > 99) {
         Serial.println(">> [AUDIO] Track must be 1-99 (root file: 0001.mp3, etc.).");
       } else {
-        audioPlayer.play(track);
+        audioPlayer.playMp3Folder(track);
         Serial.printf(">> [AUDIO] Play request sent for /mp3/%04d.mp3.\n", track);
       }
     } else if (action == "VOL") {
@@ -2443,13 +2484,17 @@ void setup() {
   }
 
   driveMotor(CMD_STOP, 0.0);
-  setLedOutput(false); // Keep lighting off until explicitly tested from Serial Monitor.
-  // Ready playback disabled during audio diagnostics; use AUDIO PLAY 2.
+  setLedOutput(true); // Normal ready/operating indication; warning states pulse the strips.
   printMenu();
+  playAudioTrack(1); // Startup: /mp3/0001.mp3
+  startupAnnouncementAt = millis();
+  readyAnnouncementPending = true;
 }
 
 void loop() {
   readBatteryVoltage();
+  serviceAudioAnnouncements();
+  serviceLedIndications();
   const time_t currentEpoch = time(nullptr);
   const bool mqttTlsClockReady = currentEpoch >= NTP_VALID_EPOCH;
 
