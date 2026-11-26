@@ -2,12 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:A_Rigator_Controller.ViewModels"
+             xmlns:views="clr-namespace:A_Rigator_Controller.Views"
              x:Class="A_Rigator_Controller.Views.TerrainModePage"
              x:DataType="viewmodels:DashboardViewModel"
              Title="Terrain Mode"
              BackgroundColor="{AppThemeBinding Light=#F4F7F5, Dark=#101713}">
     <ScrollView>
         <VerticalStackLayout Padding="20" Spacing="18">
+            <views:MascotStatusHeader />
             <VerticalStackLayout Spacing="4">
                 <Label Text="Terrain Mode" FontSize="28" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                 <Label Text="Twist-car movement with operator-controlled steering bias." FontSize="14" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
