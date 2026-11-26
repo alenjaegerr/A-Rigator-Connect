@@ -44,7 +44,7 @@ public sealed class LoadingPage : ContentPage
         };
         _runner = new Image
         {
-            Source = ImageSource.FromFile("gator_working.svg"),
+            Source = ImageSource.FromFile("mascot_working.png"),
             Aspect = Aspect.AspectFit,
             WidthRequest = 58,
             HeightRequest = 48,
