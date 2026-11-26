@@ -14,7 +14,7 @@
     </Style>
 
     <Style TargetType="Border">
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource OutlineLight}, Dark={StaticResource OutlineDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#DCE8DF, Dark=#34483B}" />
         <Setter Property="StrokeShape">
             <Setter.Value>
                 <RoundRectangle CornerRadius="20"/>
@@ -26,8 +26,8 @@
     <!-- Shared mascot-led interface building blocks. -->
     <Style x:Key="GatorCard" TargetType="Border">
         <Setter Property="Padding" Value="18"/>
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}"/>
-        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource OutlineLight}, Dark={StaticResource OutlineDark}}"/>
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#FFFFFF, Dark=#1C2B23}"/>
+        <Setter Property="Stroke" Value="{AppThemeBinding Light=#DCE8DF, Dark=#34483B}"/>
         <Setter Property="StrokeThickness" Value="1"/>
         <Setter Property="StrokeShape">
             <Setter.Value>
@@ -40,18 +40,18 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontAttributes" Value="Bold"/>
         <Setter Property="CharacterSpacing" Value="0.7"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextSecondaryLight}, Dark={StaticResource TextSecondaryDark}}"/>
+        <Setter Property="TextColor" Value="{AppThemeBinding Light=#637269, Dark=#AABBB0}"/>
     </Style>
 
     <Style x:Key="GatorPageTitle" TargetType="Label">
         <Setter Property="FontSize" Value="30"/>
         <Setter Property="FontAttributes" Value="Bold"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextPrimaryLight}, Dark={StaticResource TextPrimaryDark}}"/>
+        <Setter Property="TextColor" Value="{AppThemeBinding Light=#172A20, Dark=#EAF4EC}"/>
     </Style>
 
     <Style x:Key="GatorBody" TargetType="Label">
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextSecondaryLight}, Dark={StaticResource TextSecondaryDark}}"/>
+        <Setter Property="TextColor" Value="{AppThemeBinding Light=#637269, Dark=#AABBB0}"/>
     </Style>
 
     <Style TargetType="BoxView">
