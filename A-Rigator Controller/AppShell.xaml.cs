@@ -41,7 +41,7 @@ public partial class AppShell : Shell
         // Main application navigation: five user-oriented destinations.
         var mainTabBar = new TabBar { Route = "main" };
 
-        var homeTab = new Tab { Title = "Home", Route = "home", Icon = ImageSource.FromFile("gator_happy.svg") };
+        var homeTab = new Tab { Title = "Home", Route = "home", };
         homeTab.Items.Add(new ShellContent
         {
             Title = "Home",
@@ -50,7 +50,7 @@ public partial class AppShell : Shell
             Content = dashboardPage
         });
 
-        var manualTab = new Tab { Title = "Control", Route = "manual", Icon = ImageSource.FromFile("gator_focused.svg") };
+        var manualTab = new Tab { Title = "Control", Route = "manual", };
         manualTab.Items.Add(new ShellContent
         {
             Title = "Control",
@@ -59,7 +59,7 @@ public partial class AppShell : Shell
             Content = controlPage
         });
 
-        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous", Icon = ImageSource.FromFile("gator_working.svg") };
+        var autonomousTab = new Tab { Title = "Automate", Route = "autonomous", };
         autonomousTab.Items.Add(new ShellContent
         {
             Title = "Automate",
@@ -68,7 +68,7 @@ public partial class AppShell : Shell
             Content = autonomousHubPage
         });
 
-        var activityTab = new Tab { Title = "Activity", Route = "activity", Icon = ImageSource.FromFile("gator_curious.svg") };
+        var activityTab = new Tab { Title = "Activity", Route = "activity", };
         activityTab.Items.Add(new ShellContent
         {
             Title = "Activity",
@@ -77,7 +77,7 @@ public partial class AppShell : Shell
             Content = telemetryPage
         });
 
-        var accountTab = new Tab { Title = "Profile", Route = "profile", Icon = ImageSource.FromFile("gator_avatar.svg") };
+        var accountTab = new Tab { Title = "Profile", Route = "profile", };
         var profileShellContent = new ShellContent
         {
             Title = "Profile",
@@ -86,12 +86,6 @@ public partial class AppShell : Shell
             Content = accountPage
         };
         accountTab.Items.Add(profileShellContent);
-
-        // Keep the Shell tab icon on the bundled brand asset. User-uploaded
-        // profile photos remain visible inside AccountPage; feeding arbitrary
-        // file paths to the native Shell tab renderer can produce a square/
-        // invalid icon after sign-in on Android.
-        accountTab.Icon = ImageSource.FromFile("gator_avatar.svg");
 
         mainTabBar.Items.Add(homeTab);
         mainTabBar.Items.Add(manualTab);
