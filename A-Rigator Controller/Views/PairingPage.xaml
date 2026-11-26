@@ -12,6 +12,7 @@
 
     <Grid RowDefinitions="Auto,*">
         <VerticalStackLayout Grid.Row="0" Padding="24,22,24,16" Spacing="10">
+            <Image Source="gator_curious.svg" HeightRequest="104" HorizontalOptions="End" Aspect="AspectFit" />
             <Label Text="A-Rigator setup"
                    FontSize="13"
                    FontAttributes="Bold"
@@ -43,11 +44,11 @@
                         Stroke="#D8E3DC"
                         StrokeShape="RoundRectangle 20">
                     <VerticalStackLayout Spacing="15">
-                        <Label Text="Find your A-Rigator"
+                        <Label Text="Let’s find your A-Rigator"
                                FontSize="21"
                                FontAttributes="Bold"
                                TextColor="#17231C" />
-                        <Label Text="Turn on your robot and keep your phone nearby. We'll use Bluetooth to find it."
+                        <Label Text="Turn on your robot and keep your phone nearby. Your gator will look for it over Bluetooth."
                                FontSize="14"
                                TextColor="#52615A" />
                         <Button Text="Find my robot"
