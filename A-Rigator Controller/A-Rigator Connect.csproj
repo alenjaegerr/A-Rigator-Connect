@@ -50,8 +50,7 @@
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
-		<!-- Official clean mascot expressions from the A-Rigator Asset Library. -->
-		<MauiImage Include="..\A-Rigator_Asset_Library\*.png" />
+		<!-- Import only app-ready, lowercase assets from Resources\Images. The numbered asset-library originals stay outside MauiImage processing. -->
 		<MauiImage Include="Resources\Branding\*.svg" Exclude="Resources\Branding\appicon.svg" />
 		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 		
