@@ -21,6 +21,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     private string? _robotAvatarPath;
     private string _syncStatus = "Your irrigation profiles are stored locally on this device.";
     private bool _isBusy;
+    private static readonly HttpClient AvatarHttpClient = new();
 
     public AccountViewModel(IAccountService account, IUserProfileService userProfile,
         IrrigationProfileService localProfiles, IrrigationProfileSyncCoordinator sync)
@@ -47,11 +48,13 @@ public sealed class AccountViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+    public event EventHandler<string?>? AvatarChanged;
     public string DisplayName { get => _displayName; set { if (_displayName == value) return; _displayName = value; OnPropertyChanged(); } }
     public string RobotName { get => _robotName; set { if (_robotName == value) return; _robotName = value; OnPropertyChanged(); } }
-    public string? AvatarPath { get => _avatarPath; private set { _avatarPath = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasAvatar)); } }
+    public string? AvatarPath { get => _avatarPath; private set { _avatarPath = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasAvatar)); AvatarChanged?.Invoke(this, value); } }
     public string? RobotAvatarPath { get => _robotAvatarPath; private set { _robotAvatarPath = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasRobotAvatar)); } }
     public bool HasAvatar => !string.IsNullOrWhiteSpace(AvatarPath) && File.Exists(AvatarPath);
+    public string AvatarInitials => string.Join("", (DisplayName ?? "A").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => char.ToUpperInvariant(x[0])));
     public bool HasRobotAvatar => !string.IsNullOrWhiteSpace(RobotAvatarPath) && File.Exists(RobotAvatarPath);
     public bool IsBusy { get => _isBusy; private set { _isBusy = value; OnPropertyChanged(); RefreshCommands(); } }
     public bool IsAuthenticated => _account.IsAuthenticated;
@@ -98,6 +101,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
                 RobotName = _account.RobotName!;
                 Preferences.Default.Set("arigator.robot.nickname", RobotName);
             }
+            await LoadAccountAvatarAsync();
             await _sync.SyncNowAsync(force: true);
         }
     }
@@ -112,7 +116,8 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             if (!string.IsNullOrWhiteSpace(_account.DisplayName)) DisplayName = _account.DisplayName!;
             if (!string.IsNullOrWhiteSpace(_account.RobotName)) RobotName = _account.RobotName!;
             await SaveAccountAsync();
-            SyncStatus = "Signed in. Syncing your locally saved irrigation profiles…";
+            await LoadAccountAvatarAsync();
+            SyncStatus = "Signed in. Your account can now back up your profile picture and irrigation profiles.";
             OnPropertyChanged(nameof(IsAuthenticated));
             OnPropertyChanged(nameof(IsGuest));
             OnPropertyChanged(nameof(AccountSummary));
@@ -136,6 +141,7 @@ public sealed class AccountViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsGuest));
             OnPropertyChanged(nameof(AccountSummary));
             OnPropertyChanged(nameof(EmailAddress));
+            if (IsAuthenticated) await LoadAccountAvatarAsync();
         }
     }
 
@@ -184,28 +190,60 @@ public sealed class AccountViewModel : INotifyPropertyChanged
         {
             var photo = await MediaPicker.Default.PickPhotoAsync();
             if (photo is null) return;
-            var extension = Path.GetExtension(photo.FileName);
-            if (string.IsNullOrWhiteSpace(extension)) extension = ".jpg";
-            var fileName = robotPhoto ? $"robot-avatar{extension}" : $"account-avatar{extension}";
-            var destination = Path.Combine(FileSystem.AppDataDirectory, fileName);
-            await using var source = await photo.OpenReadAsync();
-            await using var target = File.Create(destination);
-            await source.CopyToAsync(target);
+            var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+            var contentType = extension switch { ".png" => "image/png", ".webp" => "image/webp", _ => "image/jpeg" };
+            if (string.IsNullOrWhiteSpace(extension) || extension is not (".jpg" or ".jpeg" or ".png" or ".webp")) extension = ".jpg";
+            var destination = Path.Combine(FileSystem.AppDataDirectory, robotPhoto ? $"robot-avatar{extension}" : $"account-avatar{extension}");
+            await using (var source = await photo.OpenReadAsync())
+            await using (var target = File.Create(destination))
+                await source.CopyToAsync(target);
 
             if (robotPhoto)
             {
                 RobotAvatarPath = destination;
                 Preferences.Default.Set("arigator.robot.avatar", destination);
                 SyncStatus = "Robot picture saved on this device.";
+                return;
             }
-            else
+
+            AvatarPath = destination;
+            Preferences.Default.Set("arigator.account.avatar", destination);
+            Preferences.Default.Set("arigator.account.avatar.custom", true);
+            if (!IsAuthenticated)
             {
-                AvatarPath = destination;
-                Preferences.Default.Set("arigator.account.avatar", destination);
-                SyncStatus = "Account picture saved on this device.";
+                SyncStatus = "Picture saved on this device. Sign in with Google to back it up and restore it if you reinstall the app.";
+                return;
             }
+
+            IsBusy = true;
+            try
+            {
+                await using var upload = File.OpenRead(destination);
+                var cloudUrl = await _account.UploadProfileAvatarAsync(upload, contentType);
+                Preferences.Default.Set("arigator.account.avatar.cloud", cloudUrl);
+                SyncStatus = "Profile picture backed up to your A-Rigator account.";
+            }
+            finally { IsBusy = false; }
         }
-        catch (Exception ex) { SyncStatus = $"Could not select picture: {ex.Message}"; }
+        catch (Exception ex) { SyncStatus = $"Could not save profile picture: {ex.Message}"; }
+    }
+
+    private async Task LoadAccountAvatarAsync()
+    {
+        if (!IsAuthenticated) return;
+        var cloudUrl = Preferences.Default.Get<string?>("arigator.account.avatar.cloud", null);
+        var sourceUrl = !string.IsNullOrWhiteSpace(cloudUrl) ? cloudUrl : _account.AvatarUrl;
+        if (string.IsNullOrWhiteSpace(sourceUrl)) return;
+        try
+        {
+            var bytes = await AvatarHttpClient.GetByteArrayAsync(sourceUrl);
+            if (bytes.Length is 0 or > 5 * 1024 * 1024) return;
+            var path = Path.Combine(FileSystem.AppDataDirectory, "account-avatar-synced.jpg");
+            await File.WriteAllBytesAsync(path, bytes);
+            AvatarPath = path;
+            Preferences.Default.Set("arigator.account.avatar", path);
+        }
+        catch { /* Keep the previously cached avatar when the network is unavailable. */ }
     }
 
     private async Task SyncProfilesAsync()
