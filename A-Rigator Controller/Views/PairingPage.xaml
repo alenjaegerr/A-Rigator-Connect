@@ -84,7 +84,7 @@
                                         Stroke="{AppThemeBinding Light=#DCE8DF, Dark=#34483B}"
                                         StrokeShape="RoundRectangle 14">
                                     <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
-                                        <Image Source="gator_avatar.svg"
+                                        <Image Source="mascot_hero_rover.png"
                                                WidthRequest="42"
                                                HeightRequest="42"
                                                Aspect="AspectFit"
