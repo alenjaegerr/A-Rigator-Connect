@@ -2616,10 +2616,8 @@ void executeSerialLine(String line) {
         Serial.println(">> [AUDIO] Volume must be between 0 and 30.");
       } else if (!audioAvailable) {
         Serial.println(">> [AUDIO] DFPlayer is not initialized.");
-      } else {
-        audioVolume = (uint8_t)requestedVolume;
-        audioPlayer.volume(audioVolume);
-        Serial.printf(">> [AUDIO] Volume set to %u/30.\n", audioVolume);
+      } else if (!setAudioVolume(requestedVolume)) {
+        Serial.println(">> [AUDIO] Could not save volume to NVS.");
       }
     } else {
       Serial.println(">> [AUDIO] Use AUDIO PLAY <track>, AUDIO VOL <0-30>, AUDIO STOP, or AUDIO STATUS.");
