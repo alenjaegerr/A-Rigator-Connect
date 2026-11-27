@@ -201,6 +201,9 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
         return PublishCommandAsync("audio_volume", new { volume }, null, cancellationToken);
     }
 
+    public Task SetLedOutputAsync(bool enabled, CancellationToken cancellationToken = default) =>
+        PublishCommandAsync("led_output", new { enabled }, null, cancellationToken);
+
     public Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
