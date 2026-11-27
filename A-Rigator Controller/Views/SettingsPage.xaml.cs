@@ -139,6 +139,7 @@ public partial class SettingsPage : ContentPage
     {
         await RefreshInstalledFirmwareVersionAsync();
         await RefreshAudioVolumeAsync();
+        await RefreshLedOutputAsync();
     }
 
     private void OnAudioVolumeChanged(object? sender, ValueChangedEventArgs e)
@@ -176,6 +177,48 @@ public partial class SettingsPage : ContentPage
         {
             ApplyAudioVolumeButton.IsEnabled = true;
             ApplyAudioVolumeButton.Text = "APPLY VOLUME";
+        }
+    }
+
+    private async Task RefreshLedOutputAsync()
+    {
+        try
+        {
+            var status = await _robotCommunicationService.GetStatusAsync();
+            LedOutputStatusLabel.Text = status?.LedOutputEnabled is bool enabled
+                ? enabled ? "ON" : "OFF"
+                : "Unavailable";
+        }
+        catch
+        {
+            LedOutputStatusLabel.Text = "Connect to robot";
+        }
+    }
+
+    private async void OnLedOnClicked(object sender, EventArgs e) =>
+        await SetLedOutputFromAppAsync(true);
+
+    private async void OnLedOffClicked(object sender, EventArgs e) =>
+        await SetLedOutputFromAppAsync(false);
+
+    private async Task SetLedOutputFromAppAsync(bool enabled)
+    {
+        LedOnButton.IsEnabled = false;
+        LedOffButton.IsEnabled = false;
+        LedOutputStatusLabel.Text = enabled ? "Turning on…" : "Turning off…";
+        try
+        {
+            await _robotCommunicationService.SetLedOutputAsync(enabled);
+            LedOutputStatusLabel.Text = enabled ? "ON" : "OFF";
+        }
+        catch (Exception ex)
+        {
+            LedOutputStatusLabel.Text = $"Couldn't change LED: {ex.Message}";
+        }
+        finally
+        {
+            LedOnButton.IsEnabled = true;
+            LedOffButton.IsEnabled = true;
         }
     }
 
