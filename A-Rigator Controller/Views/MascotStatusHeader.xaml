@@ -16,7 +16,7 @@
                        TextColor="#BDEBFA" HorizontalTextAlignment="Center" />
                 <Label Text="{Binding WaterStatus}" FontSize="12" FontAttributes="Bold"
                        TextColor="White" HorizontalTextAlignment="Center" />
-                <Label Text="Sensor pending" FontSize="9" TextColor="#B8D7C3"
+                <Label Text="{Binding WaterDistanceStatus}" FontSize="9" TextColor="#B8D7C3"
                        HorizontalTextAlignment="Center" />
             </VerticalStackLayout>
             <Image Grid.Column="1" Source="{Binding MascotImage}" HeightRequest="126"

@@ -41,6 +41,19 @@
             </Border>
             <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="AUDIO" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="DFPlayer volume" FontSize="17" FontAttributes="Bold" />
+                        <Label x:Name="AudioVolumeValueLabel" Grid.Column="1" Text="25 / 30" FontSize="15" FontAttributes="Bold" />
+                    </Grid>
+                    <Slider x:Name="AudioVolumeSlider" Minimum="0" Maximum="30" Value="25" ValueChanged="OnAudioVolumeChanged" />
+                    <Label Text="Volume is saved on the robot and works over Local Bluetooth and Remote control." FontSize="12" />
+                    <Button x:Name="ApplyAudioVolumeButton" Text="APPLY VOLUME" Clicked="OnApplyAudioVolumeClicked" BackgroundColor="#176B45" TextColor="White" />
+                    <Label x:Name="AudioVolumeStatusLabel" Text="Connect to A-Rigator to load its saved volume." FontSize="12" />
+                </VerticalStackLayout>
+            </Border>
+            <Border Padding="16" BackgroundColor="{AppThemeBinding Light=White, Dark=#202A23}" Stroke="{AppThemeBinding Light=#D8E3DC, Dark=#3B4A40}" StrokeShape="RoundRectangle 16">
+                <VerticalStackLayout Spacing="10">
                     <Label Text="ROBOT HARDWARE CALIBRATION" FontSize="12" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />
                     <Label Text="Servo travel" FontSize="17" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#17231C, Dark=White}" />
                     <Label Text="These values are stored by the ESP32 and shared by BLE and MQTT. Start conservatively and test with the wheels lifted and pump disabled." FontSize="13" TextColor="{AppThemeBinding Light=#52615A, Dark=#B3C3B9}" />

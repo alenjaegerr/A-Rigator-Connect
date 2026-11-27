@@ -138,6 +138,45 @@ public partial class SettingsPage : ContentPage
     private async void OnSettingsPageAppearing(object? sender, EventArgs e)
     {
         await RefreshInstalledFirmwareVersionAsync();
+        await RefreshAudioVolumeAsync();
+    }
+
+    private void OnAudioVolumeChanged(object? sender, ValueChangedEventArgs e)
+    {
+        AudioVolumeValueLabel.Text = $"{(int)Math.Round(e.NewValue)} / 30";
+    }
+
+    private async Task RefreshAudioVolumeAsync()
+    {
+        try
+        {
+            var status = await _robotCommunicationService.GetStatusAsync();
+            if (status?.AudioVolume is int volume && volume is >= 0 and <= 30)
+            {
+                AudioVolumeSlider.Value = volume;
+                AudioVolumeStatusLabel.Text = $"Robot volume: {volume}/30";
+            }
+            else AudioVolumeStatusLabel.Text = "Update the firmware to read its saved volume.";
+        }
+        catch { AudioVolumeStatusLabel.Text = "Connect to A-Rigator to read its saved volume."; }
+    }
+
+    private async void OnApplyAudioVolumeClicked(object sender, EventArgs e)
+    {
+        var volume = (int)Math.Round(AudioVolumeSlider.Value);
+        ApplyAudioVolumeButton.IsEnabled = false;
+        ApplyAudioVolumeButton.Text = "SAVING…";
+        try
+        {
+            await _robotCommunicationService.SetAudioVolumeAsync(volume);
+            AudioVolumeStatusLabel.Text = $"Volume saved on A-Rigator: {volume}/30";
+        }
+        catch (Exception ex) { AudioVolumeStatusLabel.Text = $"Couldn't save volume: {ex.Message}"; }
+        finally
+        {
+            ApplyAudioVolumeButton.IsEnabled = true;
+            ApplyAudioVolumeButton.Text = "APPLY VOLUME";
+        }
     }
 
     private async Task RefreshInstalledFirmwareVersionAsync()

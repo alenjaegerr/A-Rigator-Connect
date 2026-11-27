@@ -159,7 +159,24 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string MotorStatus => _activeMotorCommand?.ToString().ToUpperInvariant() ?? "STOPPED";
 
-    public string WaterStatus => "UNAVAILABLE";
+    public string WaterStatus => _latestStatus?.WaterSensorValid == true &&
+        _latestStatus.WaterLevelPercent is float percentage
+            ? $"{Math.Clamp((int)Math.Round(percentage), 0, 100)}%"
+            : "UNAVAILABLE";
+
+    public double WaterProgress => _latestStatus?.WaterSensorValid == true &&
+        _latestStatus.WaterLevelPercent is float percentage
+            ? Math.Clamp(percentage / 100.0, 0.0, 1.0)
+            : 0.0;
+
+    public string WaterDistanceStatus => _latestStatus?.WaterSensorValid == true &&
+        _latestStatus.WaterDistanceCm is float distance
+            ? $"Surface distance: {distance:0.0} cm"
+            : "Waiting for a valid water-level reading";
+
+    public string WaterSensorStatus => _latestStatus?.WaterSensorValid == true
+        ? "LIVE SENSOR"
+        : "SENSOR UNAVAILABLE";
 
     private const float BatteryEmptyVoltage = 5.8f;
     private const float BatteryFullVoltage = 7.2f;
@@ -897,6 +914,10 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
                 OnPropertyChanged(nameof(BatteryHealthLabel));
                 OnPropertyChanged(nameof(BatteryEstimateNote));
                 OnPropertyChanged(nameof(ObstacleDistanceStatus));
+                OnPropertyChanged(nameof(WaterStatus));
+                OnPropertyChanged(nameof(WaterProgress));
+                OnPropertyChanged(nameof(WaterDistanceStatus));
+                OnPropertyChanged(nameof(WaterSensorStatus));
                 OnPropertyChanged(nameof(ObstacleStatus));
                 OnPropertyChanged(nameof(ObstacleStopThresholdStatus));
                 OnPropertyChanged(nameof(ManualControlTimeoutStatus));
