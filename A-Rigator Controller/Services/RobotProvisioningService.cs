@@ -203,6 +203,11 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         await SendBleEnvelopeAsync(RobotBleProtocol.SerializeAudioVolume(volume), cancellationToken);
     }
 
+    public async Task SetLedOutputAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        await SendBleEnvelopeAsync(RobotBleProtocol.SerializeLedOutput(enabled), cancellationToken);
+    }
+
     public async Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
