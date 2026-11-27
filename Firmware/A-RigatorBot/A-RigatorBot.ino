@@ -7,7 +7,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-led-power-saver"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-water-empty-threshold"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -2273,16 +2273,25 @@ void updateWaterLevelSensor() {
   digitalWrite(WATER_TRIG_PIN, LOW);
   const unsigned long duration = pulseIn(WATER_ECHO_PIN, HIGH, WATER_SENSOR_TIMEOUT_US);
   if (duration == 0) { waterSensorValid = false; return; }
+
   const float measuredDistance = (duration * 0.0343f) / 2.0f;
-  if (!isfinite(measuredDistance) || measuredDistance < 1.0f || measuredDistance > 25.0f) {
+  // Accept valid echoes beyond the calibrated empty point. Those readings
+  // mean the water surface is below the tank's 13 cm empty reference.
+  // A timeout/no echo is still treated as an unavailable sensor reading.
+  if (!isfinite(measuredDistance) || measuredDistance < 1.0f || measuredDistance > 400.0f) {
     waterSensorValid = false;
     return;
   }
+
   waterDistanceCm = measuredDistance;
-  waterLevelPercent = constrain(
-    ((WATER_EMPTY_DISTANCE_CM - measuredDistance) /
-     (WATER_EMPTY_DISTANCE_CM - WATER_FULL_DISTANCE_CM)) * 100.0f,
-    0.0f, 100.0f);
+  if (measuredDistance >= WATER_EMPTY_DISTANCE_CM) {
+    waterLevelPercent = 0.0f;
+  } else {
+    waterLevelPercent = constrain(
+      ((WATER_EMPTY_DISTANCE_CM - measuredDistance) /
+       (WATER_EMPTY_DISTANCE_CM - WATER_FULL_DISTANCE_CM)) * 100.0f,
+      0.0f, 100.0f);
+  }
   waterSensorValid = true;
 }
 
