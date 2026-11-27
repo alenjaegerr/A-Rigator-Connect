@@ -76,6 +76,19 @@ internal static class RobotBleProtocol
         _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported BLE command.")
     };
 
+    public static string SerializeAudioVolume(int volume)
+    {
+        if (volume is < 0 or > 30) throw new ArgumentOutOfRangeException(nameof(volume));
+        return JsonSerializer.Serialize(new
+        {
+            version = Version,
+            commandId = Guid.NewGuid().ToString("N"),
+            command = "audio_volume",
+            issuedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            payload = new { volume }
+        }, JsonOptions);
+    }
+
     public static string SerializeProfile(IrrigationProfile profile)
     {
         ArgumentNullException.ThrowIfNull(profile);

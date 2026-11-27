@@ -47,6 +47,11 @@ public sealed class RobotStatus
         _ => RobotConnectionMode.Unknown
     };
 
+    public float? WaterDistanceCm { get; init; }
+    public bool? WaterSensorValid { get; init; }
+    public float? WaterLevelPercent { get; init; }
+    public int? AudioVolume { get; init; }
+
     public float? ObstacleDistanceCm { get; init; }
 
     public bool? ObstacleEchoDetected { get; init; }
