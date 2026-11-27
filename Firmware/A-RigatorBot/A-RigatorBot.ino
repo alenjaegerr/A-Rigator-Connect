@@ -7,7 +7,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-water-audio"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-led-power-saver"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -831,7 +831,8 @@ void serviceBleControlCommands() {
     return;
   }
 
-  if (emergencyStopLatched && command != "stop" && command != "pump_off" && command != "factory_reset") {
+  if (emergencyStopLatched && command != "stop" && command != "pump_off" &&
+      command != "factory_reset" && command != "led_output") {
     publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
     return;
   }
@@ -852,7 +853,8 @@ void serviceBleControlCommands() {
     requestOperatingMode(command == "switch_remote" ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
     return;
   }
-  if (command != "heartbeat" && command != "irrigation_profile" && command != "audio_volume")
+  if (command != "heartbeat" && command != "irrigation_profile" &&
+      command != "audio_volume" && command != "led_output")
     manualControlViaMqtt = false;
   bool supported = true;
   bleCommandRejected = false;
@@ -888,6 +890,16 @@ void serviceBleControlCommands() {
       publishBleControlAck(commandId, "rejected", "INVALID_AUDIO_VOLUME", "Volume must be 0-30 and could not be saved");
       return;
     }
+  } else if (command == "led_output") {
+    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
+    const bool enabled = payload["enabled"] | false;
+    if (enabled && emergencyStopLatched) {
+      bleCommandExecution = false;
+      publishBleControlAck(commandId, "rejected", "ESTOP_LATCHED", "LEDs cannot be enabled while emergency stop is latched");
+      return;
+    }
+    ledManualOverride = true;
+    setLedOutput(enabled);
   } else if (command == "irrigation_profile") {
     JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
     const int left = payload["left"] | -1;
@@ -1016,6 +1028,7 @@ void publishBleTelemetryIfDue() {
   if (waterSensorValid) doc["waterDistanceCm"] = waterDistanceCm;
   doc["waterLevelPercent"] = waterSensorValid ? waterLevelPercent : 0.0f;
   doc["audioVolume"] = audioVolume;
+  doc["ledOutputEnabled"] = ledOutputEnabled;
   doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
   doc["manualControlTimeoutMs"] = REMOTE_MANUAL_CONTROL_TIMEOUT_MS;
   doc["steeringLeftAngle"] = STEER_LEFT;
@@ -2000,7 +2013,9 @@ void serviceMqttCommands() {
     return;
   }
 
-  const bool isStop = command == "stop" || command == "pump_off" ||
+  const bool ledOffCommand = command == "led_output" &&
+      !document["payload"]["enabled"].as<bool>();
+  const bool isStop = command == "stop" || command == "pump_off" || ledOffCommand ||
       command == "autonomous_stop" || command == "pathway_stop" ||
       command == "terrain_stop" || command == "irrigation_stop" ||
       command == "nozzle_sweep_stop" || command == "manual_terrain_stop";
@@ -2022,7 +2037,8 @@ void serviceMqttCommands() {
       command == "terrain_start" || command == "terrain_stop") {
     manualControlViaMqtt = false;
   } else if (command != "heartbeat" && command != "irrigation_profile" &&
-             command != "robot_config" && command != "audio_volume") {
+             command != "robot_config" && command != "audio_volume" &&
+             command != "led_output") {
     manualControlViaMqtt = true;
   }
 
@@ -2039,7 +2055,8 @@ void serviceMqttCommands() {
   }
 
   // Match BLE's safety gate and reuse the same hardware handlers.
-  if (emergencyStopLatched && command != "stop" && command != "pump_off") {
+  if (emergencyStopLatched && command != "stop" && command != "pump_off" &&
+      command != "led_output") {
     publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "Emergency stop is latched");
     return;
   }
@@ -2079,6 +2096,16 @@ void serviceMqttCommands() {
       publishMqttCommandAck(commandId, "rejected", "INVALID_AUDIO_VOLUME", "Volume must be 0-30 and could not be saved");
       return;
     }
+  } else if (command == "led_output") {
+    JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
+    const bool enabled = payload["enabled"] | false;
+    if (enabled && emergencyStopLatched) {
+      bleCommandExecution = false;
+      publishMqttCommandAck(commandId, "rejected", "ESTOP_LATCHED", "LEDs cannot be enabled while emergency stop is latched");
+      return;
+    }
+    ledManualOverride = true;
+    setLedOutput(enabled);
   } else if (command == "irrigation_profile") {
     JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
     const int left = payload["left"] | -1;
