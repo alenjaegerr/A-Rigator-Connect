@@ -7,7 +7,7 @@
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-water-empty-threshold"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-motor-shield-auto-recovery"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -615,7 +615,13 @@ unsigned long lastWaterSensorReadAt = 0;
 // interface after ~10 seconds without a command. Refresh the last output
 // every 4 seconds to keep the shield responsive without changing motor state.
 static const unsigned long SHIELD_KEEPALIVE_INTERVAL_MS = 4000;
+static const unsigned long SHIELD_RECOVERY_RETRY_MS = 5000;
+static const uint32_t MOTOR_PWM_FREQUENCY_HZ = 1000;
 unsigned long lastShieldKeepAlive = 0;
+unsigned long lastShieldRecoveryAttemptAt = 0;
+uint32_t motorShieldI2cErrorCount = 0;
+uint32_t motorShieldRecoveryAttempts = 0;
+bool motorShieldFaultActive = false;
 bool i2cBusInitialized = false;
 bool motorShieldInitialized = false;
 uint8_t lastShieldMotorDirection = CMD_BRAKE;
@@ -1168,7 +1174,26 @@ bool sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
   const uint8_t err = Wire.endTransmission();
   if (err != 0) {
     motorShieldInitialized = false;
-    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Motor output disabled until reinitialized.\n", err);
+    motorShieldFaultActive = true;
+    ++motorShieldI2cErrorCount;
+
+    // Fail safe: never replay the previous movement command after a bus fault.
+    lastShieldMotorDirection = CMD_BRAKE;
+    lastShieldMotorSpeed = 0.0f;
+    manualMotorDir = CMD_STOP;
+    manualControlLeaseActive = false;
+    autonomousControlLeaseActive = false;
+    activeAutonomousMode = AUTO_NONE;
+    currentMode = MODE_MANUAL;
+    irrigationSequenceActive = false;
+    irrigationSequenceSpraying = false;
+    irrigationSequenceManual = false;
+    irrigationZoneLatched = false;
+    pumpState = false;
+    digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
+
+    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Outputs stopped; automatic recovery scheduled. Total errors: %lu\\n",
+                  err, (unsigned long)motorShieldI2cErrorCount);
     return false;
   }
   return true;
@@ -1199,6 +1224,36 @@ void refreshMotorShieldKeepAlive() {
   }
 }
 
+void serviceMotorShieldRecovery() {
+  if (!motorShieldFaultActive || motorShieldInitialized) return;
+
+  const unsigned long now = millis();
+  if (lastShieldRecoveryAttemptAt != 0 &&
+      now - lastShieldRecoveryAttemptAt < SHIELD_RECOVERY_RETRY_MS) return;
+
+  lastShieldRecoveryAttemptAt = now;
+  ++motorShieldRecoveryAttempts;
+  Serial.printf(">> [I2C] Motor shield recovery attempt %lu (PWM %lu Hz).\\n",
+                (unsigned long)motorShieldRecoveryAttempts,
+                (unsigned long)MOTOR_PWM_FREQUENCY_HZ);
+
+  // Reset the shield, validate the 1 kHz PWM setup twice, and finish braked.
+  initializeMotorShield();
+  if (motorShieldInitialized) {
+    motorShieldFaultActive = false;
+    lastShieldMotorDirection = CMD_BRAKE;
+    lastShieldMotorSpeed = 0.0f;
+    manualMotorDir = CMD_STOP;
+    currentMode = MODE_MANUAL;
+    activeAutonomousMode = AUTO_NONE;
+    manualControlLeaseActive = false;
+    autonomousControlLeaseActive = false;
+    Serial.println(">> [I2C] Motor shield recovered. Robot remains stopped; issue a new movement command.");
+  } else {
+    Serial.println(">> [I2C] Motor shield recovery failed. Will retry after cooldown.");
+  }
+}
+
 void initializeMotorShield() {
   motorShieldInitialized = false;
 
@@ -1212,9 +1267,9 @@ void initializeMotorShield() {
   digitalWrite(SHIELD_RST_PIN, HIGH);
   delay(250);
 
-  const bool firstInit = initShieldFrequency(1000);
+  const bool firstInit = initShieldFrequency(MOTOR_PWM_FREQUENCY_HZ);
   delay(80);
-  const bool secondInit = initShieldFrequency(1000);
+  const bool secondInit = initShieldFrequency(MOTOR_PWM_FREQUENCY_HZ);
 
   if (!firstInit || !secondInit) {
     Serial.println(">> [I2C] Motor shield not detected. Continuing without motor control.");
@@ -3055,6 +3110,7 @@ void loop() {
   if (irrigationSequenceActive && irrigationSequenceManual && currentMode == MODE_MANUAL)
     serviceIrrigationSequence();
   refreshMotorShieldKeepAlive();
+  serviceMotorShieldRecovery();
 
   while (Serial.available() > 0) {
     const char ch = (char)Serial.read();
