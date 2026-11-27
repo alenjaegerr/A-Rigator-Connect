@@ -131,6 +131,12 @@ public sealed class RobotConnectionManager : IRobotCommunicationService
         await transport.ApplyIrrigationProfileAsync(profile, cancellationToken);
     }
 
+    public async Task SetAudioVolumeAsync(int volume, CancellationToken cancellationToken = default)
+    {
+        var transport = await GetActiveTransportAsync(cancellationToken);
+        await transport.SetAudioVolumeAsync(volume, cancellationToken);
+    }
+
     public async Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);

@@ -195,6 +195,12 @@ public sealed class RobotMqttCommunicationService : IRobotTransport, IRemoteRobo
         }, null, cancellationToken);
     }
 
+    public Task SetAudioVolumeAsync(int volume, CancellationToken cancellationToken = default)
+    {
+        if (volume is < 0 or > 30) throw new ArgumentOutOfRangeException(nameof(volume));
+        return PublishCommandAsync("audio_volume", new { volume }, null, cancellationToken);
+    }
+
     public Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);

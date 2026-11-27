@@ -197,6 +197,12 @@ public sealed class RobotProvisioningService : IRobotProvisioningService, IRobot
         await SendBleEnvelopeAsync(RobotBleProtocol.SerializeProfile(profile), cancellationToken);
     }
 
+    public async Task SetAudioVolumeAsync(int volume, CancellationToken cancellationToken = default)
+    {
+        if (volume is < 0 or > 30) throw new ArgumentOutOfRangeException(nameof(volume));
+        await SendBleEnvelopeAsync(RobotBleProtocol.SerializeAudioVolume(volume), cancellationToken);
+    }
+
     public async Task ApplyHardwareConfigurationAsync(RobotHardwareConfiguration configuration, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
