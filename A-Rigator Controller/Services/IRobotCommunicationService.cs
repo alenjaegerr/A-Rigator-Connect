@@ -33,6 +33,8 @@ public interface IRobotCommunicationService
 
     Task SetAudioVolumeAsync(int volume, CancellationToken cancellationToken = default);
 
+    Task SetLedOutputAsync(bool enabled, CancellationToken cancellationToken = default);
+
     Task StartManualIrrigationAsync(CancellationToken cancellationToken = default);
 
     Task StopManualIrrigationAsync(CancellationToken cancellationToken = default);
