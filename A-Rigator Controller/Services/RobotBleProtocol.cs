@@ -76,6 +76,18 @@ internal static class RobotBleProtocol
         _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unsupported BLE command.")
     };
 
+    public static string SerializeLedOutput(bool enabled)
+    {
+        return JsonSerializer.Serialize(new
+        {
+            version = Version,
+            commandId = Guid.NewGuid().ToString("N"),
+            command = "led_output",
+            issuedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+            payload = new { enabled }
+        }, JsonOptions);
+    }
+
     public static string SerializeAudioVolume(int volume)
     {
         if (volume is < 0 or > 30) throw new ArgumentOutOfRangeException(nameof(volume));
