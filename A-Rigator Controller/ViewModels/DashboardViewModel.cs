@@ -159,24 +159,39 @@ public sealed class DashboardViewModel : INotifyPropertyChanged
 
     public string MotorStatus => _activeMotorCommand?.ToString().ToUpperInvariant() ?? "STOPPED";
 
-    public string WaterStatus => _latestStatus?.WaterSensorValid == true &&
-        _latestStatus.WaterLevelPercent is float percentage
-            ? $"{Math.Clamp((int)Math.Round(percentage), 0, 100)}%"
-            : "UNAVAILABLE";
+    private bool IsWaterTankEmpty =>
+        _latestStatus?.WaterSensorValid == true &&
+        ((_latestStatus.WaterDistanceCm is float distance && distance >= 13.0f) ||
+         (_latestStatus.WaterLevelPercent is float percentage && percentage <= 0.0f));
+
+    public string WaterStatus => _latestStatus?.WaterSensorValid != true
+        ? "UNAVAILABLE"
+        : IsWaterTankEmpty
+            ? "EMPTY"
+            : _latestStatus.WaterLevelPercent is float percentage
+                ? $"{Math.Clamp((int)Math.Round(percentage), 0, 100)}%"
+                : "UNAVAILABLE";
 
     public double WaterProgress => _latestStatus?.WaterSensorValid == true &&
         _latestStatus.WaterLevelPercent is float percentage
             ? Math.Clamp(percentage / 100.0, 0.0, 1.0)
             : 0.0;
 
-    public string WaterDistanceStatus => _latestStatus?.WaterSensorValid == true &&
-        _latestStatus.WaterDistanceCm is float distance
-            ? $"Surface distance: {distance:0.0} cm"
-            : "Waiting for a valid water-level reading";
+    public string WaterDistanceStatus => _latestStatus?.WaterSensorValid != true
+        ? "Waiting for a valid water-level reading"
+        : IsWaterTankEmpty
+            ? _latestStatus.WaterDistanceCm is float distance
+                ? $"Tank empty · {distance:0.0} cm detected"
+                : "Tank is empty"
+            : _latestStatus.WaterDistanceCm is float surfaceDistance
+                ? $"Surface distance: {surfaceDistance:0.0} cm"
+                : "Water level reading received";
 
-    public string WaterSensorStatus => _latestStatus?.WaterSensorValid == true
-        ? "LIVE SENSOR"
-        : "SENSOR UNAVAILABLE";
+    public string WaterSensorStatus => _latestStatus?.WaterSensorValid != true
+        ? "SENSOR UNAVAILABLE"
+        : IsWaterTankEmpty
+            ? "TANK EMPTY"
+            : "LIVE SENSOR";
 
     private const float BatteryEmptyVoltage = 5.8f;
     private const float BatteryFullVoltage = 7.2f;
