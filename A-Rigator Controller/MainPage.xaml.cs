@@ -28,7 +28,9 @@ namespace A_Rigator_Controller
         {
             ViewModel.PropertyChanged -= OnDashboardPropertyChanged;
             this.AbortAnimation("DashboardConnectionPulse");
-            ConnectionPulseDot.Opacity = 0.35;
+            var dot = this.FindByName<Ellipse>("ConnectionPulseDot");
+            if (dot is not null)
+                dot.Opacity = 0.35;
             base.OnDisappearing();
         }
 
@@ -44,13 +46,17 @@ namespace A_Rigator_Controller
         private void UpdateConnectionPulse()
         {
             this.AbortAnimation("DashboardConnectionPulse");
+            var dot = this.FindByName<Ellipse>("ConnectionPulseDot");
+            if (dot is null)
+                return;
+
             if (!ViewModel.IsConnected)
             {
-                ConnectionPulseDot.Opacity = 0.35;
+                dot.Opacity = 0.35;
                 return;
             }
 
-            var pulse = new Animation(value => ConnectionPulseDot.Opacity = value, 1.0, 0.25);
+            var pulse = new Animation(value => dot.Opacity = value, 1.0, 0.25);
             pulse.Commit(this, "DashboardConnectionPulse", 16, 1100,
                 Easing.SinInOut, finished: null, repeat: () => ViewModel.IsConnected);
         }
