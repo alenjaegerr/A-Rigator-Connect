@@ -1192,7 +1192,7 @@ bool sendRawPacket(uint8_t channel, uint8_t dir, float speed_percent) {
     pumpState = false;
     digitalWrite(PUMP_RELAY_PIN, RELAY_OFF);
 
-    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Outputs stopped; automatic recovery scheduled. Total errors: %lu\\n",
+    Serial.printf(">> [I2C] Motor shield communication lost (error %u). Outputs stopped; automatic recovery scheduled. Total errors: %lu\n",
                   err, (unsigned long)motorShieldI2cErrorCount);
     return false;
   }
@@ -1233,7 +1233,7 @@ void serviceMotorShieldRecovery() {
 
   lastShieldRecoveryAttemptAt = now;
   ++motorShieldRecoveryAttempts;
-  Serial.printf(">> [I2C] Motor shield recovery attempt %lu (PWM %lu Hz).\\n",
+  Serial.printf(">> [I2C] Motor shield recovery attempt %lu (PWM %lu Hz).\n",
                 (unsigned long)motorShieldRecoveryAttempts,
                 (unsigned long)MOTOR_PWM_FREQUENCY_HZ);
 
