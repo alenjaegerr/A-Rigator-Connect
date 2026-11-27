@@ -52,6 +52,8 @@ public sealed class RobotStatus
     public float? WaterLevelPercent { get; init; }
     public int? AudioVolume { get; init; }
 
+    public bool? LedOutputEnabled { get; init; }
+
     public float? ObstacleDistanceCm { get; init; }
 
     public bool? ObstacleEchoDetected { get; init; }
