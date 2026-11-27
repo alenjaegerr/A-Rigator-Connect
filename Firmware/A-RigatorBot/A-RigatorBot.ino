@@ -578,9 +578,17 @@ bool startBleDiscovery() {
 #define OBSTACLE_TRIG_PIN   18    // JSN-B02 Trigger (D18)
 #define OBSTACLE_ECHO_PIN   19    // JSN-B02 Echo (D19)
 
-// Reservoir water-level sonar (GPIOs reserved; placement/calibration pending)
+// Reservoir water-level JSN-B02 sonar.
 #define WATER_TRIG_PIN      25
 #define WATER_ECHO_PIN      26
+static const float WATER_EMPTY_DISTANCE_CM = 13.0f;
+static const float WATER_FULL_DISTANCE_CM = 2.0f;
+static const unsigned long WATER_SENSOR_INTERVAL_MS = 1000;
+static const unsigned long WATER_SENSOR_TIMEOUT_US = 25000;
+float waterDistanceCm = 0.0f;
+float waterLevelPercent = 0.0f;
+bool waterSensorValid = false;
+unsigned long lastWaterSensorReadAt = 0;
 
 // Added peripherals (ESP32-WROOM-32U)
 #define DFPLAYER_RX_PIN     16    // ESP32 RX2 <- DFPlayer TX
@@ -754,7 +762,7 @@ bool controlsEnabled = false;
 HardwareSerial audioSerial(2);
 DFRobotDFPlayerMini audioPlayer;
 bool audioAvailable = false;
-uint8_t audioVolume = 15;
+uint8_t audioVolume = 25;
 bool ledOutputEnabled = false;
 bool ledManualOverride = false;
 unsigned long ledControllerStartedAt = 0;
@@ -843,7 +851,7 @@ void serviceBleControlCommands() {
     requestOperatingMode(command == "switch_remote" ? ROBOT_MODE_REMOTE : ROBOT_MODE_LOCAL);
     return;
   }
-  if (command != "heartbeat" && command != "irrigation_profile")
+  if (command != "heartbeat" && command != "irrigation_profile" && command != "audio_volume")
     manualControlViaMqtt = false;
   bool supported = true;
   bleCommandRejected = false;
@@ -869,6 +877,14 @@ void serviceBleControlCommands() {
     if (!saveRobotHardwareConfiguration(sl, sc, sr, nmin, nc, nmax, nl, nr)) {
       bleCommandExecution = false;
       publishBleControlAck(commandId, "rejected", "CONFIG_SAVE_FAILED", "Could not persist robot configuration");
+      return;
+    }
+  } else if (command == "audio_volume") {
+    JsonObjectConst payload = doc["payload"].as<JsonObjectConst>();
+    const int requestedVolume = payload["volume"] | -1;
+    if (!setAudioVolume(requestedVolume)) {
+      bleCommandExecution = false;
+      publishBleControlAck(commandId, "rejected", "INVALID_AUDIO_VOLUME", "Volume must be 0-30 and could not be saved");
       return;
     }
   } else if (command == "irrigation_profile") {
@@ -994,6 +1010,11 @@ void publishBleTelemetryIfDue() {
   }
   doc["hostname"] = "A-Rigator";
   doc["obstacleDistanceCm"] = getObstacleDistanceCM();
+  doc["waterSensorValid"] = waterSensorValid;
+  doc["waterDistanceCm"] = nullptr;
+  if (waterSensorValid) doc["waterDistanceCm"] = waterDistanceCm;
+  doc["waterLevelPercent"] = waterSensorValid ? waterLevelPercent : 0.0f;
+  doc["audioVolume"] = audioVolume;
   doc["obstacleStopThresholdCm"] = OBSTACLE_STOP_CM;
   doc["manualControlTimeoutMs"] = REMOTE_MANUAL_CONTROL_TIMEOUT_MS;
   doc["steeringLeftAngle"] = STEER_LEFT;
@@ -1225,14 +1246,24 @@ void writeServo(int pin, int angle) {
 
 void initializeAudio() {
   audioSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX_PIN, DFPLAYER_TX_PIN);
+  audioVolume = constrain(robotHardwarePreferences.getUChar("audio_vol", 25), 0, 30);
   if (audioPlayer.begin(audioSerial, true, true)) {
     audioAvailable = true;
-    audioPlayer.volume(15); // Moderate test volume for the 8-ohm, 0.5W speaker (DFPlayer range: 0-30)
-    Serial.println(">> DFPlayer Mini initialized.");
+    audioPlayer.volume(audioVolume);
+    Serial.printf(">> DFPlayer Mini initialized. Saved volume: %u/30.\\n", audioVolume);
   } else {
     audioAvailable = false;
     Serial.println(">> DFPlayer Mini not detected; robot will run without audio.");
   }
+}
+
+bool setAudioVolume(int requestedVolume) {
+  if (requestedVolume < 0 || requestedVolume > 30) return false;
+  audioVolume = (uint8_t)requestedVolume;
+  if (robotHardwarePreferences.putUChar("audio_vol", audioVolume) == 0) return false;
+  if (audioAvailable) audioPlayer.volume(audioVolume);
+  Serial.printf(">> [AUDIO] Volume saved: %u/30.\\n", audioVolume);
+  return true;
 }
 
 void playAudioTrack(uint16_t trackNumber) {
@@ -1990,7 +2021,7 @@ void serviceMqttCommands() {
       command == "terrain_start" || command == "terrain_stop") {
     manualControlViaMqtt = false;
   } else if (command != "heartbeat" && command != "irrigation_profile" &&
-             command != "robot_config") {
+             command != "robot_config" && command != "audio_volume") {
     manualControlViaMqtt = true;
   }
 
@@ -2037,6 +2068,14 @@ void serviceMqttCommands() {
       bleCommandExecution = false;
       publishMqttCommandAck(commandId, "rejected", "CONFIG_SAVE_FAILED",
           "Could not persist robot configuration");
+      return;
+    }
+  } else if (command == "audio_volume") {
+    JsonObjectConst payload = document["payload"].as<JsonObjectConst>();
+    const int requestedVolume = payload["volume"] | -1;
+    if (!setAudioVolume(requestedVolume)) {
+      bleCommandExecution = false;
+      publishMqttCommandAck(commandId, "rejected", "INVALID_AUDIO_VOLUME", "Volume must be 0-30 and could not be saved");
       return;
     }
   } else if (command == "irrigation_profile") {
@@ -2194,6 +2233,29 @@ float getObstacleDistanceCM() {
   long duration = pulseIn(OBSTACLE_ECHO_PIN, HIGH, 30000);
   if (duration == 0) return 999.0;
   return (duration * 0.0343) / 2.0;
+}
+
+void updateWaterLevelSensor() {
+  if (millis() - lastWaterSensorReadAt < WATER_SENSOR_INTERVAL_MS) return;
+  lastWaterSensorReadAt = millis();
+  digitalWrite(WATER_TRIG_PIN, LOW);
+  delayMicroseconds(3);
+  digitalWrite(WATER_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(WATER_TRIG_PIN, LOW);
+  const unsigned long duration = pulseIn(WATER_ECHO_PIN, HIGH, WATER_SENSOR_TIMEOUT_US);
+  if (duration == 0) { waterSensorValid = false; return; }
+  const float measuredDistance = (duration * 0.0343f) / 2.0f;
+  if (!isfinite(measuredDistance) || measuredDistance < 1.0f || measuredDistance > 25.0f) {
+    waterSensorValid = false;
+    return;
+  }
+  waterDistanceCm = measuredDistance;
+  waterLevelPercent = constrain(
+    ((WATER_EMPTY_DISTANCE_CM - measuredDistance) /
+     (WATER_EMPTY_DISTANCE_CM - WATER_FULL_DISTANCE_CM)) * 100.0f,
+    0.0f, 100.0f);
+  waterSensorValid = true;
 }
 
 void sweepNozzleOnce() {
@@ -2711,6 +2773,9 @@ void setup() {
   pinMode(OBSTACLE_TRIG_PIN, OUTPUT);
   digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   pinMode(OBSTACLE_ECHO_PIN, INPUT);
+  pinMode(WATER_TRIG_PIN, OUTPUT);
+  digitalWrite(WATER_TRIG_PIN, LOW);
+  pinMode(WATER_ECHO_PIN, INPUT);
   pinMode(BATTERY_ADC_PIN, INPUT);
 
   // Load persisted calibration only after Serial and safe output states are ready.
@@ -2824,6 +2889,7 @@ void setup() {
 
 void loop() {
   readBatteryVoltage();
+  updateWaterLevelSensor();
   serviceAudioAnnouncements();
   serviceLedIndications();
   const time_t currentEpoch = time(nullptr);
