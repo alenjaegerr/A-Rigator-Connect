@@ -175,6 +175,7 @@
                             <Label Text="WATER LEVEL" FontSize="10" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
                             <Label Text="{Binding WaterStatus}" FontSize="21" FontAttributes="Bold" TextColor="{AppThemeBinding Light=#173D2B, Dark=#E7F0E9}" />
                             <Label Text="{Binding WaterDistanceStatus}" FontSize="12" LineBreakMode="WordWrap" TextColor="{AppThemeBinding Light=#64736A, Dark=#AAB8AE}" />
+                            <ProgressBar Progress="{Binding WaterProgress}" ProgressColor="#2799C7" BackgroundColor="{AppThemeBinding Light=#DCE6DF, Dark=#405447}" HeightRequest="10" />
                             <Border Padding="9,7" BackgroundColor="{AppThemeBinding Light=#EAF3EE, Dark=#26372C}" StrokeThickness="0" StrokeShape="RoundRectangle 9">
                                 <Label Text="Calibrated: 13 cm empty · 2 cm full" FontSize="10" TextColor="{AppThemeBinding Light=#426451, Dark=#B8D7C3}" />
                             </Border>

@@ -3,10 +3,11 @@
 #include <time.h>
 #include <sys/time.h>
 #include <Preferences.h>
+#include <math.h>
 
 // Firmware version reported through BLE telemetry and MQTT.
 #define ARIGATOR_FIRMWARE_VERSION "0.1.0"
-#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.26-staggered-power-startup"
+#define ARIGATOR_BUILD_ID "arigator-unified-2026.11.27-water-audio"
 
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
@@ -1250,7 +1251,7 @@ void initializeAudio() {
   if (audioPlayer.begin(audioSerial, true, true)) {
     audioAvailable = true;
     audioPlayer.volume(audioVolume);
-    Serial.printf(">> DFPlayer Mini initialized. Saved volume: %u/30.\\n", audioVolume);
+    Serial.printf(">> DFPlayer Mini initialized. Saved volume: %u/30.\n", audioVolume);
   } else {
     audioAvailable = false;
     Serial.println(">> DFPlayer Mini not detected; robot will run without audio.");
@@ -1262,7 +1263,7 @@ bool setAudioVolume(int requestedVolume) {
   audioVolume = (uint8_t)requestedVolume;
   if (robotHardwarePreferences.putUChar("audio_vol", audioVolume) == 0) return false;
   if (audioAvailable) audioPlayer.volume(audioVolume);
-  Serial.printf(">> [AUDIO] Volume saved: %u/30.\\n", audioVolume);
+  Serial.printf(">> [AUDIO] Volume saved: %u/30.\n", audioVolume);
   return true;
 }
 
