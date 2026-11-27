@@ -590,6 +590,8 @@ float waterDistanceCm = 0.0f;
 float waterLevelPercent = 0.0f;
 bool waterSensorValid = false;
 unsigned long lastWaterSensorReadAt = 0;
+unsigned long lastObstaclePingAt = 0;
+unsigned long lastWaterPingAt = 0;
 
 // Added peripherals (ESP32-WROOM-32U)
 #define DFPLAYER_RX_PIN     16    // ESP32 RX2 <- DFPlayer TX
@@ -2225,6 +2227,10 @@ void enforceRemoteManualControlTimeout() {
 }
 
 float getObstacleDistanceCM() {
+  // Keep the two ultrasonic sensors from hearing each other's echo.
+  if (lastWaterPingAt != 0 && millis() - lastWaterPingAt < 70)
+    delay(70 - (millis() - lastWaterPingAt));
+  lastObstaclePingAt = millis();
   digitalWrite(OBSTACLE_TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(OBSTACLE_TRIG_PIN, HIGH);
@@ -2238,7 +2244,9 @@ float getObstacleDistanceCM() {
 
 void updateWaterLevelSensor() {
   if (millis() - lastWaterSensorReadAt < WATER_SENSOR_INTERVAL_MS) return;
+  if (lastObstaclePingAt != 0 && millis() - lastObstaclePingAt < 70) return;
   lastWaterSensorReadAt = millis();
+  lastWaterPingAt = millis();
   digitalWrite(WATER_TRIG_PIN, LOW);
   delayMicroseconds(3);
   digitalWrite(WATER_TRIG_PIN, HIGH);
